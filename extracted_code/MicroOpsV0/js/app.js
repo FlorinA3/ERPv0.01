@@ -940,6 +940,215 @@ App.Services.Auth = {
   }
 };
 
+/**
+ * Keyboard Shortcuts Service
+ */
+App.Services.Keyboard = {
+  shortcuts: {},
+  enabled: true,
+
+  init() {
+    // Define default shortcuts
+    this.shortcuts = {
+      // Navigation shortcuts (Alt + key)
+      'alt+d': { action: () => App.Core.Router.navigate('dashboard'), description: 'Go to Dashboard' },
+      'alt+o': { action: () => App.Core.Router.navigate('orders'), description: 'Go to Orders' },
+      'alt+i': { action: () => App.Core.Router.navigate('inventory'), description: 'Go to Inventory' },
+      'alt+c': { action: () => App.Core.Router.navigate('customers'), description: 'Go to Customers' },
+      'alt+p': { action: () => App.Core.Router.navigate('products'), description: 'Go to Products' },
+      'alt+r': { action: () => App.Core.Router.navigate('reports'), description: 'Go to Reports' },
+      'alt+s': { action: () => App.Core.Router.navigate('settings'), description: 'Go to Settings' },
+      'alt+m': { action: () => App.Core.Router.navigate('movements'), description: 'Go to Movements' },
+      'alt+b': { action: () => App.Core.Router.navigate('batches'), description: 'Go to Batches' },
+      'alt+u': { action: () => App.Core.Router.navigate('purchaseOrders'), description: 'Go to Purchase Orders' },
+
+      // Quick actions (Ctrl + key)
+      'ctrl+n': { action: () => this._createNew(), description: 'Create new (context-aware)' },
+      'ctrl+f': { action: () => this._focusSearch(), description: 'Focus search' },
+      'ctrl+e': { action: () => this._exportCurrent(), description: 'Export current view' },
+
+      // Utility shortcuts
+      'escape': { action: () => App.UI.Modal.close(), description: 'Close modal' },
+      'f1': { action: () => this.showHelp(), description: 'Show keyboard shortcuts' },
+      '?': { action: () => this.showHelp(), description: 'Show keyboard shortcuts', requireShift: true },
+
+      // Theme toggle
+      'alt+t': { action: () => this._toggleTheme(), description: 'Toggle theme (dark/light)' },
+
+      // Lock screen
+      'ctrl+l': { action: () => App.Services.Auth.lock(), description: 'Lock screen' }
+    };
+
+    // Add event listener
+    document.addEventListener('keydown', (e) => this._handleKeydown(e));
+  },
+
+  _handleKeydown(e) {
+    // Don't trigger shortcuts when typing in inputs/textareas
+    const target = e.target;
+    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable;
+
+    // Allow Escape to work everywhere
+    if (e.key === 'Escape') {
+      const shortcut = this.shortcuts['escape'];
+      if (shortcut) {
+        e.preventDefault();
+        shortcut.action();
+      }
+      return;
+    }
+
+    // Skip shortcuts when typing in inputs (except Escape)
+    if (isInput) return;
+
+    // Don't process if disabled or user not logged in
+    if (!this.enabled || !App.Services.Auth.currentUser || App.Services.Auth.isLocked) return;
+
+    // Build shortcut key
+    let key = '';
+    if (e.ctrlKey || e.metaKey) key += 'ctrl+';
+    if (e.altKey) key += 'alt+';
+    if (e.shiftKey && !['shift', 'Shift'].includes(e.key)) key += 'shift+';
+    key += e.key.toLowerCase();
+
+    // Handle ? key specially
+    if (e.shiftKey && e.key === '?') {
+      key = '?';
+    }
+
+    const shortcut = this.shortcuts[key];
+    if (shortcut) {
+      e.preventDefault();
+      shortcut.action();
+    }
+  },
+
+  _createNew() {
+    const route = App.Core.Router.currentRoute;
+    switch (route) {
+      case 'orders':
+        if (App.UI.Views.Orders?.openCreateModal) App.UI.Views.Orders.openCreateModal();
+        break;
+      case 'customers':
+        if (App.UI.Views.Customers?.openModal) App.UI.Views.Customers.openModal();
+        break;
+      case 'products':
+        if (App.UI.Views.Products?.openModal) App.UI.Views.Products.openModal();
+        break;
+      case 'components':
+        if (App.UI.Views.Components?.openModal) App.UI.Views.Components.openModal();
+        break;
+      case 'suppliers':
+        if (App.UI.Views.Suppliers?.openModal) App.UI.Views.Suppliers.openModal();
+        break;
+      case 'carriers':
+        if (App.UI.Views.Carriers?.openModal) App.UI.Views.Carriers.openModal();
+        break;
+      case 'batches':
+        if (App.UI.Views.Batches?.openBatchModal) App.UI.Views.Batches.openBatchModal();
+        break;
+      case 'purchaseOrders':
+        if (App.UI.Views.PurchaseOrders?.openPOModal) App.UI.Views.PurchaseOrders.openPOModal();
+        break;
+      case 'production':
+        if (App.UI.Views.Production?.openModal) App.UI.Views.Production.openModal();
+        break;
+      case 'tasks':
+        if (App.UI.Views.Tasks?.openModal) App.UI.Views.Tasks.openModal();
+        break;
+      default:
+        App.UI.Toast.show('No create action for this page');
+    }
+  },
+
+  _focusSearch() {
+    const searchInput = document.querySelector('.search-input, input[type="search"], #search');
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.select();
+    } else {
+      App.UI.Toast.show('No search field on this page');
+    }
+  },
+
+  _exportCurrent() {
+    const route = App.Core.Router.currentRoute;
+    switch (route) {
+      case 'orders':
+        document.getElementById('ord-export-excel')?.click();
+        break;
+      case 'inventory':
+        document.getElementById('inv-export')?.click();
+        break;
+      case 'reports':
+        // Reports have their own export buttons
+        App.UI.Toast.show('Select an export option from Reports page');
+        break;
+      default:
+        App.UI.Toast.show('No export available for this page');
+    }
+  },
+
+  _toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+
+    // Save to config
+    if (App.Data.config) {
+      App.Data.config.theme = newTheme;
+      App.DB.save();
+    }
+
+    App.UI.Toast.show(`Theme: ${newTheme}`);
+  },
+
+  showHelp() {
+    const categories = {
+      'Navigation': ['alt+d', 'alt+o', 'alt+i', 'alt+c', 'alt+p', 'alt+r', 'alt+s', 'alt+m', 'alt+b', 'alt+u'],
+      'Actions': ['ctrl+n', 'ctrl+f', 'ctrl+e', 'ctrl+l'],
+      'Utility': ['escape', 'f1', 'alt+t']
+    };
+
+    let helpHtml = '<div style="max-height:400px; overflow-y:auto;">';
+
+    for (const [category, keys] of Object.entries(categories)) {
+      helpHtml += `<h4 style="margin:12px 0 8px; font-size:14px; font-weight:600; color:var(--color-primary);">${category}</h4>`;
+      helpHtml += '<table style="width:100%; font-size:13px;">';
+
+      for (const key of keys) {
+        const shortcut = this.shortcuts[key];
+        if (shortcut) {
+          const displayKey = key.replace('ctrl+', 'Ctrl + ').replace('alt+', 'Alt + ').replace('shift+', 'Shift + ').toUpperCase();
+          helpHtml += `
+            <tr>
+              <td style="padding:4px 8px;"><kbd style="background:var(--color-bg); padding:2px 6px; border-radius:4px; border:1px solid var(--color-border); font-family:monospace;">${displayKey}</kbd></td>
+              <td style="padding:4px 8px; color:var(--color-text-muted);">${shortcut.description}</td>
+            </tr>
+          `;
+        }
+      }
+      helpHtml += '</table>';
+    }
+
+    helpHtml += '</div>';
+
+    App.UI.Modal.open('Keyboard Shortcuts', helpHtml, [
+      { text: 'Close', variant: 'ghost', onClick: () => {} }
+    ]);
+  },
+
+  // Allow custom shortcuts to be added
+  register(key, action, description) {
+    this.shortcuts[key.toLowerCase()] = { action, description };
+  },
+
+  // Remove a shortcut
+  unregister(key) {
+    delete this.shortcuts[key.toLowerCase()];
+  }
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     await App.DB.init();
@@ -948,6 +1157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     App.UI.Navbar.init();
     App.UI.Sidebar.init();
     App.UI.Modal.init();
+    App.Services.Keyboard.init();
     App.Services.Auth.initLoginScreen();
   } catch (e) {
     console.error(e);

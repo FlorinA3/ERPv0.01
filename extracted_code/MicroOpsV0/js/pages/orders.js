@@ -1,11 +1,36 @@
 App.UI.Views.Orders = {
+  statusFlow: ['draft', 'confirmed', 'processing', 'shipped', 'delivered', 'paid', 'cancelled'],
+
   render(root) {
     const orders = App.Data.orders || [];
+    const carriers = App.Data.carriers || [];
     // Sort orders by date descending
     orders.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+    // Calculate order stats
+    const stats = {
+      total: orders.length,
+      pending: orders.filter(o => ['draft', 'confirmed', 'processing'].includes(o.status?.toLowerCase())).length,
+      shipped: orders.filter(o => o.status?.toLowerCase() === 'shipped').length,
+      completed: orders.filter(o => ['delivered', 'paid'].includes(o.status?.toLowerCase())).length
+    };
+
+    const getStatusBadge = (status) => {
+      const st = (status || 'draft').toLowerCase();
+      const styles = {
+        draft: 'background:#e5e7eb;color:#374151;',
+        confirmed: 'background:#dbeafe;color:#1d4ed8;',
+        processing: 'background:#fef3c7;color:#d97706;',
+        shipped: 'background:#e0e7ff;color:#4f46e5;',
+        delivered: 'background:#d1fae5;color:#059669;',
+        paid: 'background:#dcfce7;color:#16a34a;',
+        cancelled: 'background:#fee2e2;color:#dc2626;'
+      };
+      return `<span class="tag" style="${styles[st] || ''}">${status?.toUpperCase() || 'DRAFT'}</span>`;
+    };
+
     root.innerHTML = `
-      <div class="card-soft">
+      <div class="card-soft" style="margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.orders.title','Orders')}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
@@ -13,39 +38,59 @@ App.UI.Views.Orders = {
             <button class="btn btn-primary" id="btn-add-order">+ ${App.I18n.t('orders.create','Create Order')}</button>
           </div>
         </div>
+
+        <div class="grid grid-4" style="margin-bottom:16px;">
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Total Orders</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px;">${stats.total}</div>
+          </div>
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Pending</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px; ${stats.pending > 0 ? 'color:#f59e0b;' : ''}">${stats.pending}</div>
+          </div>
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Shipped</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px; ${stats.shipped > 0 ? 'color:#4f46e5;' : ''}">${stats.shipped}</div>
+          </div>
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Completed</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px; ${stats.completed > 0 ? 'color:#16a34a;' : ''}">${stats.completed}</div>
+          </div>
+        </div>
+
         <table class="table">
           <thead>
             <tr>
               <th>Order</th>
               <th>Customer</th>
               <th>Status</th>
+              <th>Carrier</th>
               <th>Date</th>
               <th style="text-align:right;">Total</th>
-              <th style="text-align:center;">Generate</th>
+              <th style="text-align:center;">Actions</th>
             </tr>
           </thead>
           <tbody>
-            ${orders.map(o => {
+            ${orders.length > 0 ? orders.map(o => {
               const cust = App.Data.customers.find(c => c.id === o.custId);
-              let statusClass = 'tag-muted';
-              const st = (o.status || '').toString().toLowerCase();
-              if (st === 'paid') statusClass = 'tag-success';
-              else if (st === 'shipped') statusClass = 'tag-info';
-              else if (st === 'confirmed') statusClass = 'tag-primary';
+              const carrier = o.carrierId ? carriers.find(c => c.id === o.carrierId) : null;
               return `
                 <tr>
-                  <td>${o.orderId || o.id}</td>
+                  <td><strong>${o.orderId || o.id}</strong></td>
                   <td>${cust ? cust.company : '-'}</td>
-                  <td><span class="tag ${statusClass}">${o.status || 'Open'}</span></td>
+                  <td>${getStatusBadge(o.status)}</td>
+                  <td>${carrier ? carrier.name : '-'}</td>
                   <td>${App.Utils.formatDate(o.date)}</td>
                   <td style="text-align:right;">${App.Utils.formatCurrency(o.totalGross || o.subtotalNet || 0)}</td>
                   <td style="text-align:center;">
-                    <button class="btn btn-ghost btn-gen-delivery" data-id="${o.id}" title="Create Delivery Note">📦</button>
-                    <button class="btn btn-ghost btn-gen-invoice" data-id="${o.id}" title="Create Invoice">🧾</button>
+                    <button class="btn btn-ghost btn-view-order" data-id="${o.id}" title="View Details">👁️</button>
+                    <button class="btn btn-ghost btn-status-order" data-id="${o.id}" title="Change Status">🔄</button>
+                    <button class="btn btn-ghost btn-gen-delivery" data-id="${o.id}" title="Delivery Note">📦</button>
+                    <button class="btn btn-ghost btn-gen-invoice" data-id="${o.id}" title="Invoice">🧾</button>
                   </td>
                 </tr>
               `;
-            }).join('')}
+            }).join('') : '<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">No orders</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -101,6 +146,212 @@ App.UI.Views.Orders = {
         }
       });
     });
+
+    root.querySelectorAll('.btn-view-order').forEach(btn => {
+      btn.addEventListener('click', () => this.viewOrder(btn.getAttribute('data-id')));
+    });
+
+    root.querySelectorAll('.btn-status-order').forEach(btn => {
+      btn.addEventListener('click', () => this.changeStatus(btn.getAttribute('data-id')));
+    });
+  },
+
+  viewOrder(id) {
+    const orders = App.Data.orders || [];
+    const order = orders.find(o => o.id === id);
+    if (!order) return;
+
+    const cust = App.Data.customers.find(c => c.id === order.custId);
+    const carrier = order.carrierId ? (App.Data.carriers || []).find(c => c.id === order.carrierId) : null;
+
+    const itemsHtml = (order.items || []).map(item => {
+      const prod = (App.Data.products || []).find(p => p.id === item.productId);
+      return `
+        <tr>
+          <td>${prod ? (prod.internalArticleNumber || prod.sku) : '-'}</td>
+          <td>${prod ? (prod.nameDE || prod.nameEN) : item.productId}</td>
+          <td style="text-align:right;">${item.qty}</td>
+          <td style="text-align:right;">${App.Utils.formatCurrency(item.unitPrice || 0)}</td>
+          <td style="text-align:right;">${App.Utils.formatCurrency(item.lineNet || 0)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const body = `
+      <div style="margin-bottom:12px;">
+        <div class="grid grid-2" style="gap:16px;">
+          <div>
+            <strong>Order:</strong> ${order.orderId || order.id}<br>
+            <strong>Date:</strong> ${App.Utils.formatDate(order.date)}<br>
+            <strong>Status:</strong> ${order.status || 'Draft'}
+          </div>
+          <div>
+            <strong>Customer:</strong> ${cust ? cust.company : '-'}<br>
+            <strong>Carrier:</strong> ${carrier ? carrier.name : '-'}<br>
+            ${order.trackingNumber ? `<strong>Tracking:</strong> ${order.trackingNumber}` : ''}
+          </div>
+        </div>
+      </div>
+
+      <table class="table" style="font-size:13px;">
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th>Product</th>
+            <th style="text-align:right;">Qty</th>
+            <th style="text-align:right;">Price</th>
+            <th style="text-align:right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${itemsHtml}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" style="text-align:right;"><strong>Subtotal:</strong></td>
+            <td style="text-align:right;">${App.Utils.formatCurrency(order.subtotalNet || 0)}</td>
+          </tr>
+          <tr>
+            <td colspan="4" style="text-align:right;">VAT (20%):</td>
+            <td style="text-align:right;">${App.Utils.formatCurrency(order.vatAmount || 0)}</td>
+          </tr>
+          <tr>
+            <td colspan="4" style="text-align:right;"><strong>Total:</strong></td>
+            <td style="text-align:right;"><strong>${App.Utils.formatCurrency(order.totalGross || 0)}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      ${order.notes ? `<p style="margin-top:12px; font-size:12px; color:var(--color-text-muted);">Notes: ${order.notes}</p>` : ''}
+    `;
+
+    App.UI.Modal.open('Order Details', body, [
+      { text: 'Close', variant: 'ghost', onClick: () => {} }
+    ]);
+  },
+
+  changeStatus(id) {
+    const orders = App.Data.orders || [];
+    const order = orders.find(o => o.id === id);
+    if (!order) return;
+
+    const carriers = App.Data.carriers || [];
+    const currentStatus = (order.status || 'draft').toLowerCase();
+
+    const statusOpts = this.statusFlow.map(s =>
+      `<option value="${s}" ${currentStatus === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`
+    ).join('');
+
+    const carrierOpts = [
+      '<option value="">-- No Carrier --</option>',
+      ...carriers.map(c => `<option value="${c.id}" ${order.carrierId === c.id ? 'selected' : ''}>${c.name}</option>`)
+    ].join('');
+
+    const body = `
+      <div>
+        <p style="margin-bottom:12px;">
+          Order: <strong>${order.orderId || order.id}</strong>
+        </p>
+
+        <label class="field-label">Status</label>
+        <select id="status-select" class="input">${statusOpts}</select>
+
+        <div id="shipping-fields" style="margin-top:12px; ${['shipped', 'delivered'].includes(currentStatus) ? '' : 'display:none;'}">
+          <label class="field-label">Carrier</label>
+          <select id="carrier-select" class="input">${carrierOpts}</select>
+
+          <label class="field-label" style="margin-top:8px;">Tracking Number</label>
+          <input id="tracking-input" class="input" value="${order.trackingNumber || ''}" placeholder="Enter tracking number" />
+
+          <label class="field-label" style="margin-top:8px;">Ship Date</label>
+          <input id="ship-date" class="input" type="date" value="${order.shipDate || new Date().toISOString().split('T')[0]}" />
+        </div>
+
+        <div id="delivery-fields" style="margin-top:12px; ${currentStatus === 'delivered' ? '' : 'display:none;'}">
+          <label class="field-label">Delivery Date</label>
+          <input id="delivery-date" class="input" type="date" value="${order.deliveryDate || new Date().toISOString().split('T')[0]}" />
+        </div>
+
+        <div id="payment-fields" style="margin-top:12px; ${currentStatus === 'paid' ? '' : 'display:none;'}">
+          <label class="field-label">Payment Date</label>
+          <input id="payment-date" class="input" type="date" value="${order.paymentDate || new Date().toISOString().split('T')[0]}" />
+
+          <label class="field-label" style="margin-top:8px;">Payment Method</label>
+          <select id="payment-method" class="input">
+            <option value="bank_transfer" ${order.paymentMethod === 'bank_transfer' ? 'selected' : ''}>Bank Transfer</option>
+            <option value="credit_card" ${order.paymentMethod === 'credit_card' ? 'selected' : ''}>Credit Card</option>
+            <option value="cash" ${order.paymentMethod === 'cash' ? 'selected' : ''}>Cash</option>
+            <option value="paypal" ${order.paymentMethod === 'paypal' ? 'selected' : ''}>PayPal</option>
+          </select>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label class="field-label">Notes</label>
+          <textarea id="status-notes" class="input" rows="2" placeholder="Optional notes about this status change">${order.statusNotes || ''}</textarea>
+        </div>
+      </div>
+    `;
+
+    App.UI.Modal.open('Change Order Status', body, [
+      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      {
+        text: 'Update',
+        variant: 'primary',
+        onClick: () => {
+          const newStatus = document.getElementById('status-select').value;
+
+          order.status = newStatus;
+          order.statusNotes = document.getElementById('status-notes').value.trim();
+          order.lastStatusChange = new Date().toISOString();
+
+          // Capture shipping info
+          if (['shipped', 'delivered', 'paid'].includes(newStatus)) {
+            order.carrierId = document.getElementById('carrier-select').value || null;
+            order.trackingNumber = document.getElementById('tracking-input').value.trim() || null;
+            order.shipDate = document.getElementById('ship-date').value || null;
+          }
+
+          // Capture delivery info
+          if (['delivered', 'paid'].includes(newStatus)) {
+            order.deliveryDate = document.getElementById('delivery-date').value || null;
+          }
+
+          // Capture payment info
+          if (newStatus === 'paid') {
+            order.paymentDate = document.getElementById('payment-date').value || null;
+            order.paymentMethod = document.getElementById('payment-method').value || null;
+          }
+
+          // Log status change
+          if (!order.statusHistory) order.statusHistory = [];
+          order.statusHistory.push({
+            status: newStatus,
+            date: new Date().toISOString(),
+            userId: App.Services.Auth.currentUser?.id,
+            notes: order.statusNotes
+          });
+
+          App.DB.save();
+          App.UI.Toast.show(`Order status updated to ${newStatus}`);
+          App.Core.Router.navigate('orders');
+        }
+      }
+    ]);
+
+    // Wire up dynamic field visibility
+    setTimeout(() => {
+      const statusSelect = document.getElementById('status-select');
+      const shippingFields = document.getElementById('shipping-fields');
+      const deliveryFields = document.getElementById('delivery-fields');
+      const paymentFields = document.getElementById('payment-fields');
+
+      if (statusSelect) {
+        statusSelect.onchange = () => {
+          const val = statusSelect.value;
+          shippingFields.style.display = ['shipped', 'delivered', 'paid'].includes(val) ? 'block' : 'none';
+          deliveryFields.style.display = ['delivered', 'paid'].includes(val) ? 'block' : 'none';
+          paymentFields.style.display = val === 'paid' ? 'block' : 'none';
+        };
+      }
+    }, 50);
   },
 
   openCreateModal() {

@@ -1,21 +1,29 @@
- 
-
 App.UI.Views.Inventory = {
-  
-  activeTab: 'Devices',
+  activeTab: 'Finished',
 
-  
   render(root) {
-    const items = (App.Data.products || App.Data.Products || []).filter(it => {
-      // Exclude services from inventory listing per specification
-      const type = (it.type || '').toLowerCase();
-      return type !== 'services' && type !== 'service';
-    });
-    // Inventory categories excluding services; align with specification
-    const categories = ['Devices', 'Consumables', 'Parts', 'Components'];
+    const products = App.Data.products || [];
+    const components = App.Data.components || [];
+
+    const productItems = products.filter(p => p.type !== 'Service');
+    const categories = ['Finished', 'Device', 'Consumable', 'Part'];
     const active = this.activeTab;
 
-    
+    const needsReorder = [
+      ...productItems.filter(p => (p.stock || 0) <= (p.reorderPoint || p.minStock || 0) && p.stock > 0),
+      ...components.filter(c => (c.stock || 0) <= (c.reorderPoint || c.safetyStock || 0) && c.stock > 0)
+    ].slice(0, 10);
+
+    const outOfStock = [
+      ...productItems.filter(p => (p.stock || 0) <= 0),
+      ...components.filter(c => (c.stock || 0) <= 0)
+    ].slice(0, 10);
+
+    const totalValue = productItems.reduce((sum, p) => {
+      const price = p.purchasePrice || p.avgPurchasePrice || 0;
+      return sum + ((p.stock || 0) * price);
+    }, 0);
+
     const tabsHtml = categories
       .map(cat => {
         const isActive = cat === active;
@@ -23,255 +31,284 @@ App.UI.Views.Inventory = {
       })
       .join('');
 
-    
-    const filtered = items.filter(it => {
-      const t = (it.type || '').toString().trim().toLowerCase();
+    const filtered = productItems.filter(p => {
+      const t = (p.type || '').toLowerCase();
       return t === active.toLowerCase();
     });
 
-    
-    const rowsHtml = filtered
-      .map(it => {
-        const price = App.Utils.formatCurrency(it.price);
-        const stock = it.stock != null ? `${it.stock}` : '-';
-        const isLow = (it.stock || 0) <= 5;
-        return `
-          <tr${isLow ? ' class="inv-low-stock"' : ''}>
-            <td>${it.name || '-'}</td>
-            <td>${it.sku || '-'}</td>
-            <td style="text-align:center;">${stock}</td>
-            <td style="text-align:right;">${price}</td>
-            <td style="text-align:right;">
-              <button class="btn btn-ghost btn-receive" data-id="${it.id}">⬆️</button>
-              <button class="btn btn-ghost btn-edit" data-id="${it.id}">✏️</button>
-              <button class="btn btn-ghost btn-delete" data-id="${it.id}">🗑️</button>
-            </td>
-          </tr>
-        `;
-      })
-      .join('');
+    const rowsHtml = filtered.length > 0 ? filtered.map(p => {
+      const stock = p.stock || 0;
+      const minStock = p.minStock || 0;
+      let stockClass = '';
+      let stockBadge = '';
+
+      if (stock <= 0) {
+        stockClass = 'color:#dc2626; font-weight:500;';
+        stockBadge = '<span class="tag" style="background:#fee2e2;color:#dc2626; margin-left:4px;">Out</span>';
+      } else if (stock <= minStock) {
+        stockClass = 'color:#f59e0b; font-weight:500;';
+        stockBadge = '<span class="tag" style="background:#fef3c7;color:#d97706; margin-left:4px;">Low</span>';
+      }
+
+      return `
+        <tr>
+          <td><strong>${p.internalArticleNumber || p.sku || '-'}</strong></td>
+          <td>${p.nameDE || p.nameEN || '-'}</td>
+          <td style="text-align:center; ${stockClass}">${stock}${stockBadge}</td>
+          <td style="text-align:center;">${minStock}</td>
+          <td style="text-align:right;">${App.Utils.formatCurrency(p.dealerPrice || p.purchasePrice || 0)}</td>
+          <td style="text-align:right;">
+            <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="Receive Stock">⬆️</button>
+            <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="Adjust Stock">🔄</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="6" style="text-align:center; padding:12px; color:var(--color-text-muted);">No items in this category</td></tr>`;
 
     root.innerHTML = `
-      <div class="card-soft">
+      <div class="card-soft" style="margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="font-size:16px; font-weight:600;">Inventory</h3>
+          <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.inventory.title','Inventory')}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button class="btn btn-ghost" id="inv-export-excel">Export XLSX</button>
-            <button class="btn btn-ghost" id="inv-export-pdf">Export PDF</button>
-            <button class="btn btn-primary" id="inv-add-new">+ Add New</button>
+            <button class="btn btn-ghost" id="inv-export">Export CSV</button>
           </div>
         </div>
+
+        <div class="grid grid-3" style="margin-bottom:16px;">
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Total Value</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px;">${App.Utils.formatCurrency(totalValue)}</div>
+          </div>
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Low Stock Items</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px; ${needsReorder.length > 0 ? 'color:#f59e0b;' : ''}">${needsReorder.length}</div>
+          </div>
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Out of Stock</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px; ${outOfStock.length > 0 ? 'color:#dc2626;' : ''}">${outOfStock.length}</div>
+          </div>
+        </div>
+      </div>
+
+      ${needsReorder.length > 0 ? `
+        <div class="card-soft" style="margin-bottom:16px; border-left:3px solid #f59e0b;">
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px; color:#f59e0b;">📦 Reorder Suggestions</h4>
+          <table class="table" style="font-size:13px;">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align:right;">Stock</th>
+                <th style="text-align:right;">Min</th>
+                <th style="text-align:right;">Suggested Qty</th>
+                <th>Supplier</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${needsReorder.map(item => {
+                const isProduct = !!item.internalArticleNumber;
+                const name = isProduct ? (item.nameDE || item.nameEN) : item.description;
+                const sku = isProduct ? item.internalArticleNumber : item.componentNumber;
+                const minStock = item.minStock || item.safetyStock || 0;
+                const reorderQty = item.reorderQuantity || Math.max(minStock * 2 - (item.stock || 0), minStock);
+                const supplier = item.supplierId ?
+                  (App.Data.suppliers || []).find(s => s.id === item.supplierId)?.name : '-';
+                return `
+                  <tr>
+                    <td><strong>${sku}</strong> - ${name}</td>
+                    <td style="text-align:right; color:#f59e0b;">${item.stock || 0}</td>
+                    <td style="text-align:right;">${minStock}</td>
+                    <td style="text-align:right; font-weight:500;">${Math.ceil(reorderQty)}</td>
+                    <td>${supplier}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : ''}
+
+      <div class="card-soft">
         <div class="inv-tabs" style="display:flex; gap:8px; margin-bottom:12px;">
           ${tabsHtml}
         </div>
         <table class="table">
           <thead>
             <tr>
-              <th>Name</th>
               <th>SKU</th>
+              <th>Product</th>
               <th style="text-align:center;">Stock</th>
+              <th style="text-align:center;">Min</th>
               <th style="text-align:right;">Price</th>
               <th style="text-align:right;">Actions</th>
             </tr>
           </thead>
           <tbody>
-            ${rowsHtml || `<tr><td colspan="5" style="text-align:center; padding:12px; color:var(--color-text-muted);">No items in this category</td></tr>`}
+            ${rowsHtml}
           </tbody>
         </table>
       </div>
     `;
 
-    
     root.querySelectorAll('.inv-tab').forEach(btn => {
-      btn.addEventListener('click', ev => {
+      btn.addEventListener('click', () => {
         this.activeTab = btn.getAttribute('data-cat');
         this.render(root);
       });
     });
 
-    
-    const addBtn = document.getElementById('inv-add-new');
-    if (addBtn) {
-      addBtn.onclick = () => this.openEditModal(null);
-    }
+    document.getElementById('inv-export')?.addEventListener('click', () => this.exportInventory());
 
-    
-    root.querySelectorAll('.btn-edit').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        this.openEditModal(id);
-      });
-    });
-    root.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        this.deleteItem(id);
-      });
-    });
     root.querySelectorAll('.btn-receive').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        this.receiveStock(id);
-      });
+      btn.addEventListener('click', () => this.receiveStock(btn.getAttribute('data-id')));
     });
 
-    
-    const exportExcel = document.getElementById('inv-export-excel');
-    if (exportExcel) {
-      exportExcel.onclick = () => {
-        const csvRows = [];
-        csvRows.push('Type,Name,SKU,Category,Unit,Price,Stock');
-        (App.Data.Products || []).forEach(p => {
-          csvRows.push([
-            p.type || '',
-            p.name || '',
-            p.sku || '',
-            p.cat || '',
-            p.unit || '',
-            p.price || 0,
-            p.stock || 0
-          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
-        });
-        const csv = csvRows.join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'inventory.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-      };
-    }
-
-    const exportPdf = document.getElementById('inv-export-pdf');
-    if (exportPdf) {
-      exportPdf.onclick = () => {
-    
-        let html = '<html><head><title>Inventory</title>';
-        html += '<style>body{font-family:sans-serif;padding:20px;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ccc;padding:6px;text-align:left;} th{background:#f0f0f0;}</style>';
-        html += '</head><body>';
-        html += '<h1>Inventory</h1>';
-        html += '<table><thead><tr><th>Type</th><th>Name</th><th>SKU</th><th>Category</th><th>Unit</th><th>Price</th><th>Stock</th></tr></thead><tbody>';
-        (App.Data.Products || []).forEach(p => {
-          html += `<tr><td>${p.type || ''}</td><td>${p.name || ''}</td><td>${p.sku || ''}</td><td>${p.cat || ''}</td><td>${p.unit || ''}</td><td>${App.Utils.formatCurrency(p.price)}</td><td>${p.stock || 0}</td></tr>`;
-        });
-        html += '</tbody></table>';
-        html += '</body></html>';
-        const blob = new Blob([html], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const win = window.open(url, '_blank');
-        if (win) {
-          win.focus();
-        }
-      };
-    }
+    root.querySelectorAll('.btn-adjust').forEach(btn => {
+      btn.addEventListener('click', () => this.adjustStock(btn.getAttribute('data-id')));
+    });
   },
 
-  
-  openEditModal(id) {
-    const isNew = !id;
-    const item = isNew
-      ? { type: this.activeTab, name: '', sku: '', cat: '', unit: 'pcs', price: 0, stock: 0 }
-      : (App.Data.Products.find(p => p.id === id) || { type: this.activeTab, name: '', sku: '', cat: '', unit: 'pcs', price: 0, stock: 0 });
-
-        
-    const body = `
-      <div class="grid" style="gap:8px;">
-        <label class="field-label" for="inv-type">Type</label>
-        <select id="inv-type" class="input">
-          <option value="Devices" ${item.type === 'Devices' ? 'selected' : ''}>Devices</option>
-          <option value="Consumables" ${item.type === 'Consumables' ? 'selected' : ''}>Consumables</option>
-          <option value="Parts" ${item.type === 'Parts' ? 'selected' : ''}>Parts</option>
-          <option value="Components" ${item.type === 'Components' ? 'selected' : ''}>Components</option>
-        </select>
-        <label class="field-label" for="inv-name">Name</label>
-        <input id="inv-name" class="input" value="${item.name || ''}" />
-        <label class="field-label" for="inv-sku">SKU</label>
-        <input id="inv-sku" class="input" value="${item.sku || ''}" />
-        <label class="field-label" for="inv-cat">Category</label>
-        <input id="inv-cat" class="input" value="${item.cat || ''}" />
-        <label class="field-label" for="inv-unit">Unit</label>
-        <input id="inv-unit" class="input" value="${item.unit || ''}" />
-        <label class="field-label" for="inv-price">Price</label>
-        <input id="inv-price" type="number" step="0.01" class="input" value="${item.price || 0}" />
-        <label class="field-label" for="inv-stock">Stock</label>
-        <input id="inv-stock" type="number" class="input" value="${item.stock || 0}" />
-      </div>
-    `;
-
-    App.UI.Modal.open(isNew ? 'Add Item' : 'Edit Item', body, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
-      {
-        text: 'Save',
-        variant: 'primary',
-        onClick: () => {
-          const n = {
-            id: isNew ? App.Utils.generateId('p') : item.id,
-            type: document.getElementById('inv-type').value,
-            name: document.getElementById('inv-name').value.trim(),
-            sku: document.getElementById('inv-sku').value.trim(),
-            cat: document.getElementById('inv-cat').value.trim(),
-            unit: document.getElementById('inv-unit').value.trim() || 'pcs',
-            price: parseFloat(document.getElementById('inv-price').value) || 0,
-            stock: parseInt(document.getElementById('inv-stock').value, 10) || 0
-          };
-          if (isNew) {
-            App.Data.Products.push(n);
-          } else {
-            const idx = App.Data.Products.findIndex(x => x.id === n.id);
-            if (idx >= 0) App.Data.Products[idx] = n;
-          }
-          App.DB.save();
-          App.UI.Toast.show('Item saved');
-          this.activeTab = n.type;
-          App.Core.Router.navigate('inventory');
-        }
-      }
-    ]);
-  },
-
-  
-  deleteItem(id) {
-    const item = App.Data.Products.find(p => p.id === id);
-    if (!item) return;
-    App.UI.Modal.open('Delete Item', `Are you sure you want to delete <strong>${item.name}</strong>? This action cannot be undone.`, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
-      {
-        text: 'Delete',
-        variant: 'primary',
-        onClick: () => {
-          App.Data.Products = App.Data.Products.filter(p => p.id !== id);
-          App.DB.save();
-          App.UI.Toast.show('Item deleted');
-          App.Core.Router.navigate('inventory');
-        }
-      }
-    ]);
-  },
-
-  
   receiveStock(id) {
-    const item = App.Data.Products.find(p => p.id === id);
+    const products = App.Data.products || [];
+    const item = products.find(p => p.id === id);
     if (!item) return;
+
     const body = `
       <div>
-        <p style="margin-bottom:8px;">Add stock for <strong>${item.name}</strong>:</p>
-        <input id="receive-qty" type="number" class="input" value="0" />
+        <p style="margin-bottom:12px;">
+          <strong>${item.internalArticleNumber || item.sku}</strong> - ${item.nameDE || item.nameEN}<br/>
+          Current Stock: <strong>${item.stock || 0}</strong>
+        </p>
+        <label class="field-label">Quantity to Add</label>
+        <input id="receive-qty" type="number" class="input" min="1" value="10" />
+        <label class="field-label" style="margin-top:8px;">Reference (PO Number)</label>
+        <input id="receive-ref" class="input" placeholder="e.g., PO-2025-0001" />
       </div>
     `;
+
     App.UI.Modal.open('Receive Stock', body, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
-        text: 'Add',
+        text: 'Receive',
         variant: 'primary',
         onClick: () => {
-          const qty = parseInt(document.getElementById('receive-qty').value, 10) || 0;
+          const qty = parseInt(document.getElementById('receive-qty').value) || 0;
+          const ref = document.getElementById('receive-ref').value.trim();
+          if (qty <= 0) {
+            App.UI.Toast.show('Enter a valid quantity');
+            return false;
+          }
+
           item.stock = (item.stock || 0) + qty;
+
+          const movements = App.Data.movements || [];
+          movements.push({
+            id: App.Utils.generateId('mv'),
+            date: new Date().toISOString(),
+            type: 'receipt',
+            direction: 'in',
+            productId: id,
+            quantity: qty,
+            reference: ref || 'Manual receipt',
+            notes: `Received ${qty} units`
+          });
+
           App.DB.save();
-          App.UI.Toast.show('Stock updated');
+          App.UI.Toast.show(`Received ${qty} units`);
           App.Core.Router.navigate('inventory');
         }
       }
     ]);
+  },
+
+  adjustStock(id) {
+    const products = App.Data.products || [];
+    const item = products.find(p => p.id === id);
+    if (!item) return;
+
+    const body = `
+      <div>
+        <p style="margin-bottom:12px;">
+          <strong>${item.internalArticleNumber || item.sku}</strong> - ${item.nameDE || item.nameEN}<br/>
+          Current Stock: <strong>${item.stock || 0}</strong>
+        </p>
+        <label class="field-label">New Stock Level</label>
+        <input id="adjust-qty" type="number" class="input" min="0" value="${item.stock || 0}" />
+        <label class="field-label" style="margin-top:8px;">Reason</label>
+        <select id="adjust-reason" class="input">
+          <option value="count">Physical Count</option>
+          <option value="damage">Damaged/Expired</option>
+          <option value="correction">Correction</option>
+          <option value="other">Other</option>
+        </select>
+        <label class="field-label" style="margin-top:8px;">Notes</label>
+        <textarea id="adjust-notes" class="input" rows="2"></textarea>
+      </div>
+    `;
+
+    App.UI.Modal.open('Adjust Stock', body, [
+      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      {
+        text: 'Adjust',
+        variant: 'primary',
+        onClick: () => {
+          const newQty = parseInt(document.getElementById('adjust-qty').value) || 0;
+          const reason = document.getElementById('adjust-reason').value;
+          const notes = document.getElementById('adjust-notes').value.trim();
+          const diff = newQty - (item.stock || 0);
+
+          item.stock = newQty;
+
+          const movements = App.Data.movements || [];
+          movements.push({
+            id: App.Utils.generateId('mv'),
+            date: new Date().toISOString(),
+            type: 'adjustment',
+            direction: diff >= 0 ? 'in' : 'out',
+            productId: id,
+            quantity: Math.abs(diff),
+            reference: reason,
+            notes: notes || `Adjusted from ${item.stock - diff} to ${newQty}`
+          });
+
+          App.DB.save();
+          App.UI.Toast.show('Stock adjusted');
+          App.Core.Router.navigate('inventory');
+        }
+      }
+    ]);
+  },
+
+  exportInventory() {
+    const products = App.Data.products || [];
+    const headers = ['SKU', 'Product', 'Type', 'Stock', 'Min Stock', 'Price', 'Value'];
+    const rows = products
+      .filter(p => p.type !== 'Service')
+      .map(p => {
+        const stock = p.stock || 0;
+        const price = p.purchasePrice || p.avgPurchasePrice || 0;
+        return [
+          p.internalArticleNumber || p.sku || '',
+          p.nameDE || p.nameEN || '',
+          p.type || '',
+          stock,
+          p.minStock || 0,
+          price.toFixed(2),
+          (stock * price).toFixed(2)
+        ];
+      });
+
+    const csv = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'inventory.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    App.UI.Toast.show('Exported inventory.csv');
   }
 };
