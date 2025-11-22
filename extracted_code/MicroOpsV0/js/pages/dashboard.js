@@ -1,5 +1,8 @@
 App.UI.Views.Dashboard = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`dashboard.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+
     const orders = App.Data.orders || [];
     const products = App.Data.products || [];
     const components = App.Data.components || [];
@@ -81,62 +84,62 @@ App.UI.Views.Dashboard = {
     root.innerHTML = `
       <div class="card-soft" style="margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="font-size:16px; font-weight:600;">Dashboard Overview</h3>
+          <h3 style="font-size:16px; font-weight:600;">${t('overview', 'Dashboard Overview')}</h3>
           <div style="font-size:12px; color:var(--color-text-muted);">
-            Press <kbd style="background:var(--color-bg); padding:2px 6px; border-radius:4px; border:1px solid var(--color-border);">F1</kbd> for shortcuts
+            <kbd style="background:var(--color-bg); padding:2px 6px; border-radius:4px; border:1px solid var(--color-border);">F1</kbd> ${t('pressF1', 'for shortcuts')}
           </div>
         </div>
 
         <!-- Primary KPIs -->
-        <div class="grid grid-4" style="margin-bottom:16px;">
-          <div style="padding:16px; background:var(--color-bg); border-radius:8px; text-align:center;">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted); letter-spacing:0.05em;">Total Revenue</div>
+        <div class="grid grid-4" style="margin-bottom:16px;" role="group" aria-label="${t('overview', 'Dashboard Overview')}">
+          <div style="padding:16px; background:var(--color-bg); border-radius:8px; text-align:center;" role="status" aria-label="${t('totalRevenue', 'Total Revenue')}">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted); letter-spacing:0.05em;">${t('totalRevenue', 'Total Revenue')}</div>
             <div style="font-size:24px; font-weight:700; margin-top:6px;">${App.Utils.formatCurrency(totalRevenue)}</div>
-            <div style="font-size:12px; color:var(--color-text-muted); margin-top:4px;">${invoices.length} invoices</div>
+            <div style="font-size:12px; color:var(--color-text-muted); margin-top:4px;">${invoices.length} ${t('invoices', 'invoices')}</div>
           </div>
-          <div style="padding:16px; background:var(--color-bg); border-radius:8px; text-align:center;">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted); letter-spacing:0.05em;">This Month</div>
+          <div style="padding:16px; background:var(--color-bg); border-radius:8px; text-align:center;" role="status" aria-label="${t('thisMonth', 'This Month')}">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted); letter-spacing:0.05em;">${t('thisMonth', 'This Month')}</div>
             <div style="font-size:24px; font-weight:700; margin-top:6px; color:#10b981;">${App.Utils.formatCurrency(monthlyRevenue)}</div>
-            <div style="font-size:12px; color:var(--color-text-muted); margin-top:4px;">Collection: ${collectionRate}%</div>
+            <div style="font-size:12px; color:var(--color-text-muted); margin-top:4px;">${t('collection', 'Collection')}: ${collectionRate}%</div>
           </div>
-          <div style="padding:16px; background:var(--color-bg); border-radius:8px; text-align:center; ${unpaidAmount > 0 ? 'border-left:3px solid #f59e0b;' : ''}">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted); letter-spacing:0.05em;">Outstanding</div>
+          <div style="padding:16px; background:var(--color-bg); border-radius:8px; text-align:center; ${unpaidAmount > 0 ? 'border-left:3px solid #f59e0b;' : ''}" role="status" aria-label="${t('outstanding', 'Outstanding')}">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted); letter-spacing:0.05em;">${t('outstanding', 'Outstanding')}</div>
             <div style="font-size:24px; font-weight:700; margin-top:6px; ${unpaidAmount > 0 ? 'color:#f59e0b;' : ''}">${App.Utils.formatCurrency(unpaidAmount)}</div>
-            <div style="font-size:12px; color:var(--color-text-muted); margin-top:4px;">${unpaidInvoices.length} unpaid</div>
+            <div style="font-size:12px; color:var(--color-text-muted); margin-top:4px;">${unpaidInvoices.length} ${t('unpaid', 'unpaid')}</div>
           </div>
-          <div style="padding:16px; background:var(--color-bg); border-radius:8px; text-align:center; ${overdueAmount > 0 ? 'border-left:3px solid #dc2626;' : ''}">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted); letter-spacing:0.05em;">Overdue</div>
+          <div style="padding:16px; background:var(--color-bg); border-radius:8px; text-align:center; ${overdueAmount > 0 ? 'border-left:3px solid #dc2626;' : ''}" role="status" aria-label="${t('overdue', 'Overdue')}">
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted); letter-spacing:0.05em;">${t('overdue', 'Overdue')}</div>
             <div style="font-size:24px; font-weight:700; margin-top:6px; ${overdueAmount > 0 ? 'color:#dc2626;' : ''}">${App.Utils.formatCurrency(overdueAmount)}</div>
-            <div style="font-size:12px; color:var(--color-text-muted); margin-top:4px;">${overdueInvoices.length} overdue</div>
+            <div style="font-size:12px; color:var(--color-text-muted); margin-top:4px;">${overdueInvoices.length} ${t('overdueLabel', 'overdue')}</div>
           </div>
         </div>
 
         <!-- Secondary KPIs -->
-        <div class="grid grid-6" style="gap:8px;">
-          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer;" onclick="App.Core.Router.navigate('orders')">
-            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">Open Orders</div>
+        <div class="grid grid-6" style="gap:8px;" role="group" aria-label="Secondary KPIs">
+          <button style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer; border:none; width:100%;" onclick="App.Core.Router.navigate('orders')" aria-label="${t('openOrders', 'Open Orders')}: ${openOrders}">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('openOrders', 'Open Orders')}</div>
             <div style="font-size:18px; font-weight:600; margin-top:4px; ${openOrders > 0 ? 'color:#3b82f6;' : ''}">${openOrders}</div>
-          </div>
-          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer;" onclick="App.Core.Router.navigate('orders')">
-            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">Shipped</div>
+          </button>
+          <button style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer; border:none; width:100%;" onclick="App.Core.Router.navigate('orders')" aria-label="${t('shipped', 'Shipped')}: ${shippedOrders}">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('shipped', 'Shipped')}</div>
             <div style="font-size:18px; font-weight:600; margin-top:4px; ${shippedOrders > 0 ? 'color:#4f46e5;' : ''}">${shippedOrders}</div>
-          </div>
-          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer;" onclick="App.Core.Router.navigate('production')">
-            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">Production</div>
+          </button>
+          <button style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer; border:none; width:100%;" onclick="App.Core.Router.navigate('production')" aria-label="${t('production', 'Production')}: ${pendingProduction}">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('production', 'Production')}</div>
             <div style="font-size:18px; font-weight:600; margin-top:4px; ${inProgressProduction > 0 ? 'color:#8b5cf6;' : ''}">${pendingProduction}</div>
-          </div>
-          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer;" onclick="App.Core.Router.navigate('purchaseOrders')">
-            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">Awaiting POs</div>
+          </button>
+          <button style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer; border:none; width:100%;" onclick="App.Core.Router.navigate('purchaseOrders')" aria-label="${t('awaitingPOs', 'Awaiting POs')}: ${awaitingPOs}">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('awaitingPOs', 'Awaiting POs')}</div>
             <div style="font-size:18px; font-weight:600; margin-top:4px; ${awaitingPOs > 0 ? 'color:#06b6d4;' : ''}">${awaitingPOs}</div>
-          </div>
-          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer;" onclick="App.Core.Router.navigate('customers')">
-            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">New Customers</div>
+          </button>
+          <button style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer; border:none; width:100%;" onclick="App.Core.Router.navigate('customers')" aria-label="${t('newCustomers', 'New Customers')}: ${newCustomers}">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('newCustomers', 'New Customers')}</div>
             <div style="font-size:18px; font-weight:600; margin-top:4px; ${newCustomers > 0 ? 'color:#10b981;' : ''}">${newCustomers}</div>
-          </div>
-          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer;" onclick="App.Core.Router.navigate('tasks')">
-            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">Tasks Due</div>
+          </button>
+          <button style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center; cursor:pointer; border:none; width:100%;" onclick="App.Core.Router.navigate('tasks')" aria-label="${t('tasksDue', 'Tasks Due')}: ${todayTasks.length + overdueTasks.length}">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('tasksDue', 'Tasks Due')}</div>
             <div style="font-size:18px; font-weight:600; margin-top:4px; ${overdueTasks.length > 0 ? 'color:#dc2626;' : ''}">${todayTasks.length + overdueTasks.length}</div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -145,22 +148,24 @@ App.UI.Views.Dashboard = {
 
       <!-- Quick Actions -->
       <div class="card-soft" style="margin-bottom:16px;">
-        <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Quick Actions</h4>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="App.UI.Views.Orders.openCreateModal()">+ New Order</button>
-          <button class="btn btn-ghost" onclick="App.UI.Views.Customers.openEditModal()">+ New Customer</button>
-          <button class="btn btn-ghost" onclick="App.Core.Router.navigate('inventory')">Check Inventory</button>
-          <button class="btn btn-ghost" onclick="App.Core.Router.navigate('reports')">View Reports</button>
-          <button class="btn btn-ghost" onclick="App.Core.Router.navigate('purchaseOrders')">Create PO</button>
+        <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('quickActions', 'Quick Actions')}</h4>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;" role="group" aria-label="${t('quickActions', 'Quick Actions')}">
+          <button class="btn btn-primary" onclick="App.UI.Views.Orders.openCreateModal()" title="${t('newOrder', '+ New Order')}">${t('newOrder', '+ New Order')}</button>
+          <button class="btn btn-ghost" onclick="App.UI.Views.Production.openCreateModal()" title="${t('newProductionOrder', '+ New Production Order')}">${t('newProductionOrder', '+ New Production Order')}</button>
+          <button class="btn btn-ghost" onclick="App.UI.Views.Customers.openEditModal()" title="${t('newCustomer', '+ New Customer')}">${t('newCustomer', '+ New Customer')}</button>
+          <button class="btn btn-ghost" onclick="App.Core.Router.navigate('tasks')" title="${t('openTasks', 'Open Tasks')}">${t('openTasks', 'Open Tasks')}</button>
+          <button class="btn btn-ghost" onclick="App.Core.Router.navigate('inventory')" title="${t('checkInventory', 'Check Inventory')}">${t('checkInventory', 'Check Inventory')}</button>
+          <button class="btn btn-ghost" onclick="App.Core.Router.navigate('reports')" title="${t('viewReports', 'View Reports')}">${t('viewReports', 'View Reports')}</button>
+          <button class="btn btn-ghost" onclick="App.Core.Router.navigate('purchaseOrders')" title="${t('createPO', 'Create PO')}">${t('createPO', 'Create PO')}</button>
         </div>
       </div>
 
       <div class="grid grid-2" style="gap:16px;">
         <!-- Recent Orders -->
         <div class="card-soft">
-          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Recent Orders</h4>
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('recentOrders', 'Recent Orders')}</h4>
           ${recentOrders.length > 0 ? `
-            <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; flex-direction:column; gap:8px;" role="list" aria-label="${t('recentOrders', 'Recent Orders')}">
               ${recentOrders.map(o => {
                 const cust = customers.find(c => c.id === o.custId);
                 const statusColors = {
@@ -169,35 +174,35 @@ App.UI.Views.Dashboard = {
                 };
                 const color = statusColors[(o.status || 'draft').toLowerCase()] || '#6b7280';
                 return `
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:var(--color-bg); border-radius:6px; border-left:3px solid ${color};">
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:var(--color-bg); border-radius:6px; border-left:3px solid ${color};" role="listitem">
                     <div>
-                      <strong>${o.orderId || o.id}</strong>
-                      <span style="font-size:12px; color:var(--color-text-muted); margin-left:8px;">${cust?.company || '-'}</span>
+                      <strong>${esc(o.orderId || o.id)}</strong>
+                      <span style="font-size:12px; color:var(--color-text-muted); margin-left:8px;">${esc(cust?.company || '-')}</span>
                     </div>
                     <div style="text-align:right;">
                       <div style="font-weight:500;">${App.Utils.formatCurrency(o.totalGross || 0)}</div>
-                      <div style="font-size:11px; color:${color};">${o.status || 'draft'}</div>
+                      <div style="font-size:11px; color:${color};">${esc(o.status || 'draft')}</div>
                     </div>
                   </div>
                 `;
               }).join('')}
             </div>
-          ` : '<p style="text-align:center; color:var(--color-text-muted); font-size:13px; padding:20px;">No orders yet</p>'}
-          <button class="btn btn-ghost" style="width:100%; margin-top:12px;" onclick="App.Core.Router.navigate('orders')">View All Orders</button>
+          ` : `<p style="text-align:center; color:var(--color-text-muted); font-size:13px; padding:20px;">${t('noOrdersYet', 'No orders yet')}</p>`}
+          <button class="btn btn-ghost" style="width:100%; margin-top:12px;" onclick="App.Core.Router.navigate('orders')">${t('viewAllOrders', 'View All Orders')}</button>
         </div>
 
         <!-- Inventory Alerts -->
         <div class="card-soft">
-          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Inventory Status</h4>
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('inventoryStatus', 'Inventory Status')}</h4>
           ${this._renderInventoryStatus(lowStockProducts, lowStockComponents, outOfStockProducts, outOfStockComponents)}
-          <button class="btn btn-ghost" style="width:100%; margin-top:12px;" onclick="App.Core.Router.navigate('inventory')">View Inventory</button>
+          <button class="btn btn-ghost" style="width:100%; margin-top:12px;" onclick="App.Core.Router.navigate('inventory')">${t('viewInventory', 'View Inventory')}</button>
         </div>
       </div>
 
       <!-- Sales Chart -->
       <div class="card-soft" style="margin-top:16px;">
-        <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Monthly Sales Trend</h4>
-        <div id="dashboard-chart"></div>
+        <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('salesTrend', 'Monthly Sales Trend')}</h4>
+        <div id="dashboard-chart" role="img" aria-label="${t('salesTrend', 'Monthly Sales Trend')}"></div>
       </div>
     `;
 
@@ -206,6 +211,7 @@ App.UI.Views.Dashboard = {
   },
 
   _renderAlerts(overdueInvoices, overdueTasks, outOfStockProducts, outOfStockComponents, customers) {
+    const t = (key, fallback) => App.I18n.t(`dashboard.${key}`, fallback);
     const alerts = [];
 
     // Backup reminder check
@@ -219,7 +225,7 @@ App.UI.Views.Dashboard = {
         alerts.push({
           type: 'warning',
           icon: '💾',
-          message: `Last backup was ${daysSinceBackup} days ago - consider backing up your data`,
+          message: t('backupAlert', `Last backup was ${daysSinceBackup} days ago - consider backing up your data`).replace('{days}', daysSinceBackup),
           action: "App.Core.Router.navigate('settings')"
         });
       }
@@ -228,7 +234,7 @@ App.UI.Views.Dashboard = {
       alerts.push({
         type: 'warning',
         icon: '💾',
-        message: 'No backup found - please backup your data',
+        message: t('noBackupAlert', 'No backup found - please backup your data'),
         action: "App.Core.Router.navigate('settings')"
       });
     }
@@ -237,7 +243,7 @@ App.UI.Views.Dashboard = {
       alerts.push({
         type: 'error',
         icon: '⚠️',
-        message: `${overdueInvoices.length} overdue invoice${overdueInvoices.length > 1 ? 's' : ''} need attention`,
+        message: t('overdueInvoiceAlert', `${overdueInvoices.length} overdue invoice(s) need attention`).replace('{count}', overdueInvoices.length),
         action: "App.Core.Router.navigate('documents')"
       });
     }
@@ -246,7 +252,7 @@ App.UI.Views.Dashboard = {
       alerts.push({
         type: 'warning',
         icon: '📋',
-        message: `${overdueTasks.length} overdue task${overdueTasks.length > 1 ? 's' : ''}`,
+        message: t('overdueTaskAlert', `${overdueTasks.length} overdue task(s)`).replace('{count}', overdueTasks.length),
         action: "App.Core.Router.navigate('tasks')"
       });
     }
@@ -256,7 +262,7 @@ App.UI.Views.Dashboard = {
       alerts.push({
         type: 'error',
         icon: '📦',
-        message: `${totalOutOfStock} item${totalOutOfStock > 1 ? 's' : ''} out of stock`,
+        message: t('outOfStockAlert', `${totalOutOfStock} item(s) out of stock`).replace('{count}', totalOutOfStock),
         action: "App.Core.Router.navigate('inventory')"
       });
     }
@@ -264,15 +270,15 @@ App.UI.Views.Dashboard = {
     if (alerts.length === 0) return '';
 
     return `
-      <div class="card-soft" style="margin-bottom:16px; padding:12px;">
+      <div class="card-soft" style="margin-bottom:16px; padding:12px;" role="alert">
         ${alerts.map(a => {
-          const bgColor = a.type === 'error' ? '#fef2f2' : '#fffbeb';
-          const borderColor = a.type === 'error' ? '#dc2626' : '#f59e0b';
+          const bgColor = a.type === 'error' ? 'var(--color-danger-bg)' : 'var(--color-warning-bg)';
+          const borderColor = a.type === 'error' ? 'var(--color-danger)' : 'var(--color-warning)';
           return `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:${bgColor}; border-left:3px solid ${borderColor}; border-radius:4px; margin-bottom:8px; cursor:pointer;" onclick="${a.action}">
+            <button style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:${bgColor}; border-left:3px solid ${borderColor}; border-radius:4px; margin-bottom:8px; cursor:pointer; width:100%; border:none; text-align:left;" onclick="${a.action}" aria-label="${a.message}">
               <span>${a.icon} ${a.message}</span>
-              <span style="font-size:12px; color:var(--color-text-muted);">View →</span>
-            </div>
+              <span style="font-size:12px; color:var(--color-text-muted);">${t('view', 'View →')}</span>
+            </button>
           `;
         }).join('')}
       </div>
@@ -280,52 +286,55 @@ App.UI.Views.Dashboard = {
   },
 
   _renderInventoryStatus(lowStockProducts, lowStockComponents, outOfStockProducts, outOfStockComponents) {
+    const t = (key, fallback) => App.I18n.t(`dashboard.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+
     const items = [
       ...outOfStockProducts.slice(0, 3).map(p => ({
         name: p.internalArticleNumber || p.sku || p.nameDE,
         stock: 0,
         min: p.minStock || 0,
-        type: 'Out of Stock',
-        color: '#dc2626'
+        type: t('outOfStock', 'Out of Stock'),
+        color: 'var(--color-danger)'
       })),
       ...outOfStockComponents.slice(0, 2).map(c => ({
         name: c.componentNumber || c.description,
         stock: 0,
         min: c.safetyStock || 0,
-        type: 'Out of Stock',
-        color: '#dc2626'
+        type: t('outOfStock', 'Out of Stock'),
+        color: 'var(--color-danger)'
       })),
       ...lowStockProducts.slice(0, 3).map(p => ({
         name: p.internalArticleNumber || p.sku || p.nameDE,
         stock: p.stock || 0,
         min: p.minStock || 0,
-        type: 'Low Stock',
-        color: '#f59e0b'
+        type: t('lowStock', 'Low Stock'),
+        color: 'var(--color-warning)'
       })),
       ...lowStockComponents.slice(0, 2).map(c => ({
         name: c.componentNumber || c.description,
         stock: c.stock || 0,
         min: c.safetyStock || 0,
-        type: 'Low Stock',
-        color: '#f59e0b'
+        type: t('lowStock', 'Low Stock'),
+        color: 'var(--color-warning)'
       }))
     ].slice(0, 5);
 
     if (items.length === 0) {
-      return '<p style="text-align:center; color:#10b981; font-size:13px; padding:20px;">✓ All stock levels OK</p>';
+      return `<p style="text-align:center; color:var(--color-success); font-size:13px; padding:20px;">${t('allStockOK', '✓ All stock levels OK')}</p>`;
     }
 
     return `
-      <div style="display:flex; flex-direction:column; gap:8px;">
+      <div style="display:flex; flex-direction:column; gap:8px;" role="list" aria-label="${t('inventoryStatus', 'Inventory Status')}">
         ${items.map(item => `
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:var(--color-bg); border-radius:6px; border-left:3px solid ${item.color};">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:var(--color-bg); border-radius:6px; border-left:3px solid ${item.color};" role="listitem">
             <div>
-              <strong style="font-size:12px;">${item.name}</strong>
+              <strong style="font-size:12px;">${esc(item.name)}</strong>
               <div style="font-size:11px; color:${item.color};">${item.type}</div>
             </div>
             <div style="text-align:right;">
               <div style="font-weight:500; color:${item.color};">${item.stock}</div>
-              <div style="font-size:10px; color:var(--color-text-muted);">min: ${item.min}</div>
+              <div style="font-size:10px; color:var(--color-text-muted);">${t('min', 'min')}: ${item.min}</div>
             </div>
           </div>
         `).join('')}
@@ -334,6 +343,7 @@ App.UI.Views.Dashboard = {
   },
 
   _renderSalesChart(invoices) {
+    const t = (key, fallback) => App.I18n.t(`dashboard.${key}`, fallback);
     const container = document.getElementById('dashboard-chart');
     if (!container) return;
 
@@ -359,20 +369,21 @@ App.UI.Views.Dashboard = {
     const values = Object.values(monthlyData);
     const maxValue = Math.max(...values, 1);
 
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
     container.innerHTML = `
-      <div style="display:flex; align-items:flex-end; gap:12px; height:150px; padding:10px 0;">
+      <div style="display:flex; align-items:flex-end; gap:12px; height:150px; padding:10px 0;" role="group" aria-label="${t('salesTrend', 'Monthly Sales Trend')}">
         ${months.map((month, i) => {
           const value = values[i];
           const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
           const monthNum = parseInt(month.split('-')[1]) - 1;
           const isCurrentMonth = i === months.length - 1;
+          const monthName = t(monthKeys[monthNum], monthKeys[monthNum].charAt(0).toUpperCase() + monthKeys[monthNum].slice(1));
           return `
-            <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center;" aria-label="${monthName}: ${App.Utils.formatCurrency(value)}">
               <div style="font-size:10px; color:var(--color-text-muted); margin-bottom:4px;">${App.Utils.formatCurrency(value).replace(/[^\d.,]/g, '')}</div>
-              <div style="width:100%; height:${Math.max(height, 4)}%; background:${isCurrentMonth ? '#3b82f6' : '#e5e7eb'}; border-radius:4px; min-height:4px;"></div>
-              <div style="font-size:11px; color:var(--color-text-muted); margin-top:8px;">${monthNames[monthNum]}</div>
+              <div style="width:100%; height:${Math.max(height, 4)}%; background:${isCurrentMonth ? 'var(--color-primary)' : 'var(--color-border)'}; border-radius:4px; min-height:4px;"></div>
+              <div style="font-size:11px; color:var(--color-text-muted); margin-top:8px;">${monthName}</div>
             </div>
           `;
         }).join('')}
