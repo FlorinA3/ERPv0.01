@@ -88,6 +88,7 @@ App.UI.Views.Orders = {
                     <button class="btn btn-ghost btn-status-order" data-id="${o.id}" title="Change Status" aria-label="Change order status">🔄</button>
                     <button class="btn btn-ghost btn-gen-delivery" data-id="${o.id}" title="Delivery Note" aria-label="Generate delivery note">📦</button>
                     <button class="btn btn-ghost btn-gen-invoice" data-id="${o.id}" title="Invoice" aria-label="Generate invoice">🧾</button>
+                    <button class="btn btn-ghost btn-del-order" data-id="${o.id}" title="Delete Order" aria-label="Delete order">🗑️</button>
                   </td>
                 </tr>
               `;
@@ -154,6 +155,10 @@ App.UI.Views.Orders = {
 
     root.querySelectorAll('.btn-status-order').forEach(btn => {
       btn.addEventListener('click', () => this.changeStatus(btn.getAttribute('data-id')));
+    });
+
+    root.querySelectorAll('.btn-del-order').forEach(btn => {
+      btn.addEventListener('click', () => this.deleteOrder(btn.getAttribute('data-id')));
     });
 
     // Search functionality
@@ -939,6 +944,113 @@ App.UI.Views.Orders = {
           }
 
           App.UI.Toast.show(`Production order ${po.orderNumber} created for ${qty} units`);
+        }
+      }
+    ]);
+  },
+
+  /**
+   * Delete an order with referential integrity checks
+   */
+  deleteOrder(id) {
+    const orders = App.Data.orders || [];
+    const order = orders.find(o => o.id === id);
+    if (!order) return;
+
+    // Check for linked documents
+    const documents = App.Data.documents || [];
+    const linkedDocs = documents.filter(d => d.orderId === id);
+
+    // Check for linked production orders
+    const productionOrders = App.Data.productionOrders || [];
+    const linkedPOs = productionOrders.filter(po => po.sourceOrderId === id);
+
+    if (linkedDocs.length > 0 || linkedPOs.length > 0) {
+      const issues = [];
+      if (linkedDocs.length > 0) {
+        issues.push(`<li>${linkedDocs.length} document(s) (invoices/delivery notes)</li>`);
+      }
+      if (linkedPOs.length > 0) {
+        issues.push(`<li>${linkedPOs.length} production order(s)</li>`);
+      }
+
+      App.UI.Modal.open('Cannot Delete Order', `
+        <div style="color:#dc2626;">
+          <p><strong>This order has linked records:</strong></p>
+          <ul style="margin:8px 0; padding-left:20px;">
+            ${issues.join('')}
+          </ul>
+          <p style="font-size:12px;">Delete these records first or archive the order instead.</p>
+        </div>
+      `, [
+        { text: 'Close', variant: 'ghost', onClick: () => {} }
+      ]);
+      return;
+    }
+
+    const cust = (App.Data.customers || []).find(c => c.id === order.custId);
+
+    App.UI.Modal.open('Delete Order', `
+      <div>
+        <p style="margin-bottom:12px;">
+          Are you sure you want to delete order <strong>${order.orderId}</strong>?
+        </p>
+        <div style="font-size:12px; color:var(--color-text-muted);">
+          <p>Customer: ${cust ? cust.company : '-'}</p>
+          <p>Total: ${App.Utils.formatCurrency(order.totalGross || 0)}</p>
+          <p>Items: ${(order.items || []).length}</p>
+        </div>
+        <p style="margin-top:12px; font-size:12px; color:#f59e0b;">
+          ⚠️ Stock will be restored for order items.
+        </p>
+      </div>
+    `, [
+      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      {
+        text: 'Delete Order',
+        variant: 'primary',
+        onClick: () => {
+          // Restore stock for order items
+          (order.items || []).forEach(item => {
+            const prod = (App.Data.products || []).find(p => p.id === item.productId);
+            if (prod && prod.type !== 'Service') {
+              prod.stock = (prod.stock || 0) + (item.qty || 0);
+            }
+          });
+
+          // Record reversal movements
+          const movements = App.Data.movements || [];
+          (order.items || []).forEach(item => {
+            const prod = (App.Data.products || []).find(p => p.id === item.productId);
+            if (prod && prod.type !== 'Service') {
+              movements.push({
+                id: App.Utils.generateId('mv'),
+                date: new Date().toISOString(),
+                type: 'adjustment',
+                direction: 'in',
+                productId: item.productId,
+                quantity: item.qty || 0,
+                reference: order.orderId,
+                notes: `Stock restored - order deleted`
+              });
+            }
+          });
+
+          // Delete the order
+          App.Data.orders = orders.filter(o => o.id !== id);
+          App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('delete', 'order', id, {
+              name: order.orderId,
+              customer: cust?.company,
+              total: order.totalGross
+            });
+          }
+
+          App.UI.Toast.show('Order deleted and stock restored');
+          App.Core.Router.navigate('orders');
         }
       }
     ]);

@@ -69,9 +69,10 @@ App.UI.Views.Documents = {
                   <td style="text-align:right;">${isInv ? App.Utils.formatCurrency(d.grossTotal || d.total) : '-'}</td>
                   <td style="text-align:center;">${getPaymentStatus(d)}</td>
                   <td style="text-align:center;">
-                    <button class="btn btn-ghost btn-doc-view" data-id="${d.id}" title="View/Print">👁️</button>
-                    ${isInv && (d.paidAmount || 0) < (d.grossTotal || 0) ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="Record Payment">💰</button>` : ''}
-                    ${isInv ? `<button class="btn btn-ghost btn-doc-history" data-id="${d.id}" title="Payment History">📋</button>` : ''}
+                    <button class="btn btn-ghost btn-doc-view" data-id="${d.id}" title="View/Print" aria-label="View document">👁️</button>
+                    ${isInv && (d.paidAmount || 0) < (d.grossTotal || 0) ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="Record Payment" aria-label="Record payment">💰</button>` : ''}
+                    ${isInv ? `<button class="btn btn-ghost btn-doc-history" data-id="${d.id}" title="Payment History" aria-label="Payment history">📋</button>` : ''}
+                    <button class="btn btn-ghost btn-doc-delete" data-id="${d.id}" title="Delete" aria-label="Delete document">🗑️</button>
                   </td>
                 </tr>
               `;
@@ -95,6 +96,82 @@ App.UI.Views.Documents = {
     root.querySelectorAll('.btn-doc-history').forEach(btn => {
       btn.addEventListener('click', () => this.openPaymentHistory(btn.getAttribute('data-id')));
     });
+
+    root.querySelectorAll('.btn-doc-delete').forEach(btn => {
+      btn.addEventListener('click', () => this.deleteDocument(btn.getAttribute('data-id')));
+    });
+  },
+
+  deleteDocument(id) {
+    const documents = App.Data.documents || [];
+    const doc = documents.find(d => d.id === id);
+    if (!doc) return;
+
+    const cust = (App.Data.customers || []).find(c => c.id === doc.customerId);
+    const isInvoice = doc.type === 'invoice';
+    const hasPaidAmount = isInvoice && (doc.paidAmount || 0) > 0;
+
+    // Warn if invoice has payments
+    if (hasPaidAmount) {
+      App.UI.Modal.open('Document Has Payments', `
+        <div style="color:#f59e0b;">
+          <p><strong>⚠️ This invoice has recorded payments</strong></p>
+          <p style="font-size:12px; margin-top:8px;">
+            Paid: ${App.Utils.formatCurrency(doc.paidAmount)}<br/>
+            Deleting will remove payment history.
+          </p>
+        </div>
+      `, [
+        { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+        {
+          text: 'Delete Anyway',
+          variant: 'primary',
+          onClick: () => this._performDocDelete(id, doc, cust)
+        }
+      ]);
+      return;
+    }
+
+    App.UI.Modal.open('Delete Document', `
+      <div>
+        <p>Are you sure you want to delete <strong>${doc.docNumber}</strong>?</p>
+        <div style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">
+          <p>Type: ${isInvoice ? 'Invoice' : 'Delivery Note'}</p>
+          <p>Customer: ${cust ? cust.company : '-'}</p>
+          ${isInvoice ? `<p>Total: ${App.Utils.formatCurrency(doc.grossTotal)}</p>` : ''}
+        </div>
+      </div>
+    `, [
+      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      {
+        text: 'Delete',
+        variant: 'primary',
+        onClick: () => this._performDocDelete(id, doc, cust)
+      }
+    ]);
+  },
+
+  _performDocDelete(id, doc, cust) {
+    const documents = App.Data.documents || [];
+    App.Data.documents = documents.filter(d => d.id !== id);
+    App.DB.save();
+
+    // Recompute order status if linked
+    if (App.Services.Automation && doc.orderId) {
+      App.Services.Automation.recomputeOrderStatus(doc.orderId);
+    }
+
+    // Log activity
+    if (App.Services.ActivityLog) {
+      App.Services.ActivityLog.log('delete', 'document', id, {
+        name: doc.docNumber,
+        type: doc.type,
+        customer: cust?.company
+      });
+    }
+
+    App.UI.Toast.show('Document deleted');
+    App.Core.Router.navigate('documents');
   },
 
   openPaymentModal(docId) {

@@ -23,7 +23,10 @@ App.UI.Views.Carriers = {
                 <td>${c.name || '-'}</td>
                 <td>${c.accountNumber || '-'}</td>
                 <td>${c.contactPerson || '-'}</td>
-                <td style="text-align:right;"><button class="btn btn-ghost" disabled>Edit</button></td>
+                <td style="text-align:right;">
+                  <button class="btn btn-ghost btn-edit-carrier" data-id="${c.id}" title="Edit" aria-label="Edit carrier">✏️</button>
+                  <button class="btn btn-ghost btn-del-carrier" data-id="${c.id}" title="Delete" aria-label="Delete carrier">🗑️</button>
+                </td>
               </tr>
             `).join('') || `<tr><td colspan="4" style="text-align:center; color:var(--color-text-muted);">No carriers</td></tr>`}
           </tbody>
@@ -34,14 +37,63 @@ App.UI.Views.Carriers = {
     if (addBtn) {
       addBtn.onclick = () => this.openCarrierModal();
     }
-    const rows = root.querySelectorAll('tbody tr');
-    rows.forEach((row, idx) => {
-      const car = carriers[idx];
-      if (!car) return;
-      row.addEventListener('click', () => {
-        this.openCarrierModal(car);
+
+    // Edit button handlers
+    root.querySelectorAll('.btn-edit-carrier').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const car = carriers.find(c => c.id === id);
+        if (car) this.openCarrierModal(car);
       });
     });
+
+    // Delete button handlers
+    root.querySelectorAll('.btn-del-carrier').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        this.deleteCarrier(id);
+      });
+    });
+  },
+
+  deleteCarrier(id) {
+    const carriers = App.Data.carriers || [];
+    const carrier = carriers.find(c => c.id === id);
+    if (!carrier) return;
+
+    // Check if carrier is used in any orders
+    const orders = App.Data.orders || [];
+    const usedInOrders = orders.filter(o => o.carrierId === id);
+
+    if (usedInOrders.length > 0) {
+      App.UI.Modal.open('Cannot Delete Carrier', `
+        <div style="color:#dc2626;">
+          <p>This carrier is used in <strong>${usedInOrders.length}</strong> order(s).</p>
+          <p style="font-size:12px; margin-top:8px;">Remove the carrier from these orders first.</p>
+        </div>
+      `, [
+        { text: 'Close', variant: 'ghost', onClick: () => {} }
+      ]);
+      return;
+    }
+
+    App.UI.Modal.open('Delete Carrier', `
+      <p>Are you sure you want to delete <strong>${carrier.name}</strong>?</p>
+    `, [
+      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      {
+        text: 'Delete',
+        variant: 'primary',
+        onClick: () => {
+          App.Data.carriers = carriers.filter(c => c.id !== id);
+          App.DB.save();
+          App.UI.Toast.show('Carrier deleted');
+          App.Core.Router.navigate('carriers');
+        }
+      }
+    ]);
   }
   ,
   /**
