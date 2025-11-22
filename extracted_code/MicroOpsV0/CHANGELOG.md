@@ -245,20 +245,46 @@ This release establishes the core foundation for production-ready ERP functional
 
 ---
 
+## [0.5.0] - 2025-11-22
+
+### Phase 5: Purchase Orders - Complete
+
+#### Purchase Orders Page (js/pages/purchaseOrders.js)
+- **PO Number Generation**: Auto-generated format PO-YYYY-XXXX
+- **Supplier Selection**: Dropdown with all suppliers
+- **Line Items**: Support for both components and products
+- **Status Workflow**: Draft → Sent → Confirmed → Received → Closed
+- **Status Badges**: Color-coded status indicators
+- **Receive Order**: Updates stock and creates purchase movements
+- **Expected/Received Dates**: Date tracking for delivery
+- **Total Calculation**: Auto-calculates line totals and PO total
+- **View Details**: Modal to view complete PO information
+
+#### Integration
+- **Sidebar Navigation**: Added purchaseOrders under Inventory section
+- **Role Permissions**: Admin, Warehouse can access
+- **i18n Support**: German and English translations
+- **Data Model**: Added purchaseOrders collection to db.js
+
+---
+
 ## [Unreleased]
 
-### Planned for Version 0.5.0
+### Planned for Version 0.6.0
 
-#### Purchase Orders
-- [ ] PO data model (header + lines)
-- [ ] Creating POs for suppliers
-- [ ] Status workflow (Draft → Sent → Received → Closed)
-- [ ] Link POs to sales orders
+#### Supplier Management Enhancements
+- [ ] Extended supplier fields (payment terms, lead times)
+- [ ] Supplier performance tracking
+- [ ] Preferred supplier per component
 
 #### Financial Management
 - [ ] Payment tracking
 - [ ] Due date alerts
 - [ ] Overdue management
+
+#### Sequential Customer Numbering
+- [ ] Auto-generated customer numbers (K-YYYY-XXXX)
+- [ ] Customer number sequences in config
 
 #### Enhanced Order Wizard
 - [ ] Multi-step order creation flow
@@ -272,13 +298,7 @@ This release establishes the core foundation for production-ready ERP functional
 - [ ] Multiple delivery notes per order
 - [ ] Partial invoice generation
 
-#### Stock Validation
-- [ ] Real-time availability warnings
-- [ ] Prevent overselling
-- [ ] Low stock alerts on order entry
-- [ ] Suggested alternatives for out-of-stock items
-
-### Planned for Version 0.3.0 (Phase 3: UX/Performance)
+### Planned for Version 0.7.0 (UX/Performance)
 
 - [ ] Loading states and spinners
 - [ ] Pagination for large datasets
@@ -286,7 +306,7 @@ This release establishes the core foundation for production-ready ERP functional
 - [ ] Keyboard shortcuts system
 - [ ] Toast notification improvements
 
-### Planned for Version 0.4.0 (Phase 4: Polish)
+### Planned for Version 0.8.0 (Polish)
 
 - [ ] Comprehensive testing suite
 - [ ] Error monitoring and logging

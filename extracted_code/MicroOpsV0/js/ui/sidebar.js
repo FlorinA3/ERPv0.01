@@ -20,6 +20,7 @@ App.UI.Sidebar = {
     { id: 'movements', icon: 'movements',  labelKey: 'sidebar.movements' },
     { id: 'batches',   icon: 'components', labelKey: 'sidebar.batches' },
     { id: 'orders',    icon: 'orders',     labelKey: 'sidebar.ordersPage' },
+    { id: 'purchaseOrders', icon: 'orders', labelKey: 'sidebar.purchaseOrders' },
     { id: 'production',icon: 'production', labelKey: 'sidebar.production' },
 
     { type: 'section', id: 'sec-docs', labelKey: 'sidebar.docs' },
@@ -41,7 +42,7 @@ App.UI.Sidebar = {
         return new Set(['dashboard','customers','products','pricing','orders','documents','reports','tasks']);
       case 'warehouse':
       case 'user':
-        return new Set(['dashboard','inventory','movements','batches','components','suppliers','carriers','production','tasks']);
+        return new Set(['dashboard','inventory','movements','batches','components','suppliers','carriers','purchaseOrders','production','tasks']);
       case 'production':
         return new Set(['dashboard','production','inventory','movements','components','tasks']);
       default:
