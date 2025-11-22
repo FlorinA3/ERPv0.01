@@ -540,6 +540,190 @@ App.Services.Validation = {
   }
 };
 
+/**
+ * Price Cascade Service - Implements price lookup cascade logic
+ * Priority: Customer-specific price → Segment price → Product default price
+ */
+App.Services.PriceCascade = {
+  /**
+   * Get price for a product for a specific customer
+   * Follows cascade: Customer → Segment → Product Default
+   * @param {string} productId - Product ID
+   * @param {string} customerId - Customer ID (optional)
+   * @param {number} quantity - Quantity for volume discounts (optional)
+   * @returns {Object} { price, source, priceListId, priceListName }
+   */
+  getPrice(productId, customerId = null, quantity = 1) {
+    const product = (App.Data.products || []).find(p => p.id === productId);
+    if (!product) {
+      return { price: 0, source: 'not_found', priceListId: null, priceListName: null };
+    }
+
+    const priceLists = App.Data.priceLists || [];
+    const customer = customerId ? (App.Data.customers || []).find(c => c.id === customerId) : null;
+    const now = new Date();
+
+    // Default product price
+    let result = {
+      price: product.dealerPrice || product.avgPurchasePrice || 0,
+      source: 'product_default',
+      priceListId: null,
+      priceListName: null
+    };
+
+    // Filter valid price lists (active and within date range)
+    const validLists = priceLists.filter(pl => {
+      if (pl.active === false) return false;
+      if (pl.validFrom && new Date(pl.validFrom) > now) return false;
+      if (pl.validTo && new Date(pl.validTo) < now) return false;
+      return true;
+    });
+
+    // 1. Look for customer-specific price list
+    if (customer) {
+      const customerList = validLists.find(pl => pl.customerId === customerId);
+      if (customerList) {
+        const entry = (customerList.entries || []).find(e => e.productId === productId);
+        if (entry && entry.price != null) {
+          result = {
+            price: this._applyQuantityDiscount(entry, quantity),
+            source: 'customer',
+            priceListId: customerList.id,
+            priceListName: customerList.name
+          };
+          return result; // Customer-specific has highest priority
+        }
+      }
+    }
+
+    // 2. Look for segment-based price list
+    if (customer && customer.segment) {
+      const segmentList = validLists.find(pl => pl.segmentId === customer.segment && !pl.customerId);
+      if (segmentList) {
+        const entry = (segmentList.entries || []).find(e => e.productId === productId);
+        if (entry && entry.price != null) {
+          result = {
+            price: this._applyQuantityDiscount(entry, quantity),
+            source: 'segment',
+            priceListId: segmentList.id,
+            priceListName: segmentList.name
+          };
+          return result;
+        }
+      }
+    }
+
+    // 3. Look for default price list (no customer or segment)
+    const defaultList = validLists.find(pl => !pl.customerId && !pl.segmentId);
+    if (defaultList) {
+      const entry = (defaultList.entries || []).find(e => e.productId === productId);
+      if (entry && entry.price != null) {
+        result = {
+          price: this._applyQuantityDiscount(entry, quantity),
+          source: 'default_list',
+          priceListId: defaultList.id,
+          priceListName: defaultList.name
+        };
+      }
+    }
+
+    return result;
+  },
+
+  /**
+   * Apply quantity-based discount if applicable
+   */
+  _applyQuantityDiscount(entry, quantity) {
+    let price = entry.price;
+
+    // Check for volume discounts
+    if (entry.volumeDiscounts && Array.isArray(entry.volumeDiscounts)) {
+      // Sort by minQty descending to find the best matching tier
+      const sortedDiscounts = [...entry.volumeDiscounts].sort((a, b) => b.minQty - a.minQty);
+      for (const discount of sortedDiscounts) {
+        if (quantity >= discount.minQty) {
+          if (discount.discountPercent) {
+            price = price * (1 - discount.discountPercent / 100);
+          } else if (discount.fixedPrice != null) {
+            price = discount.fixedPrice;
+          }
+          break;
+        }
+      }
+    }
+
+    return price;
+  },
+
+  /**
+   * Get all prices for a customer (for price list preview)
+   */
+  getAllPricesForCustomer(customerId) {
+    const products = (App.Data.products || []).filter(p => p.type !== 'Service');
+    return products.map(p => {
+      const priceInfo = this.getPrice(p.id, customerId);
+      return {
+        productId: p.id,
+        productName: p.nameDE || p.nameEN || p.name,
+        sku: p.internalArticleNumber || p.sku,
+        ...priceInfo
+      };
+    });
+  },
+
+  /**
+   * Compare prices across different sources for a product
+   */
+  comparePrices(productId) {
+    const product = (App.Data.products || []).find(p => p.id === productId);
+    if (!product) return null;
+
+    const priceLists = App.Data.priceLists || [];
+    const result = {
+      productId,
+      productName: product.nameDE || product.nameEN || product.name,
+      defaultPrice: product.dealerPrice || 0,
+      prices: []
+    };
+
+    for (const pl of priceLists) {
+      const entry = (pl.entries || []).find(e => e.productId === productId);
+      if (entry) {
+        result.prices.push({
+          priceListId: pl.id,
+          priceListName: pl.name,
+          type: pl.customerId ? 'customer' : (pl.segmentId ? 'segment' : 'default'),
+          price: entry.price,
+          uvp: entry.uvp,
+          minOrderQty: entry.minOrderQty
+        });
+      }
+    }
+
+    return result;
+  },
+
+  /**
+   * Calculate line total with proper pricing
+   */
+  calculateLineTotal(productId, customerId, quantity, overridePrice = null) {
+    const price = overridePrice != null ? overridePrice : this.getPrice(productId, customerId, quantity).price;
+    const lineNet = quantity * price;
+    const vatRate = App.Data.config?.defaultVatRate || 0.2;
+    const lineVat = lineNet * vatRate;
+    const lineGross = lineNet + lineVat;
+
+    return {
+      quantity,
+      unitPrice: price,
+      lineNet,
+      lineVat,
+      lineGross,
+      vatRate
+    };
+  }
+};
+
 App.Services.Auth = {
   currentUser: null,
   lastActivity: Date.now(),

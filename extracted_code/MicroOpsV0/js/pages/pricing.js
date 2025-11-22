@@ -2,6 +2,34 @@
 App.UI.Views.Pricing = {
   render(root) {
     const lists = App.Data.priceLists || App.Data.PriceLists || [];
+
+    // Get scope display name
+    const getScopeDisplay = (pl) => {
+      if (pl.customerId) {
+        const customer = (App.Data.customers || []).find(c => c.id === pl.customerId);
+        return customer ? customer.company : pl.customerId;
+      }
+      if (pl.segmentId) {
+        return pl.segmentId.charAt(0).toUpperCase() + pl.segmentId.slice(1);
+      }
+      return 'Default';
+    };
+
+    // Get status badge
+    const getStatusBadge = (pl) => {
+      const now = new Date();
+      if (pl.active === false) {
+        return '<span class="tag tag-muted">Inactive</span>';
+      }
+      if (pl.validFrom && new Date(pl.validFrom) > now) {
+        return '<span class="tag tag-info">Scheduled</span>';
+      }
+      if (pl.validTo && new Date(pl.validTo) < now) {
+        return '<span class="tag tag-muted">Expired</span>';
+      }
+      return '<span class="tag tag-success">Active</span>';
+    };
+
     root.innerHTML = `
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -14,31 +42,47 @@ App.UI.Views.Pricing = {
               <th>${App.I18n.t('pricing.name','Name')}</th>
               <th>${App.I18n.t('pricing.type','Type')}</th>
               <th>${App.I18n.t('pricing.scope','Scope')}</th>
+              <th>Status</th>
               <th>${App.I18n.t('pricing.validity','Validity')}</th>
+              <th style="text-align:center;">Items</th>
               <th style="text-align:right;">${App.I18n.t('common.actions','Actions')}</th>
             </tr>
           </thead>
           <tbody>
             ${lists.map(pl => `
               <tr>
-                <td>${pl.name || '-'}</td>
-                <td>${pl.type || '-'}</td>
-                <td>${pl.segmentId || pl.customerId || '-'}</td>
-                <td>${pl.validFrom || ''} ${pl.validTo ? ' - ' + pl.validTo : ''}</td>
+                <td><strong>${pl.name || '-'}</strong></td>
+                <td>${pl.type === 'customer' ? '👤 Customer' : (pl.type === 'segment' ? '📊 Segment' : '📋 Default')}</td>
+                <td>${getScopeDisplay(pl)}</td>
+                <td>${getStatusBadge(pl)}</td>
+                <td>${pl.validFrom || 'Always'} ${pl.validTo ? ' → ' + pl.validTo : ''}</td>
+                <td style="text-align:center;">${(pl.entries || []).length}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-export-pl" data-id="${pl.id}" title="Export">📥</button>
+                  <button class="btn btn-ghost btn-edit-pl" data-id="${pl.id}" title="Edit">✏️</button>
+                  <button class="btn btn-ghost btn-export-pl" data-id="${pl.id}" title="Export CSV">📥</button>
+                  <button class="btn btn-ghost btn-delete-pl" data-id="${pl.id}" title="Delete">🗑️</button>
                 </td>
               </tr>
-            `).join('') || `<tr><td colspan="5" style="text-align:center; color:var(--color-text-muted);">No price lists</td></tr>`}
+            `).join('') || `<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">No price lists</td></tr>`}
           </tbody>
         </table>
       </div>
     `;
+
     const addBtn = document.getElementById('btn-add-pricelist');
     if (addBtn) {
       addBtn.onclick = () => this.openPriceListModal();
     }
-    
+
+    root.querySelectorAll('.btn-edit-pl').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const pl = lists.find(p => p.id === id);
+        if (pl) this.openPriceListModal(pl);
+      });
+    });
+
     root.querySelectorAll('.btn-export-pl').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -46,6 +90,36 @@ App.UI.Views.Pricing = {
         this.exportList(id);
       });
     });
+
+    root.querySelectorAll('.btn-delete-pl').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        this.deleteList(id);
+      });
+    });
+  },
+
+  deleteList(id) {
+    const list = (App.Data.priceLists || []).find(pl => pl.id === id);
+    if (!list) return;
+
+    App.UI.Modal.open('Delete Price List', `
+      <p>Are you sure you want to delete <strong>${list.name}</strong>?</p>
+      <p style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">This will remove all ${(list.entries || []).length} price entries.</p>
+    `, [
+      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      {
+        text: 'Delete',
+        variant: 'primary',
+        onClick: () => {
+          App.Data.priceLists = (App.Data.priceLists || []).filter(pl => pl.id !== id);
+          App.DB.save();
+          App.UI.Toast.show('Price list deleted');
+          App.Core.Router.navigate('pricing');
+        }
+      }
+    ]);
   },
 
   exportList(id) {
