@@ -8,6 +8,11 @@ App.UI.Views.Documents = {
       const paid = doc.paidAmount || 0;
       const total = doc.grossTotal || 0;
 
+      // Show if credit note
+      if (doc.isCreditNote) {
+        return '<span class="tag tag-info">Credit Note</span>';
+      }
+
       if (paid >= total) {
         return '<span class="tag tag-success">Paid</span>';
       }
@@ -21,10 +26,19 @@ App.UI.Views.Documents = {
 
       if (due && due < now) {
         const daysOverdue = Math.ceil((now - due) / (1000 * 60 * 60 * 24));
-        return `<span class="tag" style="background:#fee2e2;color:#dc2626;">Overdue ${daysOverdue}d</span>`;
+        return `<span class="tag tag-danger">Overdue ${daysOverdue}d</span>`;
       }
 
-      return '<span class="tag" style="background:#fef3c7;color:#d97706;">Open</span>';
+      return '<span class="tag tag-warning">Open</span>';
+    };
+
+    // Get finalization status badge
+    const getFinalizationBadge = (doc) => {
+      if (doc.type !== 'invoice') return '';
+      if (doc.isFinalized) {
+        return '<span class="tag tag-muted" title="' + App.I18n.t('documents.finalizedTooltip', 'This invoice is finalized and cannot be edited') + '">🔒</span>';
+      }
+      return '<span class="tag" style="background:var(--color-warning-bg);color:var(--color-warning);" title="' + App.I18n.t('documents.draftTooltip', 'Draft - can be edited') + '">Draft</span>';
     };
 
     const formatDueDate = (doc) => {
@@ -51,6 +65,7 @@ App.UI.Views.Documents = {
               <th>Date</th>
               <th>Due Date</th>
               <th style="text-align:right;">Total</th>
+              <th style="text-align:center;">Status</th>
               <th style="text-align:center;">Payment</th>
               <th style="text-align:center;">Actions</th>
             </tr>
@@ -59,25 +74,37 @@ App.UI.Views.Documents = {
             ${docs.length > 0 ? docs.map(d => {
               const cust = App.Data.customers.find(c => c.id === d.customerId);
               const isInv = d.type === 'invoice';
-              const icon = isInv ? '🧾' : '📦';
+              const icon = d.isCreditNote ? '📋' : (isInv ? '🧾' : '📦');
+              const esc = App.Utils.escapeHtml;
+              const canFinalize = isInv && !d.isFinalized && !d.isCreditNote;
+              const canStorno = isInv && d.isFinalized && !d.isCreditNote;
+              const canDelete = !d.isFinalized;
+              const canPay = isInv && !d.isCreditNote && (d.paidAmount || 0) < (d.grossTotal || 0);
+
               return `
-                <tr>
-                  <td><span title="${d.type}">${icon}</span></td>
-                  <td><strong>${d.docNumber || d.id}</strong></td>
-                  <td>${cust ? cust.company : '-'}</td>
+                <tr ${d.isCreditNote ? 'style="opacity:0.85;"' : ''}>
+                  <td><span title="${d.type}${d.isCreditNote ? ' (Credit Note)' : ''}">${icon}</span></td>
+                  <td>
+                    <strong>${esc(d.docNumber || d.id)}</strong>
+                    ${d.linkedInvoiceId ? `<div style="font-size:10px; color:var(--color-text-muted);">→ ${esc((App.Data.documents.find(x => x.id === d.linkedInvoiceId) || {}).docNumber || '')}</div>` : ''}
+                  </td>
+                  <td>${cust ? esc(cust.company) : '-'}</td>
                   <td>${App.Utils.formatDate(d.date)}</td>
                   <td>${formatDueDate(d)}</td>
                   <td style="text-align:right;">${isInv ? App.Utils.formatCurrency(d.grossTotal || d.total) : '-'}</td>
+                  <td style="text-align:center;">${getFinalizationBadge(d)}</td>
                   <td style="text-align:center;">${getPaymentStatus(d)}</td>
-                  <td style="text-align:center;">
+                  <td style="text-align:center; white-space:nowrap;">
                     <button class="btn btn-ghost btn-doc-view" data-id="${d.id}" title="${App.I18n.t('common.viewPrint', 'View/Print')}" aria-label="View document">👁️</button>
-                    ${isInv && (d.paidAmount || 0) < (d.grossTotal || 0) ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="${App.I18n.t('common.recordPayment', 'Record Payment')}" aria-label="Record payment">💰</button>` : ''}
+                    ${canFinalize ? `<button class="btn btn-ghost btn-doc-finalize" data-id="${d.id}" title="${App.I18n.t('documents.finalize', 'Finalize Invoice')}" aria-label="Finalize invoice">✅</button>` : ''}
+                    ${canStorno ? `<button class="btn btn-ghost btn-doc-storno" data-id="${d.id}" title="${App.I18n.t('documents.createStorno', 'Create Credit Note')}" aria-label="Create credit note">↩️</button>` : ''}
+                    ${canPay ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="${App.I18n.t('common.recordPayment', 'Record Payment')}" aria-label="Record payment">💰</button>` : ''}
                     ${isInv ? `<button class="btn btn-ghost btn-doc-history" data-id="${d.id}" title="${App.I18n.t('common.paymentHistory', 'Payment History')}" aria-label="Payment history">📋</button>` : ''}
-                    <button class="btn btn-ghost btn-doc-delete" data-id="${d.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete document">🗑️</button>
+                    ${canDelete ? `<button class="btn btn-ghost btn-doc-delete" data-id="${d.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete document">🗑️</button>` : ''}
                   </td>
                 </tr>
               `;
-            }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--color-text-muted);">No documents</td></tr>'}
+            }).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--color-text-muted);">No documents</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -96,6 +123,16 @@ App.UI.Views.Documents = {
 
     root.querySelectorAll('.btn-doc-history').forEach(btn => {
       btn.addEventListener('click', () => this.openPaymentHistory(btn.getAttribute('data-id')));
+    });
+
+    // Finalize invoice (GoBD compliance)
+    root.querySelectorAll('.btn-doc-finalize').forEach(btn => {
+      btn.addEventListener('click', () => this.finalizeInvoice(btn.getAttribute('data-id')));
+    });
+
+    // Create Storno (credit note)
+    root.querySelectorAll('.btn-doc-storno').forEach(btn => {
+      btn.addEventListener('click', () => this.createStorno(btn.getAttribute('data-id')));
     });
 
     root.querySelectorAll('.btn-doc-delete').forEach(btn => {
@@ -186,6 +223,174 @@ App.UI.Views.Documents = {
 
     App.UI.Toast.show('Document deleted');
     App.Core.Router.navigate('documents');
+  },
+
+  /**
+   * Finalize an invoice - makes it immutable (GoBD compliance)
+   */
+  finalizeInvoice(docId) {
+    const doc = App.Data.documents.find(d => d.id === docId);
+    if (!doc || doc.type !== 'invoice') return;
+
+    if (doc.isFinalized) {
+      App.UI.Toast.show(App.I18n.t('documents.alreadyFinalized', 'Invoice is already finalized'), 'warning');
+      return;
+    }
+
+    const cust = (App.Data.customers || []).find(c => c.id === doc.customerId);
+
+    App.UI.Modal.open(App.I18n.t('documents.finalizeTitle', 'Finalize Invoice'), `
+      <div>
+        <p><strong>⚠️ ${App.I18n.t('documents.finalizeWarning', 'This action cannot be undone!')}</strong></p>
+        <p style="margin-top:8px; font-size:13px;">
+          ${App.I18n.t('documents.finalizeDesc', 'Finalizing this invoice will lock it permanently. You will not be able to edit or delete it afterwards.')}
+        </p>
+        <div style="margin-top:12px; padding:12px; background:var(--color-bg); border-radius:8px; font-size:12px;">
+          <p><strong>${App.I18n.t('documents.invoice', 'Invoice')}:</strong> ${doc.docNumber}</p>
+          <p><strong>${App.I18n.t('documents.customer', 'Customer')}:</strong> ${cust ? cust.company : '-'}</p>
+          <p><strong>${App.I18n.t('documents.total', 'Total')}:</strong> ${App.Utils.formatCurrency(doc.grossTotal)}</p>
+        </div>
+        <p style="margin-top:12px; font-size:12px; color:var(--color-text-muted);">
+          ${App.I18n.t('documents.stornoHint', 'If corrections are needed after finalization, you can create a Storno (credit note).')}
+        </p>
+      </div>
+    `, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('documents.finalize', 'Finalize'),
+        variant: 'primary',
+        onClick: () => {
+          // Set finalization fields
+          doc.isFinalized = true;
+          doc.finalizedDate = new Date().toISOString();
+          doc.finalizedBy = App.Data.Config?.currentUserId || 'system';
+          doc.modifiedDate = new Date().toISOString();
+
+          App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('finalize', 'document', docId, {
+              name: doc.docNumber,
+              type: doc.type,
+              customer: cust?.company,
+              amount: doc.grossTotal
+            });
+          }
+
+          App.UI.Toast.show(App.I18n.t('documents.finalized', 'Invoice finalized successfully'), 'success');
+          App.Core.Router.navigate('documents');
+        }
+      }
+    ]);
+  },
+
+  /**
+   * Create a Storno (credit note) for a finalized invoice (GoBD compliance)
+   */
+  createStorno(docId) {
+    const originalDoc = App.Data.documents.find(d => d.id === docId);
+    if (!originalDoc || originalDoc.type !== 'invoice') return;
+
+    if (!originalDoc.isFinalized) {
+      App.UI.Toast.show(App.I18n.t('documents.mustFinalizeFirst', 'Invoice must be finalized before creating a Storno'), 'warning');
+      return;
+    }
+
+    if (originalDoc.isCreditNote) {
+      App.UI.Toast.show(App.I18n.t('documents.cannotStornoStorno', 'Cannot create Storno of a credit note'), 'warning');
+      return;
+    }
+
+    const cust = (App.Data.customers || []).find(c => c.id === originalDoc.customerId);
+
+    App.UI.Modal.open(App.I18n.t('documents.createStornoTitle', 'Create Credit Note (Storno)'), `
+      <div>
+        <p style="font-size:13px;">
+          ${App.I18n.t('documents.stornoDesc', 'This will create a credit note that reverses the original invoice. The credit note will have negative amounts.')}
+        </p>
+        <div style="margin-top:12px; padding:12px; background:var(--color-bg); border-radius:8px; font-size:12px;">
+          <p><strong>${App.I18n.t('documents.originalInvoice', 'Original Invoice')}:</strong> ${originalDoc.docNumber}</p>
+          <p><strong>${App.I18n.t('documents.customer', 'Customer')}:</strong> ${cust ? cust.company : '-'}</p>
+          <p><strong>${App.I18n.t('documents.amount', 'Amount')}:</strong> ${App.Utils.formatCurrency(originalDoc.grossTotal)}</p>
+          <p style="color:var(--color-danger);"><strong>${App.I18n.t('documents.creditAmount', 'Credit Amount')}:</strong> -${App.Utils.formatCurrency(originalDoc.grossTotal)}</p>
+        </div>
+
+        <label class="field-label" style="margin-top:12px;">${App.I18n.t('documents.stornoReason', 'Reason for Credit Note')}*</label>
+        <textarea id="storno-reason" class="input" rows="3" placeholder="${App.I18n.t('documents.stornoReasonPlaceholder', 'E.g., Customer returned goods, pricing error, etc.')}"></textarea>
+      </div>
+    `, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('documents.createStorno', 'Create Credit Note'),
+        variant: 'primary',
+        onClick: () => {
+          const reason = document.getElementById('storno-reason')?.value?.trim();
+          if (!reason) {
+            App.UI.Toast.show(App.I18n.t('documents.reasonRequired', 'Please provide a reason for the credit note'), 'warning');
+            return false;
+          }
+
+          // Generate credit note number
+          const stornoNumber = originalDoc.docNumber + '-ST';
+
+          // Create the credit note
+          const creditNote = {
+            id: App.Utils.generateId('doc'),
+            type: 'invoice',
+            isCreditNote: true,
+            linkedInvoiceId: originalDoc.id,
+            docNumber: stornoNumber,
+            customerId: originalDoc.customerId,
+            orderId: originalDoc.orderId,
+            date: new Date().toISOString(),
+            dueDate: new Date().toISOString(),
+            // Negative amounts
+            netTotal: -(originalDoc.netTotal || 0),
+            vatTotal: -(originalDoc.vatTotal || 0),
+            grossTotal: -(originalDoc.grossTotal || 0),
+            // Copy line items with negative quantities
+            items: (originalDoc.items || []).map(item => ({
+              ...item,
+              id: App.Utils.generateId('item'),
+              quantity: -(item.quantity || 0),
+              netAmount: -(item.netAmount || 0),
+              vatAmount: -(item.vatAmount || 0),
+              grossAmount: -(item.grossAmount || 0)
+            })),
+            // Metadata
+            notes: `${App.I18n.t('documents.stornoOf', 'Storno of')} ${originalDoc.docNumber}. ${App.I18n.t('documents.reason', 'Reason')}: ${reason}`,
+            stornoReason: reason,
+            // Credit notes are automatically finalized
+            isFinalized: true,
+            finalizedDate: new Date().toISOString(),
+            finalizedBy: App.Data.Config?.currentUserId || 'system',
+            createdDate: new Date().toISOString(),
+            modifiedDate: new Date().toISOString(),
+            paidAmount: 0
+          };
+
+          // Add to documents
+          App.Data.documents = App.Data.documents || [];
+          App.Data.documents.push(creditNote);
+          App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('create', 'storno', creditNote.id, {
+              name: stornoNumber,
+              originalInvoice: originalDoc.docNumber,
+              customer: cust?.company,
+              amount: creditNote.grossTotal,
+              reason: reason
+            });
+          }
+
+          App.UI.Toast.show(App.I18n.t('documents.stornoCreated', 'Credit note created successfully'), 'success');
+          App.Core.Router.navigate('documents');
+        }
+      }
+    ]);
   },
 
   openPaymentModal(docId) {
