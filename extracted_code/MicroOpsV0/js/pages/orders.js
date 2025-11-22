@@ -235,7 +235,7 @@ App.UI.Views.Orders = {
       ${order.notes ? `<p style="margin-top:12px; font-size:12px; color:var(--color-text-muted);">Notes: ${order.notes}</p>` : ''}
     `;
 
-    App.UI.Modal.open('Order Details', body, [
+    App.UI.Modal.open(App.I18n.t('common.orderDetails', 'Order Details'), body, [
       { text: 'Close', variant: 'ghost', onClick: () => {} }
     ]);
   },
@@ -302,7 +302,7 @@ App.UI.Views.Orders = {
       </div>
     `;
 
-    App.UI.Modal.open('Change Order Status', body, [
+    App.UI.Modal.open(App.I18n.t('common.changeOrderStatus', 'Change Order Status'), body, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
         text: 'Update',
@@ -404,7 +404,7 @@ App.UI.Views.Orders = {
       </div>
     `;
 
-    App.UI.Modal.open('Create Order', body, [
+    App.UI.Modal.open(App.I18n.t('common.createOrder', 'Create Order'), body, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
         text: 'Save',
@@ -446,7 +446,7 @@ App.UI.Views.Orders = {
               `• ${i.product}: need ${i.requested}, only ${i.available} available`
             ).join('<br>');
 
-            App.UI.Modal.open('Stock Warning', `
+            App.UI.Modal.open(App.I18n.t('common.stockWarning', 'Stock Warning'), `
               <div style="color:#f97373; margin-bottom:12px;">
                 <strong>⚠️ Insufficient stock for some items:</strong>
               </div>
@@ -477,7 +477,8 @@ App.UI.Views.Orders = {
     // Extracted save function
     const saveOrder = (custId, items) => {
       const subtotal = items.reduce((acc, it) => acc + it.lineNet, 0);
-      const vat = subtotal * 0.2; // Fixed 20% for now
+      const vatRate = App.Data.config?.defaultVatRate || 0.2;
+      const vat = subtotal * vatRate;
       const total = subtotal + vat;
 
       const order = {
@@ -895,7 +896,7 @@ App.UI.Views.Orders = {
       </div>
     `;
 
-    App.UI.Modal.open('Create Production Order', body, [
+    App.UI.Modal.open(App.I18n.t('common.createProductionOrder', 'Create Production Order'), body, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
         text: 'Create Production Order',
@@ -967,7 +968,7 @@ App.UI.Views.Orders = {
         issues.push(`<li>${linkedPOs.length} production order(s)</li>`);
       }
 
-      App.UI.Modal.open('Cannot Delete Order', `
+      App.UI.Modal.open(App.I18n.t('common.cannotDeleteOrder', 'Cannot Delete Order'), `
         <div style="color:#dc2626;">
           <p><strong>This order has linked records:</strong></p>
           <ul style="margin:8px 0; padding-left:20px;">
@@ -983,7 +984,7 @@ App.UI.Views.Orders = {
 
     const cust = (App.Data.customers || []).find(c => c.id === order.custId);
 
-    App.UI.Modal.open('Delete Order', `
+    App.UI.Modal.open(App.I18n.t('common.deleteOrder', 'Delete Order'), `
       <div>
         <p style="margin-bottom:12px;">
           Are you sure you want to delete order <strong>${order.orderId}</strong>?

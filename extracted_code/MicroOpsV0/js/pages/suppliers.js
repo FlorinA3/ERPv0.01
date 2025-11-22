@@ -90,7 +90,7 @@ App.UI.Views.Suppliers = {
           return;
         }
 
-        App.UI.Modal.open('Delete Supplier', `
+        App.UI.Modal.open(App.I18n.t('common.deleteSupplier', 'Delete Supplier'), `
           <p>Are you sure you want to delete <strong>${sup.name}</strong>?</p>
         `, [
           { text: 'Cancel', variant: 'ghost', onClick: () => {} },

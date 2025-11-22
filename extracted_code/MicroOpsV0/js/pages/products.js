@@ -287,7 +287,7 @@ App.UI.Views.Products = {
     const linkedDocs = documents.filter(d => (d.items || []).some(i => i.productId === id));
 
     if (linkedOrders.length > 0 || linkedPOs.length > 0 || linkedDocs.length > 0) {
-      App.UI.Modal.open('Cannot Delete Product', `
+      App.UI.Modal.open(App.I18n.t('common.cannotDeleteProduct', 'Cannot Delete Product'), `
         <div style="color:#dc2626;">
           <p>This product has linked records that must be deleted first:</p>
           <ul style="margin:8px 0; padding-left:20px; font-size:12px;">
@@ -301,7 +301,7 @@ App.UI.Views.Products = {
       return;
     }
 
-    App.UI.Modal.open('Delete Product', `
+    App.UI.Modal.open(App.I18n.t('common.deleteProduct', 'Delete Product'), `
       <p>Are you sure you want to delete <strong>${p.nameDE || p.nameEN || p.internalArticleNumber}</strong>?</p>
       <div style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">
         <p>Art. No: ${p.internalArticleNumber || '-'}</p>

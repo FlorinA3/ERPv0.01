@@ -141,7 +141,7 @@ App.UI.Views.Production = {
 
     // Warn if production is in progress or completed
     if (po.status === 'in_progress') {
-      App.UI.Modal.open('Cannot Delete', `
+      App.UI.Modal.open(App.I18n.t('common.cannotDeleteProduction', 'Cannot Delete'), `
         <div style="color:#f59e0b;">
           <p><strong>⚠️ Production is in progress</strong></p>
           <p style="font-size:12px; margin-top:8px;">
@@ -154,7 +154,7 @@ App.UI.Views.Production = {
     }
 
     if (po.status === 'completed') {
-      App.UI.Modal.open('Delete Completed Order', `
+      App.UI.Modal.open(App.I18n.t('common.deleteCompletedOrder', 'Delete Completed Order'), `
         <div style="color:#f59e0b;">
           <p><strong>⚠️ This production order is completed</strong></p>
           <p style="font-size:12px; margin-top:8px;">
@@ -177,7 +177,7 @@ App.UI.Views.Production = {
     }
 
     // Normal deletion for planned orders
-    App.UI.Modal.open('Delete Production Order', `
+    App.UI.Modal.open(App.I18n.t('common.deleteProduction', 'Delete Production Order'), `
       <div>
         <p>Are you sure you want to delete <strong>${po.orderNumber}</strong>?</p>
         <div style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">
@@ -262,7 +262,7 @@ App.UI.Views.Production = {
       <p style="font-size:12px;">Confirm to start production?</p>
     `;
 
-    App.UI.Modal.open('Start Production', msg, [
+    App.UI.Modal.open(App.I18n.t('common.startProduction', 'Start Production'), msg, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       { text: 'Start Production', variant: 'primary', onClick: () => {
           if (App.Services.Automation) {
@@ -458,7 +458,7 @@ App.UI.Views.Production = {
       Confirm completion?
     `;
 
-    App.UI.Modal.open('Complete Production', msg, [
+    App.UI.Modal.open(App.I18n.t('common.completeProduction', 'Complete Production'), msg, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       { text: 'Complete Order', variant: 'primary', onClick: () => {
           // Use Automation service if available

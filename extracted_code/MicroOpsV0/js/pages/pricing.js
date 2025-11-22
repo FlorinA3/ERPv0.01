@@ -114,7 +114,7 @@ App.UI.Views.Pricing = {
     const list = (App.Data.priceLists || []).find(pl => pl.id === id);
     if (!list) return;
 
-    App.UI.Modal.open('Delete Price List', `
+    App.UI.Modal.open(App.I18n.t('common.deletePriceList', 'Delete Price List'), `
       <p>Are you sure you want to delete <strong>${list.name}</strong>?</p>
       <p style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">This will remove all ${(list.entries || []).length} price entries.</p>
     `, [

@@ -167,7 +167,7 @@ App.UI.Views.Documents = {
 
     // Warn if invoice has payments
     if (hasPaidAmount) {
-      App.UI.Modal.open('Document Has Payments', `
+      App.UI.Modal.open(App.I18n.t('common.documentHasPayments', 'Document Has Payments'), `
         <div style="color:#f59e0b;">
           <p><strong>⚠️ This invoice has recorded payments</strong></p>
           <p style="font-size:12px; margin-top:8px;">
@@ -186,7 +186,7 @@ App.UI.Views.Documents = {
       return;
     }
 
-    App.UI.Modal.open('Delete Document', `
+    App.UI.Modal.open(App.I18n.t('common.deleteDocument', 'Delete Document'), `
       <div>
         <p>Are you sure you want to delete <strong>${doc.docNumber}</strong>?</p>
         <div style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">
@@ -572,7 +572,7 @@ App.UI.Views.Documents = {
       </div>
     `;
 
-    App.UI.Modal.open('Record Payment', body, [
+    App.UI.Modal.open(App.I18n.t('common.recordPaymentTitle', 'Record Payment'), body, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
         text: 'Save Payment',
@@ -784,7 +784,7 @@ App.UI.Views.Documents = {
 
       if (deliveryNotes.length === 0) {
         // Show modal to create delivery note first
-        App.UI.Modal.open('Delivery Note Required', `
+        App.UI.Modal.open(App.I18n.t('common.deliveryNoteRequired', 'Delivery Note Required'), `
           <div>
             <div style="color:#f59e0b; margin-bottom:12px;">
               <strong>⚠️ Cannot create invoice without delivery note</strong>
@@ -819,7 +819,7 @@ App.UI.Views.Documents = {
           `<option value="${dn.id}">${dn.docNumber} (${dn.date?.split('T')[0] || '-'})</option>`
         ).join('');
 
-        App.UI.Modal.open('Select Delivery Note', `
+        App.UI.Modal.open(App.I18n.t('common.selectDeliveryNote', 'Select Delivery Note'), `
           <div>
             <p style="font-size:13px; margin-bottom:12px;">
               Multiple delivery notes exist for this order. Select which one to link to the invoice:
@@ -848,7 +848,7 @@ App.UI.Views.Documents = {
     if (type === 'delivery') {
       const existingDelivery = existingDocs.find(d => d.orderId === orderId && d.type === 'delivery');
       if (existingDelivery) {
-        App.UI.Modal.open('Delivery Note Exists', `
+        App.UI.Modal.open(App.I18n.t('common.deliveryNoteExists', 'Delivery Note Exists'), `
           <div>
             <p style="margin-bottom:12px;">
               A delivery note (<strong>${existingDelivery.docNumber}</strong>) already exists for this order.
@@ -931,7 +931,7 @@ App.UI.Views.Documents = {
 
     // If errors, show modal with issues
     if (errors.length > 0) {
-      App.UI.Modal.open('Cannot Create Document', `
+      App.UI.Modal.open(App.I18n.t('common.cannotCreateDocument', 'Cannot Create Document'), `
         <div style="color:#dc2626;">
           <p style="font-weight:600; margin-bottom:8px;">Please fix the following issues:</p>
           <ul style="margin:0; padding-left:20px;">
@@ -954,8 +954,11 @@ App.UI.Views.Documents = {
     const billAddr = cust.addresses.find(a => a.id === o.billingAddressId) || cust.addresses.find(a => a.role === 'billing') || cust.addresses[0];
     const shipAddr = cust.addresses.find(a => a.id === o.shippingAddressId) || cust.addresses.find(a => a.role === 'shipping') || cust.addresses[0];
 
+    const defaultVatRate = App.Data.config?.defaultVatRate || 0.2;
+
     const items = o.items.map(i => {
       const p = App.Data.products.find(p => p.id === i.productId);
+      const lineNet = i.lineNet || (i.qty * i.unitPrice);
       return {
         productId: i.productId,
         articleNumber: p ? (p.internalArticleNumber || p.sku) : '-',
@@ -963,15 +966,15 @@ App.UI.Views.Documents = {
         qty: i.qty,
         unit: p ? p.unit : 'Stk',
         unitPrice: i.unitPrice,
-        vatRate: 0.2,
-        lineNet: i.lineNet || (i.qty * i.unitPrice),
-        lineVat: (i.lineNet || (i.qty * i.unitPrice)) * 0.2,
-        lineTotal: (i.lineNet || (i.qty * i.unitPrice)) * 1.2
+        vatRate: defaultVatRate,
+        lineNet: lineNet,
+        lineVat: lineNet * defaultVatRate,
+        lineTotal: lineNet * (1 + defaultVatRate)
       };
     });
 
     const subNet = items.reduce((sum, i) => sum + i.lineNet, 0);
-    const vatAmt = subNet * 0.2;
+    const vatAmt = subNet * defaultVatRate;
     const total = subNet + vatAmt;
     const invoiceDate = new Date().toISOString();
 
@@ -1006,7 +1009,7 @@ App.UI.Views.Documents = {
       language: docLang, // Auto-selected document language
       items: items,
       netTotal: subNet,
-      vatSummary: [{ rate: 0.2, base: subNet, amount: vatAmt }],
+      vatSummary: [{ rate: defaultVatRate, base: subNet, amount: vatAmt }],
       grossTotal: total,
       paidAmount: 0,
       payments: [],

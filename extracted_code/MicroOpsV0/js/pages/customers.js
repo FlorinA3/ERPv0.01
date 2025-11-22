@@ -389,7 +389,7 @@ App.UI.Views.Customers = {
     const linkedDocs = documents.filter(d => d.customerId === id);
 
     if (linkedOrders.length > 0 || linkedDocs.length > 0) {
-      App.UI.Modal.open('Cannot Delete Customer', `
+      App.UI.Modal.open(App.I18n.t('common.cannotDeleteCustomer', 'Cannot Delete Customer'), `
         <div style="color:#dc2626;">
           <p>This customer has linked records that must be deleted first:</p>
           <ul style="margin:8px 0; padding-left:20px; font-size:12px;">
@@ -402,7 +402,7 @@ App.UI.Views.Customers = {
       return;
     }
 
-    App.UI.Modal.open('Delete Customer', `
+    App.UI.Modal.open(App.I18n.t('common.deleteCustomer', 'Delete Customer'), `
       <p>Are you sure you want to delete <strong>${customer.company}</strong>?</p>
       ${customer.customerNumber ? `<p style="font-size:12px; color:var(--color-text-muted);">Customer No: ${customer.customerNumber}</p>` : ''}
     `, [

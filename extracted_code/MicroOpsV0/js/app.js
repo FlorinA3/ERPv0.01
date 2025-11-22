@@ -201,7 +201,43 @@ window.App = window.App || {
           remove: 'Entfernen',
           receive: 'Empfangen',
           offlineMode: 'Offline-Modus - Daten werden lokal gespeichert',
-          backOnline: 'Wieder online'
+          backOnline: 'Wieder online',
+          // Modal titles
+          deleteCarrier: 'Spediteur löschen',
+          cannotDeleteCarrier: 'Spediteur kann nicht gelöscht werden',
+          deleteSupplier: 'Lieferant löschen',
+          deleteComponent: 'Komponente löschen',
+          deleteCustomer: 'Kunde löschen',
+          cannotDeleteCustomer: 'Kunde kann nicht gelöscht werden',
+          deletePriceList: 'Preisliste löschen',
+          deleteProduction: 'Produktionsauftrag löschen',
+          cannotDeleteProduction: 'Löschen nicht möglich',
+          deleteCompletedOrder: 'Abgeschlossenen Auftrag löschen',
+          startProduction: 'Produktion starten',
+          completeProduction: 'Produktion abschließen',
+          deleteUser: 'Benutzer löschen',
+          deleteProduct: 'Produkt löschen',
+          cannotDeleteProduct: 'Produkt kann nicht gelöscht werden',
+          documentHasPayments: 'Dokument hat Zahlungen',
+          deleteDocument: 'Dokument löschen',
+          recordPaymentTitle: 'Zahlung erfassen',
+          deliveryNoteRequired: 'Lieferschein erforderlich',
+          selectDeliveryNote: 'Lieferschein auswählen',
+          deliveryNoteExists: 'Lieferschein existiert',
+          cannotCreateDocument: 'Dokument kann nicht erstellt werden',
+          orderDetails: 'Auftragsdetails',
+          changeOrderStatus: 'Auftragsstatus ändern',
+          createOrder: 'Auftrag erstellen',
+          stockWarning: 'Lagerbestandswarnung',
+          createProductionOrder: 'Produktionsauftrag erstellen',
+          cannotDeleteOrder: 'Auftrag kann nicht gelöscht werden',
+          deleteOrder: 'Auftrag löschen',
+          receivePurchaseOrder: 'Bestellung empfangen',
+          purchaseOrderDetails: 'Bestelldetails',
+          automationSettings: 'Automatisierungseinstellungen',
+          keyboardShortcuts: 'Tastaturkürzel',
+          qualityControl: 'Qualitätskontrolle',
+          batchTraceability: 'Chargenrückverfolgung'
         },
         pricing: {
           name: 'Name',
@@ -394,7 +430,43 @@ window.App = window.App || {
           remove: 'Remove',
           receive: 'Receive',
           offlineMode: 'Offline mode - data is saved locally',
-          backOnline: 'Back online'
+          backOnline: 'Back online',
+          // Modal titles
+          deleteCarrier: 'Delete Carrier',
+          cannotDeleteCarrier: 'Cannot Delete Carrier',
+          deleteSupplier: 'Delete Supplier',
+          deleteComponent: 'Delete Component',
+          deleteCustomer: 'Delete Customer',
+          cannotDeleteCustomer: 'Cannot Delete Customer',
+          deletePriceList: 'Delete Price List',
+          deleteProduction: 'Delete Production Order',
+          cannotDeleteProduction: 'Cannot Delete',
+          deleteCompletedOrder: 'Delete Completed Order',
+          startProduction: 'Start Production',
+          completeProduction: 'Complete Production',
+          deleteUser: 'Delete User',
+          deleteProduct: 'Delete Product',
+          cannotDeleteProduct: 'Cannot Delete Product',
+          documentHasPayments: 'Document Has Payments',
+          deleteDocument: 'Delete Document',
+          recordPaymentTitle: 'Record Payment',
+          deliveryNoteRequired: 'Delivery Note Required',
+          selectDeliveryNote: 'Select Delivery Note',
+          deliveryNoteExists: 'Delivery Note Exists',
+          cannotCreateDocument: 'Cannot Create Document',
+          orderDetails: 'Order Details',
+          changeOrderStatus: 'Change Order Status',
+          createOrder: 'Create Order',
+          stockWarning: 'Stock Warning',
+          createProductionOrder: 'Create Production Order',
+          cannotDeleteOrder: 'Cannot Delete Order',
+          deleteOrder: 'Delete Order',
+          receivePurchaseOrder: 'Receive Purchase Order',
+          purchaseOrderDetails: 'Purchase Order Details',
+          automationSettings: 'Automation Settings',
+          keyboardShortcuts: 'Keyboard Shortcuts',
+          qualityControl: 'Quality Control',
+          batchTraceability: 'Batch Traceability'
         },
         pricing: {
           name: 'Name',
@@ -585,7 +657,43 @@ window.App = window.App || {
           remove: 'Elimină',
           receive: 'Primește',
           offlineMode: 'Mod offline - datele sunt salvate local',
-          backOnline: 'Înapoi online'
+          backOnline: 'Înapoi online',
+          // Modal titles
+          deleteCarrier: 'Șterge Transportator',
+          cannotDeleteCarrier: 'Nu se poate șterge Transportatorul',
+          deleteSupplier: 'Șterge Furnizor',
+          deleteComponent: 'Șterge Componentă',
+          deleteCustomer: 'Șterge Client',
+          cannotDeleteCustomer: 'Nu se poate șterge Clientul',
+          deletePriceList: 'Șterge Lista de Prețuri',
+          deleteProduction: 'Șterge Ordin de Producție',
+          cannotDeleteProduction: 'Nu se poate șterge',
+          deleteCompletedOrder: 'Șterge Comandă Finalizată',
+          startProduction: 'Începe Producția',
+          completeProduction: 'Finalizează Producția',
+          deleteUser: 'Șterge Utilizator',
+          deleteProduct: 'Șterge Produs',
+          cannotDeleteProduct: 'Nu se poate șterge Produsul',
+          documentHasPayments: 'Documentul are Plăți',
+          deleteDocument: 'Șterge Document',
+          recordPaymentTitle: 'Înregistrează Plată',
+          deliveryNoteRequired: 'Aviz de Livrare Necesar',
+          selectDeliveryNote: 'Selectează Aviz de Livrare',
+          deliveryNoteExists: 'Avizul de Livrare Există',
+          cannotCreateDocument: 'Nu se poate crea Documentul',
+          orderDetails: 'Detalii Comandă',
+          changeOrderStatus: 'Schimbă Status Comandă',
+          createOrder: 'Creează Comandă',
+          stockWarning: 'Avertisment Stoc',
+          createProductionOrder: 'Creează Ordin de Producție',
+          cannotDeleteOrder: 'Nu se poate șterge Comanda',
+          deleteOrder: 'Șterge Comandă',
+          receivePurchaseOrder: 'Primește Comanda de Achiziție',
+          purchaseOrderDetails: 'Detalii Comandă de Achiziție',
+          automationSettings: 'Setări Automatizare',
+          keyboardShortcuts: 'Scurtături Tastatură',
+          qualityControl: 'Control Calitate',
+          batchTraceability: 'Trasabilitate Loturi'
         },
         pricing: {
           name: 'Nume',
@@ -1933,7 +2041,7 @@ App.Services.Automation = {
       </div>
     `;
 
-    App.UI.Modal.open('Automation Settings', body, [
+    App.UI.Modal.open(App.I18n.t('common.automationSettings', 'Automation Settings'), body, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
         text: 'Save',
@@ -2360,7 +2468,7 @@ App.Services.Keyboard = {
 
     helpHtml += '</div>';
 
-    App.UI.Modal.open('Keyboard Shortcuts', helpHtml, [
+    App.UI.Modal.open(App.I18n.t('common.keyboardShortcuts', 'Keyboard Shortcuts'), helpHtml, [
       { text: 'Close', variant: 'ghost', onClick: () => {} }
     ]);
   },

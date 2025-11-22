@@ -148,7 +148,7 @@ App.UI.Views.Dashboard = {
         <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Quick Actions</h4>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="App.UI.Views.Orders.openCreateModal()">+ New Order</button>
-          <button class="btn btn-ghost" onclick="App.UI.Views.Customers.openModal()">+ New Customer</button>
+          <button class="btn btn-ghost" onclick="App.UI.Views.Customers.openEditModal()">+ New Customer</button>
           <button class="btn btn-ghost" onclick="App.Core.Router.navigate('inventory')">Check Inventory</button>
           <button class="btn btn-ghost" onclick="App.Core.Router.navigate('reports')">View Reports</button>
           <button class="btn btn-ghost" onclick="App.Core.Router.navigate('purchaseOrders')">Create PO</button>

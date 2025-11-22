@@ -68,7 +68,7 @@ App.UI.Views.Carriers = {
     const usedInOrders = orders.filter(o => o.carrierId === id);
 
     if (usedInOrders.length > 0) {
-      App.UI.Modal.open('Cannot Delete Carrier', `
+      App.UI.Modal.open(App.I18n.t('common.cannotDeleteCarrier', 'Cannot Delete Carrier'), `
         <div style="color:#dc2626;">
           <p>This carrier is used in <strong>${usedInOrders.length}</strong> order(s).</p>
           <p style="font-size:12px; margin-top:8px;">Remove the carrier from these orders first.</p>
@@ -79,7 +79,7 @@ App.UI.Views.Carriers = {
       return;
     }
 
-    App.UI.Modal.open('Delete Carrier', `
+    App.UI.Modal.open(App.I18n.t('common.deleteCarrier', 'Delete Carrier'), `
       <p>Are you sure you want to delete <strong>${carrier.name}</strong>?</p>
     `, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },

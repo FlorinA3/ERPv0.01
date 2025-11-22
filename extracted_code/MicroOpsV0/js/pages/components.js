@@ -82,7 +82,7 @@ App.UI.Views.Components = {
           return;
         }
 
-        App.UI.Modal.open('Delete Component', `
+        App.UI.Modal.open(App.I18n.t('common.deleteComponent', 'Delete Component'), `
           <p>Are you sure you want to delete <strong>${comp.componentNumber}</strong>?</p>
         `, [
           { text: 'Cancel', variant: 'ghost', onClick: () => {} },

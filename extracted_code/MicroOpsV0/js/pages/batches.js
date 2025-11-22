@@ -228,7 +228,7 @@ App.UI.Views.Batches = {
       </div>
     `;
 
-    App.UI.Modal.open('Quality Control', body, [
+    App.UI.Modal.open(App.I18n.t('common.qualityControl', 'Quality Control'), body, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
         text: 'Save QC',
@@ -297,7 +297,7 @@ App.UI.Views.Batches = {
       </div>
     `;
 
-    App.UI.Modal.open('Batch Traceability', body, [
+    App.UI.Modal.open(App.I18n.t('common.batchTraceability', 'Batch Traceability'), body, [
       { text: 'Close', variant: 'ghost', onClick: () => {} }
     ]);
   },

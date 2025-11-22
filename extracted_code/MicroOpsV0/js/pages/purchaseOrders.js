@@ -252,7 +252,7 @@ App.UI.Views.PurchaseOrders = {
       </div>
     `;
 
-    App.UI.Modal.open('Receive Purchase Order', body, [
+    App.UI.Modal.open(App.I18n.t('common.receivePurchaseOrder', 'Receive Purchase Order'), body, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
         text: 'Receive',
@@ -350,7 +350,7 @@ App.UI.Views.PurchaseOrders = {
       ${po.notes ? `<p style="margin-top:8px; font-size:12px; color:var(--color-text-muted);">Notes: ${po.notes}</p>` : ''}
     `;
 
-    App.UI.Modal.open('Purchase Order Details', body, [
+    App.UI.Modal.open(App.I18n.t('common.purchaseOrderDetails', 'Purchase Order Details'), body, [
       { text: 'Close', variant: 'ghost', onClick: () => {} }
     ]);
   },

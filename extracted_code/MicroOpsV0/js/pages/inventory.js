@@ -340,7 +340,7 @@ App.UI.Views.Inventory = {
       </div>
     `;
 
-    App.UI.Modal.open('Receive Stock', body, [
+    App.UI.Modal.open(App.I18n.t('common.receiveStock', 'Receive Stock'), body, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
         text: 'Receive',
@@ -400,7 +400,7 @@ App.UI.Views.Inventory = {
       </div>
     `;
 
-    App.UI.Modal.open('Adjust Stock', body, [
+    App.UI.Modal.open(App.I18n.t('common.adjustStock', 'Adjust Stock'), body, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
         text: 'Adjust',

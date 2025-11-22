@@ -522,7 +522,7 @@ App.UI.Views.Settings = {
       return;
     }
 
-    App.UI.Modal.open('Delete User', `
+    App.UI.Modal.open(App.I18n.t('common.deleteUser', 'Delete User'), `
       <p>Are you sure you want to delete <strong>${user.name}</strong>?</p>
       <p style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">This action cannot be undone.</p>
     `, [
