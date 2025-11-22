@@ -1639,6 +1639,102 @@ App.Services.Automation = {
   },
 
   /**
+   * Create automatic tasks for key events
+   */
+  createTaskForOrder(order, reason) {
+    const tasks = App.Data.tasks || [];
+    const customer = (App.Data.customers || []).find(c => c.id === order.custId);
+
+    // Calculate due date (planned delivery - 2 days)
+    let dueDate = new Date();
+    if (order.plannedDelivery) {
+      dueDate = new Date(order.plannedDelivery);
+      dueDate.setDate(dueDate.getDate() - 2);
+    } else {
+      dueDate.setDate(dueDate.getDate() + 5);
+    }
+
+    const task = {
+      id: App.Utils.generateId('task'),
+      title: `${reason}: Order ${order.orderId}`,
+      description: `${customer?.company || 'Customer'} - ${App.Utils.formatCurrency(order.totalGross)}`,
+      category: 'Production',
+      status: 'pending',
+      priority: order.totalGross > 5000 ? 'high' : 'normal',
+      dueDate: dueDate.toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
+      createdBy: App.Services.Auth.currentUser?.id,
+      entityType: 'order',
+      entityId: order.id
+    };
+
+    tasks.push(task);
+    App.Data.tasks = tasks;
+    App.DB.save();
+
+    if (this.config.showNotifications) {
+      App.UI.Toast.show(`Task created: ${task.title}`);
+    }
+
+    return task;
+  },
+
+  /**
+   * Check for expiring batches and create tasks
+   */
+  checkBatchExpiry(daysWarning = 30) {
+    const batches = App.Data.batches || [];
+    const tasks = App.Data.tasks || [];
+    const now = new Date();
+    const warningDate = new Date();
+    warningDate.setDate(warningDate.getDate() + daysWarning);
+
+    let created = 0;
+
+    batches.forEach(batch => {
+      if (!batch.expiryDate || batch.status === 'expired' || batch.status === 'disposed') return;
+
+      const expiry = new Date(batch.expiryDate);
+      if (expiry <= warningDate && expiry > now) {
+        // Check if task already exists for this batch
+        const existingTask = tasks.find(t =>
+          t.entityType === 'batch' && t.entityId === batch.id && t.status !== 'completed'
+        );
+
+        if (!existingTask) {
+          const daysUntilExpiry = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+          const task = {
+            id: App.Utils.generateId('task'),
+            title: `Batch Expiring: ${batch.lotNumber}`,
+            description: `Expires in ${daysUntilExpiry} days (${batch.expiryDate})`,
+            category: 'Inventory',
+            status: 'pending',
+            priority: daysUntilExpiry <= 7 ? 'high' : 'normal',
+            dueDate: batch.expiryDate,
+            createdAt: new Date().toISOString(),
+            entityType: 'batch',
+            entityId: batch.id
+          };
+
+          tasks.push(task);
+          created++;
+        }
+      }
+    });
+
+    if (created > 0) {
+      App.Data.tasks = tasks;
+      App.DB.save();
+
+      if (this.config.showNotifications) {
+        App.UI.Toast.show(`${created} batch expiry task(s) created`);
+      }
+    }
+
+    return created;
+  },
+
+  /**
    * Load config from saved data
    */
   loadConfig() {

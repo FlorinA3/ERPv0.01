@@ -515,6 +515,11 @@ App.UI.Views.Orders = {
       // Trigger automation - create production orders for products with BOM
       if (App.Services.Automation) {
         App.Services.Automation.processOrderCreation(order);
+
+        // Create task for big orders (> 2000 EUR)
+        if (order.totalGross > 2000) {
+          App.Services.Automation.createTaskForOrder(order, 'Plan production');
+        }
       }
 
       // Log activity
@@ -711,22 +716,60 @@ App.UI.Views.Orders = {
           custSelect.dataset.defaultCarrier = customer.defaultCarrierId || '';
           custSelect.dataset.segment = customer.segment || '';
 
-          // Show customer info tooltip
+          // Show customer info with price preview button
           const infoText = [];
           if (customer.paymentTerms) infoText.push(`Payment: ${customer.paymentTerms}`);
           if (customer.deliveryTerms) infoText.push(`Delivery: ${customer.deliveryTerms}`);
           if (customer.segment) infoText.push(`Segment: ${customer.segment}`);
 
-          if (infoText.length > 0) {
-            let infoDiv = document.getElementById('customer-defaults-info');
-            if (!infoDiv) {
-              infoDiv = document.createElement('div');
-              infoDiv.id = 'customer-defaults-info';
-              infoDiv.style.cssText = 'font-size:11px; color:var(--color-text-muted); margin-top:4px; padding:6px; background:var(--color-bg); border-radius:4px;';
-              custSelect.parentNode.appendChild(infoDiv);
-            }
-            infoDiv.innerHTML = infoText.join(' | ');
+          let infoDiv = document.getElementById('customer-defaults-info');
+          if (!infoDiv) {
+            infoDiv = document.createElement('div');
+            infoDiv.id = 'customer-defaults-info';
+            infoDiv.style.cssText = 'font-size:11px; color:var(--color-text-muted); margin-top:4px; padding:6px; background:var(--color-bg); border-radius:4px; display:flex; justify-content:space-between; align-items:center;';
+            custSelect.parentNode.appendChild(infoDiv);
           }
+
+          infoDiv.innerHTML = `
+            <span>${infoText.length > 0 ? infoText.join(' | ') : 'No defaults set'}</span>
+            <button type="button" class="btn btn-ghost" id="btn-price-preview" style="font-size:10px; padding:2px 6px;">💰 Price Preview</button>
+          `;
+
+          // Price preview button handler
+          document.getElementById('btn-price-preview').onclick = () => {
+            if (App.Services.PriceCascade) {
+              const prices = App.Services.PriceCascade.getAllPricesForCustomer(selectedCustId);
+              const priceRows = prices.slice(0, 20).map(p => `
+                <tr>
+                  <td style="font-size:11px;">${p.sku || '-'}</td>
+                  <td style="font-size:11px;">${p.productName || '-'}</td>
+                  <td style="text-align:right; font-size:11px;">${App.Utils.formatCurrency(p.price)}</td>
+                  <td style="font-size:10px; color:var(--color-text-muted);">${p.source}</td>
+                </tr>
+              `).join('');
+
+              App.UI.Modal.open(`Price Preview: ${customer.company}`, `
+                <div style="max-height:300px; overflow-y:auto;">
+                  <p style="font-size:12px; margin-bottom:8px; color:var(--color-text-muted);">
+                    Showing prices for this customer (${prices.length} products)
+                  </p>
+                  <table class="table" style="font-size:12px;">
+                    <thead>
+                      <tr>
+                        <th>SKU</th>
+                        <th>Product</th>
+                        <th style="text-align:right;">Price</th>
+                        <th>Source</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${priceRows || '<tr><td colspan="4">No products</td></tr>'}
+                    </tbody>
+                  </table>
+                </div>
+              `, [{ text: 'Close', variant: 'ghost', onClick: () => {} }]);
+            }
+          };
         }
 
         // Recalculate all line item prices
