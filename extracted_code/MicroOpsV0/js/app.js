@@ -1535,6 +1535,110 @@ App.Services.Automation = {
   },
 
   /**
+   * Recompute order status based on linked documents
+   * Call this when LS, invoice, or payments change
+   */
+  recomputeOrderStatus(orderId) {
+    const order = (App.Data.orders || []).find(o => o.id === orderId);
+    if (!order) return null;
+
+    const documents = App.Data.documents || [];
+    const deliveryNotes = documents.filter(d => d.orderId === orderId && d.type === 'delivery');
+    const invoices = documents.filter(d => d.orderId === orderId && d.type === 'invoice');
+
+    const oldStatus = order.status;
+    let newStatus = order.status;
+
+    // Check if all invoices are paid → paid/closed
+    if (invoices.length > 0) {
+      const allPaid = invoices.every(inv => {
+        const paid = inv.paidAmount || 0;
+        const total = inv.grossTotal || 0;
+        return paid >= total;
+      });
+
+      if (allPaid) {
+        newStatus = 'paid';
+      }
+    }
+
+    // Check delivery status (only if not yet paid)
+    if (newStatus !== 'paid' && deliveryNotes.length > 0) {
+      // Calculate total delivered quantity per product
+      const deliveredQty = {};
+      deliveryNotes.forEach(dn => {
+        (dn.items || []).forEach(item => {
+          const pid = item.productId || item.id;
+          const qty = item.qty || item.quantity || 0;
+          deliveredQty[pid] = (deliveredQty[pid] || 0) + qty;
+        });
+      });
+
+      // Calculate ordered quantity per product
+      const orderedQty = {};
+      (order.items || []).forEach(item => {
+        orderedQty[item.productId] = (orderedQty[item.productId] || 0) + (item.qty || 0);
+      });
+
+      // Check if all items fully delivered
+      const allDelivered = Object.keys(orderedQty).every(pid => {
+        return (deliveredQty[pid] || 0) >= orderedQty[pid];
+      });
+
+      if (allDelivered) {
+        newStatus = 'delivered';
+      } else if (Object.keys(deliveredQty).length > 0) {
+        // Partially shipped
+        if (order.status === 'confirmed' || order.status === 'processing') {
+          newStatus = 'shipped';
+        }
+      }
+    }
+
+    // Update if changed
+    if (newStatus !== oldStatus) {
+      order.status = newStatus;
+
+      // Log status history
+      if (!order.statusHistory) order.statusHistory = [];
+      order.statusHistory.push({
+        status: newStatus,
+        date: new Date().toISOString(),
+        userId: null,
+        notes: 'Auto-updated based on documents'
+      });
+
+      App.DB.save();
+
+      // Log activity
+      App.Services.ActivityLog?.log('update', 'order', order.id, {
+        name: order.orderId,
+        action: 'auto_status_update',
+        oldStatus,
+        newStatus,
+        trigger: 'document_change'
+      });
+
+      if (this.config.showNotifications) {
+        App.UI.Toast.show(`Order ${order.orderId} status: ${oldStatus} → ${newStatus}`);
+      }
+    }
+
+    return { oldStatus, newStatus, changed: newStatus !== oldStatus };
+  },
+
+  /**
+   * Recompute status for all orders linked to a document
+   */
+  onDocumentChange(documentId) {
+    const doc = (App.Data.documents || []).find(d => d.id === documentId);
+    if (doc && doc.orderId) {
+      return this.recomputeOrderStatus(doc.orderId);
+    }
+    return null;
+  },
+
+  /**
    * Load config from saved data
    */
   loadConfig() {

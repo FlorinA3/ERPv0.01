@@ -170,6 +170,22 @@ App.UI.Views.Documents = {
 
           App.DB.save();
           App.UI.Toast.show(`Payment of ${App.Utils.formatCurrency(amount)} recorded`);
+
+          // Recompute order status based on payment
+          if (App.Services.Automation && doc.orderId) {
+            App.Services.Automation.recomputeOrderStatus(doc.orderId);
+          }
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('update', 'document', doc.id, {
+              name: doc.docNumber,
+              action: 'payment_recorded',
+              amount: amount,
+              method: payment.method
+            });
+          }
+
           App.Core.Router.navigate('documents');
         }
       }
@@ -431,6 +447,12 @@ App.UI.Views.Documents = {
 
     App.Data.documents.push(doc);
     App.DB.save();
+
+    // Recompute order status based on new document
+    if (App.Services.Automation && doc.orderId) {
+      App.Services.Automation.recomputeOrderStatus(doc.orderId);
+    }
+
     App.UI.Toast.show(`${type === 'invoice' ? 'Invoice' : 'Delivery Note'} generated`);
     App.Core.Router.navigate('documents');
   },
