@@ -596,8 +596,36 @@ App.UI.Views.Orders = {
           warning = document.createElement('div');
           warning.className = 'stock-warning';
           warning.style.cssText = 'font-size:11px; color:#f97373; margin-top:4px;';
-          warning.innerHTML = `⚠️ Only ${stockInfo.stock} in stock (need ${qty}, short ${stockInfo.shortage})`;
+
+          // Check if product has BOM - suggest production order
+          const hasBOM = product.bom && product.bom.length > 0;
+          if (hasBOM) {
+            warning.innerHTML = `
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span>⚠️ Only ${stockInfo.stock} in stock (need ${qty}, short ${stockInfo.shortage})</span>
+                <button type="button" class="btn btn-ghost btn-suggest-production"
+                  data-product-id="${prodId}" data-shortage="${stockInfo.shortage}"
+                  style="font-size:10px; padding:2px 6px; color:#4f46e5;">
+                  🏭 Create PO
+                </button>
+              </div>
+              <div style="font-size:10px; color:#4f46e5; margin-top:2px;">
+                ✨ Product has BOM - can be produced (${product.bom.length} components)
+              </div>
+            `;
+          } else {
+            warning.innerHTML = `⚠️ Only ${stockInfo.stock} in stock (need ${qty}, short ${stockInfo.shortage})`;
+          }
           row.appendChild(warning);
+
+          // Wire up production suggestion button
+          const prodBtn = warning.querySelector('.btn-suggest-production');
+          if (prodBtn) {
+            prodBtn.onclick = (e) => {
+              e.preventDefault();
+              this.suggestProductionOrder(prodId, stockInfo.shortage, product);
+            };
+          }
         } else if (stockInfo.stock <= (product.minStock || 0)) {
           warning = document.createElement('div');
           warning.className = 'stock-warning';
@@ -786,5 +814,119 @@ App.UI.Views.Orders = {
 
     if (addBtn) addBtn.onclick = () => addRow();
     addRow(); // One empty row
+  },
+
+  /**
+   * Suggest creating a production order for a product with shortage
+   */
+  suggestProductionOrder(productId, shortage, product) {
+    const components = App.Data.components || [];
+
+    // Check component availability for the shortage quantity
+    const compList = (product.bom || []).map(b => {
+      const comp = components.find(c => c.id === b.componentId);
+      const required = b.quantityPerUnit * shortage;
+      const available = comp ? (comp.stock || 0) : 0;
+      return {
+        name: comp?.description || comp?.componentNumber || b.componentId,
+        required,
+        available,
+        shortage: required > available ? required - available : 0
+      };
+    });
+
+    const hasComponentShortage = compList.some(c => c.shortage > 0);
+
+    const body = `
+      <div>
+        <p style="margin-bottom:12px;">
+          Create a production order to produce <strong>${shortage}</strong> units of
+          <strong>${product.nameDE || product.nameEN || product.internalArticleNumber}</strong>?
+        </p>
+
+        <div style="margin-bottom:12px;">
+          <strong>Components Required:</strong>
+          <table class="table" style="font-size:12px; margin-top:8px;">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th style="text-align:right;">Required</th>
+                <th style="text-align:right;">Available</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${compList.map(c => `
+                <tr style="${c.shortage > 0 ? 'color:#f97373;' : ''}">
+                  <td>${c.name}</td>
+                  <td style="text-align:right;">${c.required}</td>
+                  <td style="text-align:right;">${c.available}${c.shortage > 0 ? ` (short ${c.shortage})` : ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        ${hasComponentShortage ? `
+          <div style="padding:8px; background:#fef3c7; border-radius:4px; margin-bottom:12px;">
+            <strong style="color:#d97706;">⚠️ Component Shortage</strong>
+            <p style="font-size:12px; margin-top:4px; color:#92400e;">
+              Some components are not available. Production order will be created but may require purchasing components first.
+            </p>
+          </div>
+        ` : ''}
+
+        <label class="field-label">Quantity to Produce</label>
+        <input id="suggest-po-qty" class="input" type="number" min="1" value="${shortage}" />
+
+        <label class="field-label" style="margin-top:8px;">Planned Start Date</label>
+        <input id="suggest-po-date" class="input" type="date" value="${new Date().toISOString().split('T')[0]}" />
+      </div>
+    `;
+
+    App.UI.Modal.open('Create Production Order', body, [
+      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      {
+        text: 'Create Production Order',
+        variant: 'primary',
+        onClick: () => {
+          const qty = parseInt(document.getElementById('suggest-po-qty').value) || shortage;
+          const plannedStart = document.getElementById('suggest-po-date').value;
+
+          // Create production order
+          const productionOrders = App.Data.productionOrders || [];
+          const po = {
+            id: App.Utils.generateId('po'),
+            orderNumber: App.Services.NumberSequence.nextProductionOrderNumber(),
+            productId: productId,
+            quantity: qty,
+            createdBy: App.Services.Auth.currentUser?.id || null,
+            createdAt: new Date().toISOString(),
+            plannedStart: plannedStart,
+            status: 'planned',
+            components: product.bom.map(b => ({
+              componentId: b.componentId,
+              quantity: b.quantityPerUnit * qty
+            })),
+            notes: 'Created from order shortage suggestion'
+          };
+
+          productionOrders.push(po);
+          App.Data.productionOrders = productionOrders;
+          App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('create', 'production', po.id, {
+              name: po.orderNumber,
+              product: product.nameDE || product.nameEN,
+              quantity: qty,
+              trigger: 'shortage_suggestion'
+            });
+          }
+
+          App.UI.Toast.show(`Production order ${po.orderNumber} created for ${qty} units`);
+        }
+      }
+    ]);
   }
 };

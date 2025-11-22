@@ -336,8 +336,124 @@ App.UI.Views.Documents = {
     }
 
     const cust = App.Data.customers.find(c => c.id === o.custId);
+    const existingDocs = App.Data.documents || [];
 
     // Document creation guardrails
+    const errors = [];
+
+    // Strict LS to Invoice linking - invoice requires delivery note
+    let refDeliveryId = null;
+    if (type === 'invoice') {
+      const deliveryNotes = existingDocs.filter(d => d.orderId === orderId && d.type === 'delivery');
+
+      if (deliveryNotes.length === 0) {
+        // Show modal to create delivery note first
+        App.UI.Modal.open('Delivery Note Required', `
+          <div>
+            <div style="color:#f59e0b; margin-bottom:12px;">
+              <strong>⚠️ Cannot create invoice without delivery note</strong>
+            </div>
+            <p style="font-size:13px; margin-bottom:12px;">
+              An invoice must be linked to a delivery note for proper document tracking.
+              Please create a delivery note for this order first.
+            </p>
+            <p style="font-size:12px; color:var(--color-text-muted);">
+              Order: <strong>${o.orderId}</strong>
+            </p>
+          </div>
+        `, [
+          { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+          {
+            text: 'Create Delivery Note First',
+            variant: 'primary',
+            onClick: () => {
+              this.generateFromOrder(orderId, 'delivery');
+            }
+          }
+        ]);
+        return;
+      }
+
+      // If multiple delivery notes, let user select which one to link
+      if (deliveryNotes.length === 1) {
+        refDeliveryId = deliveryNotes[0].id;
+      } else {
+        // Show selection modal for multiple delivery notes
+        const dnOptions = deliveryNotes.map(dn =>
+          `<option value="${dn.id}">${dn.docNumber} (${dn.date?.split('T')[0] || '-'})</option>`
+        ).join('');
+
+        App.UI.Modal.open('Select Delivery Note', `
+          <div>
+            <p style="font-size:13px; margin-bottom:12px;">
+              Multiple delivery notes exist for this order. Select which one to link to the invoice:
+            </p>
+            <label class="field-label">Delivery Note</label>
+            <select id="select-delivery-note" class="input">
+              ${dnOptions}
+            </select>
+          </div>
+        `, [
+          { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+          {
+            text: 'Continue',
+            variant: 'primary',
+            onClick: () => {
+              const selectedDnId = document.getElementById('select-delivery-note').value;
+              this._createInvoiceWithDeliveryRef(orderId, selectedDnId);
+            }
+          }
+        ]);
+        return;
+      }
+    }
+
+    // Check if delivery note already exists for this order (warn on duplicate)
+    if (type === 'delivery') {
+      const existingDelivery = existingDocs.find(d => d.orderId === orderId && d.type === 'delivery');
+      if (existingDelivery) {
+        App.UI.Modal.open('Delivery Note Exists', `
+          <div>
+            <p style="margin-bottom:12px;">
+              A delivery note (<strong>${existingDelivery.docNumber}</strong>) already exists for this order.
+            </p>
+            <p style="font-size:12px; color:var(--color-text-muted);">
+              Do you want to create another delivery note? (Partial shipment)
+            </p>
+          </div>
+        `, [
+          { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+          {
+            text: 'Create Another',
+            variant: 'primary',
+            onClick: () => {
+              this._createDocument(orderId, type, null);
+            }
+          }
+        ]);
+        return;
+      }
+    }
+
+    // Continue with document creation
+    this._createDocument(orderId, type, refDeliveryId);
+  },
+
+  /**
+   * Internal method to create invoice with delivery reference (for multi-DN selection)
+   */
+  _createInvoiceWithDeliveryRef(orderId, refDeliveryId) {
+    this._createDocument(orderId, 'invoice', refDeliveryId);
+  },
+
+  /**
+   * Internal method to create document with all validations
+   */
+  _createDocument(orderId, type, refDeliveryId) {
+    const o = App.Data.orders.find(x => x.id === orderId);
+    if (!o) return;
+
+    const cust = App.Data.customers.find(c => c.id === o.custId);
     const errors = [];
 
     if (!cust) {
@@ -433,6 +549,7 @@ App.UI.Views.Documents = {
       billingAddressId: billAddr ? billAddr.id : null,
       shippingAddressId: shipAddr ? shipAddr.id : null,
       orderId: o.id,
+      refDeliveryId: refDeliveryId, // Link invoice to delivery note
       ref: o.customerReference,
       paymentTerms: cust.paymentTerms,
       deliveryTerms: cust.deliveryTerms,
