@@ -63,6 +63,7 @@ App.UI.Navbar = {
               ${themes.map(t => `<button class="dropdown-item" data-theme="${t.id}"><span style="color:${t.color}">●</span> ${t.label}</button>`).join('')}
             </div>
           </div>
+          <button class="btn btn-ghost" id="navbar-help-btn" title="Help & Troubleshooting">❓</button>
           <button class="btn btn-ghost" id="navbar-logout-btn" title="Logout">Logout</button>
         </div>
       </div>
@@ -71,6 +72,18 @@ App.UI.Navbar = {
     if (logoutBtn) {
       logoutBtn.onclick = () => {
         App.Services.Auth.logout();
+      };
+    }
+    const helpBtn = root.querySelector('#navbar-help-btn');
+    if (helpBtn) {
+      helpBtn.onclick = () => {
+        App.Core.Router.navigate('settings');
+        setTimeout(() => {
+          if (App.UI.Views.Settings) {
+            App.UI.Views.Settings.activeTab = 'help';
+            App.UI.Views.Settings.render(document.getElementById('main-content'));
+          }
+        }, 50);
       };
     }
     const langBtnEl = root.querySelector('#lang-btn');

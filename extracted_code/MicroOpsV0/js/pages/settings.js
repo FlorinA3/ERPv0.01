@@ -19,6 +19,7 @@ App.UI.Views.Settings = {
           <button class="btn ${this.activeTab === 'audit' ? 'btn-primary' : 'btn-ghost'}" data-tab="audit">${t('tabAudit', 'Audit Log')}</button>
           <button class="btn ${this.activeTab === 'activity' ? 'btn-primary' : 'btn-ghost'}" data-tab="activity">${t('tabActivity', 'Activity Log')}</button>
           <button class="btn ${this.activeTab === 'health' ? 'btn-primary' : 'btn-ghost'}" data-tab="health">${t('tabHealth', 'System Health')}</button>
+          <button class="btn ${this.activeTab === 'help' ? 'btn-primary' : 'btn-ghost'}" data-tab="help">${t('tabHelp', 'Help')}</button>
         </div>
 
         <!-- Company Tab -->
@@ -59,6 +60,11 @@ App.UI.Views.Settings = {
         <!-- Health Tab -->
         <div id="tab-health" style="${this.activeTab !== 'health' ? 'display:none;' : ''}">
           ${this._renderHealthTab()}
+        </div>
+
+        <!-- Help Tab -->
+        <div id="tab-help" style="${this.activeTab !== 'help' ? 'display:none;' : ''}">
+          ${this._renderHelpTab()}
         </div>
       </div>
     `;
@@ -576,6 +582,204 @@ App.UI.Views.Settings = {
               <div style="font-size:18px; font-weight:600; margin-top:4px;">${(App.Data.activeSessions || []).length}</div>
             </div>
           </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderHelpTab() {
+    const t = (key, fallback) => App.I18n.t(`settings.${key}`, fallback);
+    const version = '0.4.0';
+    const storageType = window.indexedDB ? 'IndexedDB' : 'localStorage';
+
+    return `
+      <div>
+        <!-- System Info -->
+        <div style="margin-bottom:24px; padding:12px; background:var(--color-bg); border-radius:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong>MicroOps ERP</strong> v${version}
+              <span style="color:var(--color-text-muted); margin-left:8px;">Storage: ${storageType}</span>
+            </div>
+            <span class="pill" style="background:var(--color-success); color:white;">Production Ready</span>
+          </div>
+        </div>
+
+        <!-- Keyboard Shortcuts -->
+        <div style="margin-bottom:24px;">
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">⌨️ ${t('keyboardShortcuts', 'Keyboard Shortcuts')}</h4>
+          <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;">
+            <div style="padding:8px 12px; background:var(--color-bg); border-radius:6px; display:flex; justify-content:space-between;">
+              <span>Close dialog</span>
+              <kbd style="background:var(--color-border); padding:2px 6px; border-radius:4px; font-size:11px;">Esc</kbd>
+            </div>
+            <div style="padding:8px 12px; background:var(--color-bg); border-radius:6px; display:flex; justify-content:space-between;">
+              <span>Confirm/Submit</span>
+              <kbd style="background:var(--color-border); padding:2px 6px; border-radius:4px; font-size:11px;">Enter</kbd>
+            </div>
+            <div style="padding:8px 12px; background:var(--color-bg); border-radius:6px; display:flex; justify-content:space-between;">
+              <span>Print document</span>
+              <kbd style="background:var(--color-border); padding:2px 6px; border-radius:4px; font-size:11px;">Ctrl+P</kbd>
+            </div>
+            <div style="padding:8px 12px; background:var(--color-bg); border-radius:6px; display:flex; justify-content:space-between;">
+              <span>Save form</span>
+              <kbd style="background:var(--color-border); padding:2px 6px; border-radius:4px; font-size:11px;">Ctrl+S</kbd>
+            </div>
+          </div>
+        </div>
+
+        <!-- Troubleshooting -->
+        <div style="margin-bottom:24px;">
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">🔧 ${t('troubleshooting', 'Troubleshooting')}</h4>
+
+          <div style="border:1px solid var(--color-border); border-radius:8px; overflow:hidden;">
+            <!-- Login Issues -->
+            <details style="border-bottom:1px solid var(--color-border);">
+              <summary style="padding:12px; cursor:pointer; font-weight:500; background:var(--color-bg);">
+                🔐 Login Issues
+              </summary>
+              <div style="padding:12px; font-size:13px;">
+                <p style="margin-bottom:8px;"><strong>Cannot log in:</strong></p>
+                <ul style="margin-left:16px; color:var(--color-text-muted);">
+                  <li>Verify PIN is exactly 4 digits</li>
+                  <li>Check user is marked as "Active"</li>
+                  <li>Clear browser cache and retry</li>
+                </ul>
+                <p style="margin:8px 0;"><strong>Account locked:</strong></p>
+                <ul style="margin-left:16px; color:var(--color-text-muted);">
+                  <li>Wait for 5-minute lockout to expire</li>
+                  <li>Countdown shows remaining time</li>
+                  <li>Contact admin if PIN forgotten</li>
+                </ul>
+              </div>
+            </details>
+
+            <!-- Data Issues -->
+            <details style="border-bottom:1px solid var(--color-border);">
+              <summary style="padding:12px; cursor:pointer; font-weight:500; background:var(--color-bg);">
+                💾 Data Not Saving
+              </summary>
+              <div style="padding:12px; font-size:13px;">
+                <ul style="margin-left:16px; color:var(--color-text-muted);">
+                  <li>Check storage capacity in System Health tab</li>
+                  <li>IndexedDB may be full - export old data</li>
+                  <li>Ensure browser storage is enabled</li>
+                  <li>Try a different browser</li>
+                </ul>
+                <p style="margin-top:8px;">
+                  <button class="btn btn-ghost btn-sm" onclick="App.Router.navigate('settings'); App.UI.Views.Settings.activeTab='health'; App.UI.Views.Settings.render(document.getElementById('main-content'));">
+                    Check System Health →
+                  </button>
+                </p>
+              </div>
+            </details>
+
+            <!-- Document Issues -->
+            <details style="border-bottom:1px solid var(--color-border);">
+              <summary style="padding:12px; cursor:pointer; font-weight:500; background:var(--color-bg);">
+                📄 Document Generation Fails
+              </summary>
+              <div style="padding:12px; font-size:13px;">
+                <ul style="margin-left:16px; color:var(--color-text-muted);">
+                  <li>Order must have a valid customer</li>
+                  <li>Customer must have billing/shipping address</li>
+                  <li>All products in order must exist</li>
+                  <li>Check Audit Log for specific errors</li>
+                </ul>
+              </div>
+            </details>
+
+            <!-- Performance Issues -->
+            <details style="border-bottom:1px solid var(--color-border);">
+              <summary style="padding:12px; cursor:pointer; font-weight:500; background:var(--color-bg);">
+                🐢 Performance Issues
+              </summary>
+              <div style="padding:12px; font-size:13px;">
+                <ul style="margin-left:16px; color:var(--color-text-muted);">
+                  <li>Run health check to identify issues</li>
+                  <li>Clear audit entries if over 10,000</li>
+                  <li>Export and archive old data</li>
+                  <li>Reduce items displayed per page</li>
+                </ul>
+              </div>
+            </details>
+
+            <!-- Storage Issues -->
+            <details style="border-bottom:1px solid var(--color-border);">
+              <summary style="padding:12px; cursor:pointer; font-weight:500; background:var(--color-bg);">
+                📦 Storage Capacity Warning
+              </summary>
+              <div style="padding:12px; font-size:13px;">
+                <ul style="margin-left:16px; color:var(--color-text-muted);">
+                  <li>Export data you no longer need</li>
+                  <li>Clear old audit trail entries</li>
+                  <li>Download and remove old backups</li>
+                  <li>Warning at 80%, critical at 95%</li>
+                </ul>
+              </div>
+            </details>
+
+            <!-- Application Errors -->
+            <details>
+              <summary style="padding:12px; cursor:pointer; font-weight:500; background:var(--color-bg);">
+                ⚠️ Application Errors
+              </summary>
+              <div style="padding:12px; font-size:13px;">
+                <ul style="margin-left:16px; color:var(--color-text-muted);">
+                  <li>Click "Reload Application" to recover</li>
+                  <li>Your data is preserved automatically</li>
+                  <li>Check Audit Log for error details</li>
+                  <li>Report persistent errors to admin</li>
+                </ul>
+                <p style="margin-top:8px;">
+                  <button class="btn btn-ghost btn-sm" onclick="App.Router.navigate('settings'); App.UI.Views.Settings.activeTab='audit'; App.UI.Views.Settings.render(document.getElementById('main-content'));">
+                    View Audit Log →
+                  </button>
+                </p>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- Quick Tips -->
+        <div style="margin-bottom:24px;">
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">💡 ${t('quickTips', 'Quick Tips')}</h4>
+          <div class="grid grid-2" style="gap:8px;">
+            <div style="padding:12px; background:var(--color-bg); border-radius:6px;">
+              <strong style="font-size:12px;">Auto-Backup</strong>
+              <p style="font-size:11px; color:var(--color-text-muted); margin-top:4px;">Data is automatically backed up when you close the browser. 7 rolling backups are kept.</p>
+            </div>
+            <div style="padding:12px; background:var(--color-bg); border-radius:6px;">
+              <strong style="font-size:12px;">Session Timeout</strong>
+              <p style="font-size:11px; color:var(--color-text-muted); margin-top:4px;">Sessions expire after 30 minutes of inactivity. A warning appears 5 minutes before.</p>
+            </div>
+            <div style="padding:12px; background:var(--color-bg); border-radius:6px;">
+              <strong style="font-size:12px;">Audit Trail</strong>
+              <p style="font-size:11px; color:var(--color-text-muted); margin-top:4px;">All changes are logged for compliance. Export audit data as CSV for reporting.</p>
+            </div>
+            <div style="padding:12px; background:var(--color-bg); border-radius:6px;">
+              <strong style="font-size:12px;">Encrypted Backups</strong>
+              <p style="font-size:11px; color:var(--color-text-muted); margin-top:4px;">Use password protection for manual backups containing sensitive data.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reset Application -->
+        <div style="padding:16px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px;">
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:8px; color:var(--color-danger);">🔄 Reset Application</h4>
+          <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:12px;">
+            If you need to completely reset the application (this will delete ALL data):
+          </p>
+          <ol style="font-size:12px; margin-left:16px; color:var(--color-text-muted);">
+            <li>Open browser Developer Tools (F12)</li>
+            <li>Go to Application → IndexedDB</li>
+            <li>Delete the MicroOps database</li>
+            <li>Also clear localStorage</li>
+            <li>Refresh the page</li>
+          </ol>
+          <p style="font-size:11px; color:var(--color-danger); margin-top:8px; font-weight:500;">
+            ⚠️ Create a backup before resetting!
+          </p>
         </div>
       </div>
     `;
