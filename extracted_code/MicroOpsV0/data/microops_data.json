@@ -1,0 +1,321 @@
+{
+  "config": {
+    "currency": "EUR",
+    "companyName": "MicroOps Global",
+    "theme": "dark",
+    "lang": "en"
+  },
+  "users": [
+    { "id": "u1", "name": "Admin User", "role": "admin", "pin": "0000" },
+    { "id": "u2", "name": "Sales User", "role": "sales", "pin": "1111" },
+    { "id": "u3", "name": "Warehouse Mgr", "role": "warehouse", "pin": "2222" },
+    { "id": "u4", "name": "Production Lead", "role": "production", "pin": "3333" }
+  ],
+  "customers": [
+    {
+      "id": "c1",
+      "internalId": "230001",
+      "company": "BLUUTEC GmbH",
+      "status": "active",
+      "defaultLang": "de",
+      "accountManager": "Anna",
+      "vatNumber": "ATU12345678",
+      "paymentTerms": "10 Tage netto",
+      "deliveryTerms": "FCA",
+      "iban": "AT61 1904 3002 3457 3201",
+      "bic": "BANKATWWXXX",
+      "bankName": "Bank Austria",
+      "priceSegment": "dealer",
+      "addresses": [
+        {
+          "id": "a1",
+          "role": "billing",
+          "isDefaultBilling": true,
+          "isDefaultShipping": false,
+          "company": "BLUUTEC GmbH",
+          "street": "Industriestrasse 1",
+          "zip": "6020",
+          "city": "Innsbruck",
+          "country": "AT"
+        },
+        {
+          "id": "a2",
+          "role": "shipping",
+          "isDefaultBilling": false,
+          "isDefaultShipping": true,
+          "company": "BLUUTEC GmbH",
+          "street": "Lagerweg 5",
+          "zip": "6020",
+          "city": "Innsbruck",
+          "country": "AT"
+        }
+      ],
+      "contacts": [
+        { "name": "Max Mustermann", "position": "Einkauf", "phone": "+43 512 123456", "email": "max@bluutec.at" }
+      ]
+    },
+    {
+      "id": "c2",
+      "internalId": "230002",
+      "company": "Lepage Medical",
+      "status": "active",
+      "defaultLang": "en",
+      "accountManager": "John",
+      "vatNumber": "DE99999999",
+      "paymentTerms": "30 Tage netto",
+      "deliveryTerms": "DAP",
+      "iban": "DE89 3704 0044 0532 0130 00",
+      "bic": "COBADEFFXXX",
+      "bankName": "Commerzbank",
+      "priceSegment": "lepage",
+      "addresses": [
+        {
+          "id": "a3",
+          "role": "billing",
+          "isDefaultBilling": true,
+          "isDefaultShipping": true,
+          "company": "Lepage Medical",
+          "street": "Rue de la Santé 7",
+          "zip": "75013",
+          "city": "Paris",
+          "country": "FR"
+        }
+      ],
+      "contacts": [
+        { "name": "Marie Curie", "position": "Head of Procurement", "phone": "+33 1 2345 6789", "email": "marie@lepage.fr" }
+      ]
+    }
+  ],
+  "products": [
+    {
+      "id": "p1",
+      "internalArticleNumber": "350500",
+      "sku": "FL-500ML",
+      "nameDE": "Flächendesinfektion 500 ml",
+      "nameEN": "Surface Disinfectant 500 ml",
+      "productLine": "Desinfektion",
+      "volume": "500 ml",
+      "dosageForm": "solution",
+      "unit": "Flasche",
+      "vpe": 12,
+      "palletQuantity": 720,
+      "avgPurchasePrice": 2.5,
+      "dealerPrice": 4.5,
+      "endCustomerPrice": 6.9,
+      "currency": "EUR",
+      "customsCode": "38089490",
+      "originCountry": "AT",
+      "stock": 1200,
+      "minStock": 100,
+      "type": "Consumable",
+      "allowDecimalQty": false
+    },
+    {
+      "id": "p2",
+      "internalArticleNumber": "800100",
+      "sku": "FFU-01",
+      "nameDE": "Flex Fogging Unit",
+      "nameEN": "Flex Fogging Unit",
+      "productLine": "Device",
+      "volume": "",
+      "dosageForm": "",
+      "unit": "Stk",
+      "vpe": 1,
+      "palletQuantity": 20,
+      "avgPurchasePrice": 900,
+      "dealerPrice": 1200,
+      "endCustomerPrice": 1500,
+      "currency": "EUR",
+      "customsCode": "84241900",
+      "originCountry": "DE",
+      "stock": 50,
+      "minStock": 5,
+      "type": "Device",
+      "allowDecimalQty": false
+    },
+    {
+      "id": "p3",
+      "internalArticleNumber": "900010",
+      "sku": "SERV-INST",
+      "nameDE": "Installation Service",
+      "nameEN": "Installation Service",
+      "productLine": "Service",
+      "unit": "job",
+      "avgPurchasePrice": 0,
+      "dealerPrice": 100,
+      "endCustomerPrice": 150,
+      "currency": "EUR",
+      "type": "Service",
+      "allowDecimalQty": false
+    }
+  ],
+  "components": [
+    {
+      "id": "cmp1",
+      "componentNumber": "BOTTLE-500",
+      "group": "Bottle",
+      "description": "500 ml PET bottle",
+      "unit": "Stk",
+      "stock": 3000,
+      "safetyStock": 500,
+      "supplierId": "sup1",
+      "leadTimeDays": 14,
+      "prices": [ { "supplierId": "sup1", "price": 0.15, "moq": 1000, "currency": "EUR" } ],
+      "status": "active",
+      "notes": "Used for 500 ml disinfectant"
+    },
+    {
+      "id": "cmp2",
+      "componentNumber": "CAP-SCRW",
+      "group": "Cap",
+      "description": "Screw cap for bottles",
+      "unit": "Stk",
+      "stock": 5000,
+      "safetyStock": 800,
+      "supplierId": "sup2",
+      "leadTimeDays": 10,
+      "prices": [ { "supplierId": "sup2", "price": 0.05, "moq": 2000, "currency": "EUR" } ],
+      "status": "active",
+      "notes": "Fits all bottle sizes"
+    }
+  ],
+  "suppliers": [
+    { "id": "sup1", "name": "BottleCo", "street": "Packagingstrasse 10", "zip": "1100", "city": "Vienna", "country": "AT", "contactPerson": "Lisa Bottler", "phone": "+43 1 2345678", "email": "info@bottleco.at", "notes": "Main supplier for PET bottles" },
+    { "id": "sup2", "name": "CapMaster", "street": "Kappenweg 2", "zip": "4050", "city": "Linz", "country": "AT", "contactPerson": "Thomas Cap", "phone": "+43 732 987654", "email": "sales@capmaster.at", "notes": "Provides screw caps and pumps" }
+  ],
+  "carriers": [
+    { "id": "car1", "name": "Dachser", "accountNumber": "DAC-001", "contactPerson": "Michaela Fracht", "phone": "+43 5574 12345", "email": "transport@dachser.at", "notes": "Preferred for domestic deliveries" },
+    { "id": "car2", "name": "Lagermax", "accountNumber": "LMX-008", "contactPerson": "Jonas Lager", "phone": "+43 662 765432", "email": "service@lagermax.at", "notes": "Used for international shipments" }
+  ],
+  "priceLists": [
+    {
+      "id": "pl1",
+      "name": "Preisliste 2025 (Händler)",
+      "type": "segment",
+      "segmentId": "dealer",
+      "currency": "EUR",
+      "validFrom": "2025-01-01",
+      "validTo": "2025-12-31",
+      "entries": [
+        { "productId": "p1", "price": 4.5, "uvp": 6.9, "minOrderQty": 12, "tariffCode": "38089490", "originCountry": "AT", "languages": "DE,EN" },
+        { "productId": "p2", "price": 1200, "uvp": 1500, "minOrderQty": 1, "tariffCode": "84241900", "originCountry": "DE", "languages": "DE,EN" }
+      ]
+    },
+    {
+      "id": "pl2",
+      "name": "Preisliste Endkunde 2025",
+      "type": "segment",
+      "segmentId": "endcustomer",
+      "currency": "EUR",
+      "validFrom": "2025-01-01",
+      "validTo": "2025-12-31",
+      "entries": [
+        { "productId": "p1", "price": 6.9, "uvp": 7.5, "minOrderQty": 1, "tariffCode": "38089490", "originCountry": "AT", "languages": "DE,EN" },
+        { "productId": "p2", "price": 1500, "uvp": 1700, "minOrderQty": 1, "tariffCode": "84241900", "originCountry": "DE", "languages": "DE,EN" }
+      ]
+    },
+    {
+      "id": "pl3",
+      "name": "Preisliste Lepage 05_2025",
+      "type": "customer",
+      "customerId": "c2",
+      "currency": "EUR",
+      "validFrom": "2025-05-01",
+      "validTo": "2025-12-31",
+      "entries": [
+        { "productId": "p1", "price": 5.5, "uvp": 7.5, "minOrderQty": 12, "tariffCode": "38089490", "originCountry": "AT", "languages": "DE,EN" },
+        { "productId": "p2", "price": 1100, "uvp": 1500, "minOrderQty": 1, "tariffCode": "84241900", "originCountry": "DE", "languages": "DE,EN" }
+      ]
+    }
+  ],
+  "orders": [
+    {
+      "id": "o1",
+      "orderId": "A2025-0075",
+      "custId": "c1",
+      "carrierId": "car1",
+      "createdBy": "u2",
+      "date": "2025-05-10",
+      "plannedDelivery": "2025-05-15",
+      "status": "confirmed",
+      "customerReference": "REF-001",
+      "items": [
+        { "id": "oi1", "productId": "p1", "qty": 24, "unitPrice": 4.5, "discount": 0, "lineNet": 108 },
+        { "id": "oi2", "productId": "p2", "qty": 1, "unitPrice": 1200, "discount": 0, "lineNet": 1200 }
+      ],
+      "subtotalNet": 1308,
+      "vatAmount": 261.6,
+      "totalGross": 1569.6,
+      "currency": "EUR",
+      "deliveryNoteIds": ["d1"],
+      "invoiceIds": ["i1"]
+    }
+  ],
+  "documents": [
+    {
+      "id": "d1",
+      "type": "delivery",
+      "docNumber": "L20250058",
+      "date": "2025-05-11",
+      "customerId": "c1",
+      "billingAddressId": "a1",
+      "shippingAddressId": "a2",
+      "orderId": "o1",
+      "paymentTerms": "10 Tage netto",
+      "deliveryTerms": "FCA",
+      "items": [
+        { "productId": "p1", "articleNumber": "350500", "description": "Flächendesinfektion 500 ml", "qty": 24, "unit": "Flasche", "unitPrice": 4.5, "vatRate": 0.2, "lineNet": 108, "lineVat": 21.6, "lineTotal": 129.6 },
+        { "productId": "p2", "articleNumber": "800100", "description": "Flex Fogging Unit", "qty": 1, "unit": "Stk", "unitPrice": 1200, "vatRate": 0.2, "lineNet": 1200, "lineVat": 240, "lineTotal": 1440 }
+      ],
+      "netTotal": 1308,
+      "vatSummary": [ { "rate": 0.2, "base": 1308, "amount": 261.6 } ],
+      "grossTotal": 1569.6,
+      "status": "Sent"
+    },
+    {
+      "id": "i1",
+      "type": "invoice",
+      "docNumber": "R20250068",
+      "date": "2025-05-12",
+      "customerId": "c1",
+      "billingAddressId": "a1",
+      "shippingAddressId": "a2",
+      "orderId": "o1",
+      "refDeliveryId": "d1",
+      "paymentTerms": "10 Tage netto",
+      "deliveryTerms": "FCA",
+      "items": [
+        { "productId": "p1", "articleNumber": "350500", "description": "Flächendesinfektion 500 ml", "qty": 24, "unit": "Flasche", "unitPrice": 4.5, "vatRate": 0.2, "lineNet": 108, "lineVat": 21.6, "lineTotal": 129.6 },
+        { "productId": "p2", "articleNumber": "800100", "description": "Flex Fogging Unit", "qty": 1, "unit": "Stk", "unitPrice": 1200, "vatRate": 0.2, "lineNet": 1200, "lineVat": 240, "lineTotal": 1440 }
+      ],
+      "netTotal": 1308,
+      "vatSummary": [ { "rate": 0.2, "base": 1308, "amount": 261.6 } ],
+      "grossTotal": 1569.6,
+      "status": "Paid"
+    }
+  ],
+  "productionOrders": [
+    {
+      "id": "po1",
+      "orderNumber": "PO20250001",
+      "productId": "p2",
+      "quantity": 10,
+      "createdBy": "u4",
+      "createdAt": "2025-05-09",
+      "plannedStart": "2025-05-20",
+      "plannedEnd": "2025-05-25",
+      "status": "open",
+      "notes": "Prepare 10 units of Flex Fogging Unit"
+    }
+  ],
+  "movements": [
+    { "id": "m1", "date": "2025-05-01", "type": "receipt", "direction": "in", "productId": "p1", "quantity": 500, "unitPrice": 2.5, "reference": "Goods receipt", "notes": "Initial stock" },
+    { "id": "m2", "date": "2025-05-02", "type": "receipt", "direction": "in", "productId": "p2", "quantity": 20, "unitPrice": 900, "reference": "Goods receipt", "notes": "Initial stock" },
+    { "id": "m3", "date": "2025-05-11", "type": "consumption", "direction": "out", "productId": "p1", "quantity": 24, "unitPrice": 2.5, "reference": "Order o1", "notes": "Consumed for order" },
+    { "id": "m4", "date": "2025-05-11", "type": "consumption", "direction": "out", "productId": "p2", "quantity": 1, "unitPrice": 900, "reference": "Order o1", "notes": "Consumed for order" }
+  ],
+  "tasks": [
+    { "id": "t1", "title": "Prepare price list 2025", "category": "Pricing", "status": "open", "priority": "medium", "assignedTo": "u2", "dueDate": "2025-05-20", "notes": "Gather all new product prices" },
+    { "id": "t2", "title": "Schedule production for Flex", "category": "Production", "status": "in progress", "priority": "high", "assignedTo": "u4", "dueDate": "2025-05-15", "notes": "Coordinate with suppliers" }
+  ]
+}

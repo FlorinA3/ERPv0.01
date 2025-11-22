@@ -1,0 +1,95 @@
+:root {
+  --color-bg: #0f172a;
+  --color-bg-surface: #111827;
+  --color-border: #1f2937;
+  --color-primary: #3b82f6;
+  --color-primary-soft: rgba(59,130,246,0.12);
+  --color-text: #e5e7eb;
+  --color-text-muted: #9ca3af;
+  --radius-lg: 1rem;
+  --shadow-soft: 0 18px 40px rgba(0,0,0,0.35);
+  --transition-fast: 0.15s ease-out;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+[data-theme="light"] {
+  --color-bg: #f8fafc;
+  --color-bg-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-primary: #3b82f6;
+  --color-primary-soft: rgba(59,130,246,0.12);
+  --color-text: #1e293b;
+  --color-text-muted: #64748b;
+  --shadow-soft: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+[data-theme="cyberpunk"] {
+  --color-bg: #0f1016;
+  --color-bg-surface: #1a1c2b;
+  --color-border: #2c3145;
+  --color-primary: #d946ef;
+  --color-primary-soft: rgba(217,70,239,0.15);
+  --color-text: #e0e3ff;
+  --color-text-muted: #a3a8c5;
+  --shadow-soft: 0 4px 30px rgba(217,70,239,0.25);
+}
+
+[data-theme="vaporwave"] {
+  --color-bg: #f7eaff;
+  --color-bg-surface: #ffffff;
+  --color-border: #eadffd;
+  --color-primary: #c084fc;
+  --color-primary-soft: rgba(192,132,252,0.15);
+  --color-text: #2c2255;
+  --color-text-muted: #6e6494;
+  --shadow-soft: 0 4px 20px rgba(192,132,252,0.25);
+}
+
+[data-theme="steampunk"] {
+  --color-bg: #f5f0e6;
+  --color-bg-surface: #fdf7ed;
+  --color-border: #e8d8c3;
+  --color-primary: #b45309;
+  --color-primary-soft: rgba(180,83,9,0.15);
+  --color-text: #3a2615;
+  --color-text-muted: #876b51;
+  --shadow-soft: 0 4px 20px rgba(180,83,9,0.25);
+}
+
+[data-theme="scifi"] {
+  --color-bg: #020617;
+  --color-bg-surface: #051a33;
+  --color-border: #093861;
+  --color-primary: #0ea5e9;
+  --color-primary-soft: rgba(14,165,233,0.15);
+  --color-text: #d1e7ff;
+  --color-text-muted: #8cb5d7;
+  --shadow-soft: 0 4px 24px rgba(14,165,233,0.25);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body.app-body {
+  font-family: var(--font-sans);
+  
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.mt-16 {
+  margin-top: 16px;
+}
