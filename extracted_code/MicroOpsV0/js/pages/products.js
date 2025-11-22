@@ -1,5 +1,7 @@
 App.UI.Views.Products = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const products = App.Data.products || App.Data.Products || [];
 
     root.innerHTML = `

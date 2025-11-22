@@ -1,5 +1,7 @@
 App.UI.Views.Customers = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const customers = App.Data.customers || App.Data.Customers || [];
 
     root.innerHTML = `

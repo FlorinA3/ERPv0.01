@@ -1,5 +1,7 @@
 App.UI.Views.PurchaseOrders = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`purchaseOrders.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const pos = App.Data.purchaseOrders || [];
     const suppliers = App.Data.suppliers || [];
 
@@ -23,8 +25,8 @@ App.UI.Views.PurchaseOrders = {
     root.innerHTML = `
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="font-size:16px; font-weight:600;">Purchase Orders</h3>
-          <button class="btn btn-primary" id="btn-add-po">+ Create PO</button>
+          <h3 style="font-size:16px; font-weight:600;">${t('title', 'Purchase Orders')}</h3>
+          <button class="btn btn-primary" id="btn-add-po">${t('createPO', '+ Create PO')}</button>
         </div>
         <table class="table">
           <thead>
@@ -41,19 +43,19 @@ App.UI.Views.PurchaseOrders = {
           <tbody>
             ${pos.length > 0 ? pos.map(po => `
               <tr>
-                <td><strong>${po.poNumber}</strong></td>
-                <td>${getSupplierName(po.supplierId)}</td>
+                <td><strong>${esc(po.poNumber)}</strong></td>
+                <td>${esc(getSupplierName(po.supplierId))}</td>
                 <td>${getStatusBadge(po.status)}</td>
                 <td>${po.orderDate || '-'}</td>
                 <td>${po.expectedDate || '-'}</td>
                 <td style="text-align:right;">${App.Utils.formatCurrency(po.totalNet || 0)}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-edit-po" data-id="${po.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="Edit purchase order">✏️</button>
-                  <button class="btn btn-ghost btn-receive-po" data-id="${po.id}" title="${App.I18n.t('common.receive', 'Receive')}" aria-label="Receive stock" ${po.status === 'received' || po.status === 'closed' ? 'disabled' : ''}>📥</button>
-                  <button class="btn btn-ghost btn-view-po" data-id="${po.id}" title="${App.I18n.t('common.view', 'View')}" aria-label="View purchase order">👁️</button>
+                  <button class="btn btn-ghost btn-edit-po" data-id="${po.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${t('editPO', 'Edit purchase order')}">✏️</button>
+                  <button class="btn btn-ghost btn-receive-po" data-id="${po.id}" title="${App.I18n.t('common.receive', 'Receive')}" aria-label="${t('receivingPO', 'Receive stock')}" ${po.status === 'received' || po.status === 'closed' ? 'disabled' : ''}>📥</button>
+                  <button class="btn btn-ghost btn-view-po" data-id="${po.id}" title="${App.I18n.t('common.view', 'View')}" aria-label="${App.I18n.t('common.purchaseOrderDetails', 'View purchase order')}">👁️</button>
                 </td>
               </tr>
-            `).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);">No purchase orders</td></tr>'}
+            `).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);">${t('noPurchaseOrders', 'No purchase orders')}</td></tr>`}
           </tbody>
         </table>
       </div>

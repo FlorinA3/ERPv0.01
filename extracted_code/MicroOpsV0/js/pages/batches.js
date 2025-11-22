@@ -105,63 +105,64 @@ App.UI.Views.Batches = {
 
     const today = new Date().toISOString().split('T')[0];
 
+    const t = (key, fallback) => App.I18n.t(`batches.${key}`, fallback);
     const body = `
       <div class="grid grid-2" style="gap:12px;">
         <div>
-          <label class="field-label">LOT Number *</label>
-          <input id="batch-lot" class="input" value="${batch.lotNumber || this.generateLotNumber()}" />
+          <label class="field-label">${t('lotNumber', 'LOT Number')} *</label>
+          <input id="batch-lot" class="input" value="${batch.lotNumber || this.generateLotNumber()}" aria-required="true" />
         </div>
         <div>
-          <label class="field-label">Type</label>
+          <label class="field-label">${t('type', 'Type')}</label>
           <select id="batch-type" class="input">
-            <option value="product" ${batch.productId ? 'selected' : ''}>Product</option>
-            <option value="component" ${batch.componentId ? 'selected' : ''}>Component</option>
+            <option value="product" ${batch.productId ? 'selected' : ''}>${t('product', 'Product')}</option>
+            <option value="component" ${batch.componentId ? 'selected' : ''}>${t('component', 'Component')}</option>
           </select>
         </div>
       </div>
       <div id="batch-product-row" style="margin-top:8px; ${batch.componentId ? 'display:none;' : ''}">
-        <label class="field-label">Product</label>
+        <label class="field-label">${t('product', 'Product')}</label>
         <select id="batch-product" class="input">${prodOpts}</select>
       </div>
       <div id="batch-component-row" style="margin-top:8px; ${batch.productId || !batch.componentId ? 'display:none;' : ''}">
-        <label class="field-label">Component</label>
+        <label class="field-label">${t('component', 'Component')}</label>
         <select id="batch-component" class="input">${compOpts}</select>
       </div>
       <div class="grid grid-2" style="gap:12px; margin-top:8px;">
         <div>
-          <label class="field-label">Quantity</label>
+          <label class="field-label">${t('quantity', 'Quantity')}</label>
           <input id="batch-qty" class="input" type="number" value="${batch.quantity || 0}" />
         </div>
         <div>
-          <label class="field-label">Production Date</label>
+          <label class="field-label">${t('productionDate', 'Production Date')}</label>
           <input id="batch-proddate" class="input" type="date" value="${batch.productionDate || today}" />
         </div>
       </div>
       <div class="grid grid-2" style="gap:12px; margin-top:8px;">
         <div>
-          <label class="field-label">Expiry Date</label>
+          <label class="field-label">${t('expiryDate', 'Expiry Date')}</label>
           <input id="batch-expiry" class="input" type="date" value="${batch.expiryDate || ''}" />
         </div>
         <div>
-          <label class="field-label">Supplier LOT (if received)</label>
+          <label class="field-label">${t('supplierLot', 'Supplier LOT')}</label>
           <input id="batch-supplier-lot" class="input" value="${batch.supplierLot || ''}" />
         </div>
       </div>
       <div style="margin-top:8px;">
-        <label class="field-label">Notes</label>
+        <label class="field-label">${t('notes', 'Notes')}</label>
         <textarea id="batch-notes" class="input" rows="2">${batch.notes || ''}</textarea>
       </div>
     `;
 
-    App.UI.Modal.open(isEdit ? 'Edit Batch' : 'Create Batch', body, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+    App.UI.Modal.open(isEdit ? t('editBatch', 'Edit Batch') : t('createBatch', 'Create Batch'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Save',
+        text: App.I18n.t('common.save', 'Save'),
         variant: 'primary',
         onClick: () => {
           const lotNumber = document.getElementById('batch-lot').value.trim();
           if (!lotNumber) {
-            App.UI.Toast.show('LOT number is required');
+            App.UI.Toast.show(t('lotRequired', 'LOT number is required'));
             return false;
           }
 
@@ -216,24 +217,25 @@ App.UI.Views.Batches = {
       `<option value="${s}" ${batch.qcStatus === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`
     ).join('');
 
+    const t = (key, fallback) => App.I18n.t(`batches.${key}`, fallback);
     const body = `
       <div>
-        <p style="margin-bottom:12px;">LOT: <strong>${batch.lotNumber}</strong></p>
-        <label class="field-label">QC Status</label>
+        <p style="margin-bottom:12px;">${t('lotNumber', 'LOT')}: <strong>${batch.lotNumber}</strong></p>
+        <label class="field-label">${t('qcStatus', 'QC Status')}</label>
         <select id="qc-status" class="input">${statusOpts}</select>
-        <label class="field-label" style="margin-top:8px;">Inspector</label>
+        <label class="field-label" style="margin-top:8px;">${t('inspector', 'Inspector')}</label>
         <input id="qc-inspector" class="input" value="${batch.qcInspector || ''}" />
-        <label class="field-label" style="margin-top:8px;">QC Date</label>
+        <label class="field-label" style="margin-top:8px;">${t('qcDate', 'QC Date')}</label>
         <input id="qc-date" class="input" type="date" value="${batch.qcDate || new Date().toISOString().split('T')[0]}" />
-        <label class="field-label" style="margin-top:8px;">QC Notes</label>
+        <label class="field-label" style="margin-top:8px;">${t('qcNotes', 'QC Notes')}</label>
         <textarea id="qc-notes" class="input" rows="3">${batch.qcNotes || ''}</textarea>
       </div>
     `;
 
     App.UI.Modal.open(App.I18n.t('common.qualityControl', 'Quality Control'), body, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Save QC',
+        text: t('saveQC', 'Save QC'),
         variant: 'primary',
         onClick: () => {
           batch.qcStatus = document.getElementById('qc-status').value;

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2025-11-22
+
+### Phase 39: GA Compliance - Translation Pattern Standardization
+
+#### Changed
+- **Customers Module**: Added translation helper pattern with `const t = (key, fallback) => App.I18n.t(...)` for consistent i18n
+- **Products Module**: Added translation helper pattern for standardized translations
+- **Purchase Orders Module**: Added translation helper pattern and XSS protection via `esc = App.Utils.escapeHtml`
+- **Batches Module**: Translated all hardcoded modal strings (LOT Number, Type, Product, Component, Quantity, etc.)
+
+#### Added
+- **Purchase Orders Translations**: Full i18n support for DE/EN/RO
+  - 27 translation keys per language
+  - Status labels (Draft, Sent, Confirmed, Received, Closed, Cancelled)
+  - Form fields (PO Number, Supplier, Expected Date, Line Items, etc.)
+- **Batches Module QC Modal**: Translated QC status, inspector, date, and notes labels
+- **Accessibility**: Added `aria-required="true"` to required form fields
+
+#### Fixed
+- Missing XSS protection in Purchase Orders table (PO number, supplier name now escaped)
+- Hardcoded "No purchase orders" message now uses translation system
+
+---
+
 ## [0.1.0] - 2025-11-22
 
 ### Phase 1: Foundation - Complete
