@@ -58,9 +58,10 @@ App.UI.Views.Pricing = {
                 <td>${pl.validFrom || 'Always'} ${pl.validTo ? ' → ' + pl.validTo : ''}</td>
                 <td style="text-align:center;">${(pl.entries || []).length}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-edit-pl" data-id="${pl.id}" title="Edit" aria-label="Edit price list">✏️</button>
-                  <button class="btn btn-ghost btn-export-pl" data-id="${pl.id}" title="Export CSV" aria-label="Export price list">📥</button>
-                  <button class="btn btn-ghost btn-delete-pl" data-id="${pl.id}" title="Delete" aria-label="Delete price list">🗑️</button>
+                  <button class="btn btn-ghost btn-prices-pl" data-id="${pl.id}" title="${App.I18n.t('pricing.managePrices', 'Manage Prices')}" aria-label="Manage prices">💰</button>
+                  <button class="btn btn-ghost btn-edit-pl" data-id="${pl.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="Edit price list">✏️</button>
+                  <button class="btn btn-ghost btn-export-pl" data-id="${pl.id}" title="${App.I18n.t('pricing.export', 'Export CSV')}" aria-label="Export price list">📥</button>
+                  <button class="btn btn-ghost btn-delete-pl" data-id="${pl.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete price list">🗑️</button>
                 </td>
               </tr>
             `).join('') || `<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">No price lists</td></tr>`}
@@ -73,6 +74,15 @@ App.UI.Views.Pricing = {
     if (addBtn) {
       addBtn.onclick = () => this.openPriceListModal();
     }
+
+    root.querySelectorAll('.btn-prices-pl').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const pl = lists.find(p => p.id === id);
+        if (pl) this.openPriceEntriesModal(pl);
+      });
+    });
 
     root.querySelectorAll('.btn-edit-pl').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -150,6 +160,98 @@ App.UI.Views.Pricing = {
     a.download = `${list.name.replace(/\s+/g, '_')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  },
+
+  openPriceEntriesModal(pl) {
+    const products = App.Data.products || [];
+    const entries = pl.entries || [];
+
+    // Build entries table
+    const entriesHtml = entries.length > 0 ? entries.map((entry, idx) => {
+      const prod = products.find(p => p.id === entry.productId);
+      const name = prod ? (prod.nameDE || prod.nameEN || prod.internalArticleNumber) : entry.productId;
+      const sku = prod ? prod.internalArticleNumber : '-';
+      return `
+        <tr data-entry-idx="${idx}">
+          <td style="font-size:12px;"><strong>${sku}</strong></td>
+          <td style="font-size:12px;">${name}</td>
+          <td><input type="number" class="input entry-price" value="${entry.price || 0}" step="0.01" min="0" style="width:80px; padding:4px;" /></td>
+          <td><input type="number" class="input entry-uvp" value="${entry.uvp || 0}" step="0.01" min="0" style="width:80px; padding:4px;" /></td>
+          <td><input type="number" class="input entry-moq" value="${entry.minOrderQty || 1}" min="1" style="width:60px; padding:4px;" /></td>
+        </tr>
+      `;
+    }).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--color-text-muted);">No entries</td></tr>';
+
+    const body = `
+      <div>
+        <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:12px;">
+          ${App.I18n.t('pricing.editPricesDesc', 'Edit individual product prices in this list. Changes are saved when you click Save.')}
+        </p>
+        <div style="max-height:400px; overflow-y:auto; border:1px solid var(--color-border); border-radius:6px;">
+          <table class="table" style="font-size:12px; margin:0;">
+            <thead style="position:sticky; top:0; background:var(--color-bg-soft);">
+              <tr>
+                <th style="padding:8px;">${App.I18n.t('pricing.sku', 'SKU')}</th>
+                <th style="padding:8px;">${App.I18n.t('pricing.product', 'Product')}</th>
+                <th style="padding:8px;">${App.I18n.t('pricing.price', 'Price (€)')}</th>
+                <th style="padding:8px;">${App.I18n.t('pricing.uvp', 'UVP (€)')}</th>
+                <th style="padding:8px;">${App.I18n.t('pricing.moq', 'MOQ')}</th>
+              </tr>
+            </thead>
+            <tbody id="price-entries-body">
+              ${entriesHtml}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px; font-size:12px; color:var(--color-text-muted);">
+          ${entries.length} ${App.I18n.t('pricing.products', 'products')} • ${App.I18n.t('pricing.total', 'Total')}: ${App.Utils.formatCurrency(entries.reduce((sum, e) => sum + (e.price || 0), 0))}
+        </div>
+      </div>
+    `;
+
+    App.UI.Modal.open(`${App.I18n.t('pricing.managePrices', 'Manage Prices')} - ${pl.name}`, body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('common.save', 'Save'),
+        variant: 'primary',
+        onClick: () => {
+          const rows = document.querySelectorAll('#price-entries-body tr[data-entry-idx]');
+          let changedCount = 0;
+
+          rows.forEach(row => {
+            const idx = parseInt(row.getAttribute('data-entry-idx'));
+            const entry = pl.entries[idx];
+            if (!entry) return;
+
+            const newPrice = parseFloat(row.querySelector('.entry-price').value) || 0;
+            const newUvp = parseFloat(row.querySelector('.entry-uvp').value) || 0;
+            const newMoq = parseInt(row.querySelector('.entry-moq').value) || 1;
+
+            if (entry.price !== newPrice || entry.uvp !== newUvp || entry.minOrderQty !== newMoq) {
+              changedCount++;
+            }
+
+            entry.price = newPrice;
+            entry.uvp = newUvp;
+            entry.minOrderQty = newMoq;
+          });
+
+          App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('update', 'priceList', pl.id, {
+              name: pl.name,
+              action: 'prices_edited',
+              changedEntries: changedCount
+            });
+          }
+
+          App.UI.Toast.show(`${App.I18n.t('pricing.saved', 'Prices saved')} (${changedCount} ${App.I18n.t('pricing.changed', 'changed')})`);
+          App.Core.Router.navigate('pricing');
+        }
+      }
+    ]);
   },
 
   openPriceListModal(pl) {
