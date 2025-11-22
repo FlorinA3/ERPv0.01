@@ -46,12 +46,17 @@ App.UI.Views.Documents = {
       return doc.dueDate.split('T')[0];
     };
 
+    // Filter out deleted documents
+    const activeDocs = docs.filter(d => !d.isDeleted);
+    const deletedCount = docs.filter(d => d.isDeleted).length;
+
     root.innerHTML = `
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.documents.title','Documents')}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
             <input type="text" id="doc-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
+            ${deletedCount > 0 ? `<button class="btn btn-ghost" id="btn-view-trash" title="${App.I18n.t('documents.viewTrash', 'View Trash')}">🗑️ ${App.I18n.t('documents.trash', 'Trash')} (${deletedCount})</button>` : ''}
             <button class="btn btn-ghost" id="btn-add-delivery">+ ${App.I18n.t('documents.createDelivery','Delivery Note')}</button>
             <button class="btn btn-primary" id="btn-add-invoice">+ ${App.I18n.t('documents.createInvoice','Invoice')}</button>
           </div>
@@ -71,15 +76,14 @@ App.UI.Views.Documents = {
             </tr>
           </thead>
           <tbody>
-            ${docs.length > 0 ? docs.map(d => {
+            ${activeDocs.length > 0 ? activeDocs.map(d => {
               const cust = App.Data.customers.find(c => c.id === d.customerId);
               const isInv = d.type === 'invoice';
-              const icon = d.isCreditNote ? '📋' : (isInv ? '🧾' : '📦');
+              const icon = isInv ? '🧾' : '📦';
               const esc = App.Utils.escapeHtml;
-              const canFinalize = isInv && !d.isFinalized && !d.isCreditNote;
-              const canStorno = isInv && d.isFinalized && !d.isCreditNote;
-              const canDelete = !d.isFinalized;
-              const canPay = isInv && !d.isCreditNote && (d.paidAmount || 0) < (d.grossTotal || 0);
+              const canFinalize = isInv && !d.isFinalized;
+              const canEdit = !d.isFinalized;
+              const canPay = isInv && (d.paidAmount || 0) < (d.grossTotal || 0);
 
               return `
                 <tr ${d.isCreditNote ? 'style="opacity:0.85;"' : ''}>
@@ -96,11 +100,11 @@ App.UI.Views.Documents = {
                   <td style="text-align:center;">${getPaymentStatus(d)}</td>
                   <td style="text-align:center; white-space:nowrap;">
                     <button class="btn btn-ghost btn-doc-view" data-id="${d.id}" title="${App.I18n.t('common.viewPrint', 'View/Print')}" aria-label="View document">👁️</button>
+                    ${canEdit ? `<button class="btn btn-ghost btn-doc-edit" data-id="${d.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="Edit document">✏️</button>` : ''}
                     ${canFinalize ? `<button class="btn btn-ghost btn-doc-finalize" data-id="${d.id}" title="${App.I18n.t('documents.finalize', 'Finalize Invoice')}" aria-label="Finalize invoice">✅</button>` : ''}
-                    ${canStorno ? `<button class="btn btn-ghost btn-doc-storno" data-id="${d.id}" title="${App.I18n.t('documents.createStorno', 'Create Credit Note')}" aria-label="Create credit note">↩️</button>` : ''}
                     ${canPay ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="${App.I18n.t('common.recordPayment', 'Record Payment')}" aria-label="Record payment">💰</button>` : ''}
                     ${isInv ? `<button class="btn btn-ghost btn-doc-history" data-id="${d.id}" title="${App.I18n.t('common.paymentHistory', 'Payment History')}" aria-label="Payment history">📋</button>` : ''}
-                    ${canDelete ? `<button class="btn btn-ghost btn-doc-delete" data-id="${d.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete document">🗑️</button>` : ''}
+                    <button class="btn btn-ghost btn-doc-delete" data-id="${d.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete document">🗑️</button>
                   </td>
                 </tr>
               `;
@@ -125,19 +129,22 @@ App.UI.Views.Documents = {
       btn.addEventListener('click', () => this.openPaymentHistory(btn.getAttribute('data-id')));
     });
 
-    // Finalize invoice (GoBD compliance)
-    root.querySelectorAll('.btn-doc-finalize').forEach(btn => {
-      btn.addEventListener('click', () => this.finalizeInvoice(btn.getAttribute('data-id')));
+    // Edit document
+    root.querySelectorAll('.btn-doc-edit').forEach(btn => {
+      btn.addEventListener('click', () => this.editDocument(btn.getAttribute('data-id')));
     });
 
-    // Create Storno (credit note)
-    root.querySelectorAll('.btn-doc-storno').forEach(btn => {
-      btn.addEventListener('click', () => this.createStorno(btn.getAttribute('data-id')));
+    // Finalize invoice
+    root.querySelectorAll('.btn-doc-finalize').forEach(btn => {
+      btn.addEventListener('click', () => this.finalizeInvoice(btn.getAttribute('data-id')));
     });
 
     root.querySelectorAll('.btn-doc-delete').forEach(btn => {
       btn.addEventListener('click', () => this.deleteDocument(btn.getAttribute('data-id')));
     });
+
+    // View trash
+    document.getElementById('btn-view-trash')?.addEventListener('click', () => this.openTrashModal());
 
     // Search functionality
     const searchInput = document.getElementById('doc-search');
@@ -203,8 +210,10 @@ App.UI.Views.Documents = {
   },
 
   _performDocDelete(id, doc, cust) {
-    const documents = App.Data.documents || [];
-    App.Data.documents = documents.filter(d => d.id !== id);
+    // Soft delete - mark as deleted instead of removing
+    doc.isDeleted = true;
+    doc.deletedDate = new Date().toISOString();
+    doc.deletedBy = App.Services.Auth?.currentUser?.id || 'system';
     App.DB.save();
 
     // Recompute order status if linked
@@ -217,12 +226,258 @@ App.UI.Views.Documents = {
       App.Services.ActivityLog.log('delete', 'document', id, {
         name: doc.docNumber,
         type: doc.type,
-        customer: cust?.company
+        customer: cust?.company,
+        action: 'moved_to_trash'
       });
     }
 
-    App.UI.Toast.show('Document deleted');
+    App.UI.Toast.show(App.I18n.t('documents.movedToTrash', 'Document moved to trash'));
     App.Core.Router.navigate('documents');
+  },
+
+  /**
+   * Open trash modal to view and restore deleted documents
+   */
+  openTrashModal() {
+    const deletedDocs = (App.Data.documents || []).filter(d => d.isDeleted);
+
+    if (deletedDocs.length === 0) {
+      App.UI.Toast.show(App.I18n.t('documents.trashEmpty', 'Trash is empty'));
+      return;
+    }
+
+    const rows = deletedDocs.map(d => {
+      const cust = App.Data.customers.find(c => c.id === d.customerId);
+      const deletedDate = d.deletedDate ? new Date(d.deletedDate).toLocaleDateString() : '-';
+      return `
+        <tr>
+          <td>${d.type === 'invoice' ? '🧾' : '📦'} ${d.docNumber}</td>
+          <td>${cust ? cust.company : '-'}</td>
+          <td>${deletedDate}</td>
+          <td style="text-align:center;">
+            <button class="btn btn-ghost btn-restore-doc" data-id="${d.id}" title="${App.I18n.t('documents.restore', 'Restore')}">♻️</button>
+            <button class="btn btn-ghost btn-perma-delete" data-id="${d.id}" title="${App.I18n.t('documents.permanentDelete', 'Delete Permanently')}" style="color:var(--color-danger);">❌</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    const body = `
+      <div style="max-height:400px; overflow-y:auto;">
+        <table class="table" style="font-size:13px;">
+          <thead>
+            <tr>
+              <th>${App.I18n.t('documents.document', 'Document')}</th>
+              <th>${App.I18n.t('documents.customer', 'Customer')}</th>
+              <th>${App.I18n.t('documents.deletedDate', 'Deleted')}</th>
+              <th style="text-align:center;">${App.I18n.t('common.actions', 'Actions')}</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p style="font-size:11px; color:var(--color-text-muted); margin-top:12px;">
+        ${App.I18n.t('documents.trashHint', 'Restore documents to recover them, or delete permanently to free space.')}
+      </p>
+    `;
+
+    App.UI.Modal.open(App.I18n.t('documents.trashTitle', 'Deleted Documents'), body, [
+      { text: App.I18n.t('common.close', 'Close'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('documents.emptyTrash', 'Empty Trash'),
+        variant: 'primary',
+        onClick: () => {
+          this.emptyTrash();
+        }
+      }
+    ]);
+
+    // Wire up restore and permanent delete buttons
+    setTimeout(() => {
+      document.querySelectorAll('.btn-restore-doc').forEach(btn => {
+        btn.onclick = () => {
+          this.restoreDocument(btn.getAttribute('data-id'));
+          App.UI.Modal.close();
+        };
+      });
+      document.querySelectorAll('.btn-perma-delete').forEach(btn => {
+        btn.onclick = () => {
+          this.permanentlyDeleteDocument(btn.getAttribute('data-id'));
+          App.UI.Modal.close();
+        };
+      });
+    }, 0);
+  },
+
+  /**
+   * Restore a document from trash
+   */
+  restoreDocument(id) {
+    const doc = App.Data.documents.find(d => d.id === id);
+    if (!doc) return;
+
+    doc.isDeleted = false;
+    delete doc.deletedDate;
+    delete doc.deletedBy;
+    App.DB.save();
+
+    // Log activity
+    if (App.Services.ActivityLog) {
+      App.Services.ActivityLog.log('restore', 'document', id, {
+        name: doc.docNumber,
+        type: doc.type
+      });
+    }
+
+    App.UI.Toast.show(App.I18n.t('documents.restored', 'Document restored'));
+    App.Core.Router.navigate('documents');
+  },
+
+  /**
+   * Permanently delete a document
+   */
+  permanentlyDeleteDocument(id) {
+    const doc = App.Data.documents.find(d => d.id === id);
+    if (!doc) return;
+
+    App.UI.Modal.open(App.I18n.t('documents.confirmPermanentDelete', 'Confirm Permanent Delete'), `
+      <div style="color:var(--color-danger);">
+        <p><strong>⚠️ ${App.I18n.t('documents.cannotUndo', 'This action cannot be undone!')}</strong></p>
+        <p style="margin-top:8px;">
+          ${App.I18n.t('documents.permanentDeleteDesc', 'This will permanently remove the document from the system.')}
+        </p>
+        <p style="margin-top:8px; font-size:12px;">
+          ${App.I18n.t('documents.document', 'Document')}: <strong>${doc.docNumber}</strong>
+        </p>
+      </div>
+    `, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('documents.deletePermanently', 'Delete Permanently'),
+        variant: 'primary',
+        onClick: () => {
+          App.Data.documents = App.Data.documents.filter(d => d.id !== id);
+          App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('delete', 'document', id, {
+              name: doc.docNumber,
+              type: doc.type,
+              action: 'permanent_delete'
+            });
+          }
+
+          App.UI.Toast.show(App.I18n.t('documents.permanentlyDeleted', 'Document permanently deleted'));
+          App.Core.Router.navigate('documents');
+        }
+      }
+    ]);
+  },
+
+  /**
+   * Empty all documents from trash
+   */
+  emptyTrash() {
+    const deletedDocs = App.Data.documents.filter(d => d.isDeleted);
+    if (deletedDocs.length === 0) return;
+
+    App.UI.Modal.open(App.I18n.t('documents.confirmEmptyTrash', 'Empty Trash'), `
+      <div style="color:var(--color-danger);">
+        <p><strong>⚠️ ${App.I18n.t('documents.cannotUndo', 'This action cannot be undone!')}</strong></p>
+        <p style="margin-top:8px;">
+          ${App.I18n.t('documents.emptyTrashDesc', 'This will permanently delete all')} <strong>${deletedDocs.length}</strong> ${App.I18n.t('documents.documentsInTrash', 'documents in trash')}.
+        </p>
+      </div>
+    `, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('documents.emptyTrash', 'Empty Trash'),
+        variant: 'primary',
+        onClick: () => {
+          App.Data.documents = App.Data.documents.filter(d => !d.isDeleted);
+          App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('delete', 'document', null, {
+              action: 'empty_trash',
+              count: deletedDocs.length
+            });
+          }
+
+          App.UI.Toast.show(App.I18n.t('documents.trashEmptied', 'Trash emptied'));
+          App.Core.Router.navigate('documents');
+        }
+      }
+    ]);
+  },
+
+  /**
+   * Edit document (only for non-finalized documents)
+   */
+  editDocument(id) {
+    const doc = App.Data.documents.find(d => d.id === id);
+    if (!doc) return;
+
+    if (doc.isFinalized) {
+      App.UI.Toast.show(App.I18n.t('documents.cannotEditFinalized', 'Cannot edit finalized documents'), 'warning');
+      return;
+    }
+
+    // Simple edit modal for basic fields
+    const body = `
+      <div class="grid" style="gap:12px;">
+        <div>
+          <label class="field-label">${App.I18n.t('documents.docNumber', 'Document Number')}</label>
+          <input id="edit-doc-number" class="input" value="${doc.docNumber || ''}" />
+        </div>
+        <div>
+          <label class="field-label">${App.I18n.t('documents.date', 'Date')}</label>
+          <input id="edit-doc-date" type="date" class="input" value="${(doc.date || '').split('T')[0]}" />
+        </div>
+        ${doc.type === 'invoice' ? `
+        <div>
+          <label class="field-label">${App.I18n.t('documents.dueDate', 'Due Date')}</label>
+          <input id="edit-doc-due" type="date" class="input" value="${(doc.dueDate || '').split('T')[0]}" />
+        </div>
+        ` : ''}
+        <div>
+          <label class="field-label">${App.I18n.t('documents.notes', 'Notes')}</label>
+          <textarea id="edit-doc-notes" class="input" rows="3">${doc.notes || ''}</textarea>
+        </div>
+      </div>
+    `;
+
+    App.UI.Modal.open(App.I18n.t('documents.editDocument', 'Edit Document'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('common.save', 'Save'),
+        variant: 'primary',
+        onClick: () => {
+          doc.docNumber = document.getElementById('edit-doc-number').value.trim() || doc.docNumber;
+          doc.date = document.getElementById('edit-doc-date').value || doc.date;
+          if (doc.type === 'invoice') {
+            doc.dueDate = document.getElementById('edit-doc-due')?.value || doc.dueDate;
+          }
+          doc.notes = document.getElementById('edit-doc-notes').value.trim();
+          doc.modifiedDate = new Date().toISOString();
+
+          App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('update', 'document', id, {
+              name: doc.docNumber,
+              type: doc.type
+            });
+          }
+
+          App.UI.Toast.show(App.I18n.t('documents.updated', 'Document updated'));
+          App.Core.Router.navigate('documents');
+        }
+      }
+    ]);
   },
 
   /**
@@ -250,9 +505,6 @@ App.UI.Views.Documents = {
           <p><strong>${App.I18n.t('documents.customer', 'Customer')}:</strong> ${cust ? cust.company : '-'}</p>
           <p><strong>${App.I18n.t('documents.total', 'Total')}:</strong> ${App.Utils.formatCurrency(doc.grossTotal)}</p>
         </div>
-        <p style="margin-top:12px; font-size:12px; color:var(--color-text-muted);">
-          ${App.I18n.t('documents.stornoHint', 'If corrections are needed after finalization, you can create a Storno (credit note).')}
-        </p>
       </div>
     `, [
       { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
@@ -279,114 +531,6 @@ App.UI.Views.Documents = {
           }
 
           App.UI.Toast.show(App.I18n.t('documents.finalized', 'Invoice finalized successfully'), 'success');
-          App.Core.Router.navigate('documents');
-        }
-      }
-    ]);
-  },
-
-  /**
-   * Create a Storno (credit note) for a finalized invoice (GoBD compliance)
-   */
-  createStorno(docId) {
-    const originalDoc = App.Data.documents.find(d => d.id === docId);
-    if (!originalDoc || originalDoc.type !== 'invoice') return;
-
-    if (!originalDoc.isFinalized) {
-      App.UI.Toast.show(App.I18n.t('documents.mustFinalizeFirst', 'Invoice must be finalized before creating a Storno'), 'warning');
-      return;
-    }
-
-    if (originalDoc.isCreditNote) {
-      App.UI.Toast.show(App.I18n.t('documents.cannotStornoStorno', 'Cannot create Storno of a credit note'), 'warning');
-      return;
-    }
-
-    const cust = (App.Data.customers || []).find(c => c.id === originalDoc.customerId);
-
-    App.UI.Modal.open(App.I18n.t('documents.createStornoTitle', 'Create Credit Note (Storno)'), `
-      <div>
-        <p style="font-size:13px;">
-          ${App.I18n.t('documents.stornoDesc', 'This will create a credit note that reverses the original invoice. The credit note will have negative amounts.')}
-        </p>
-        <div style="margin-top:12px; padding:12px; background:var(--color-bg); border-radius:8px; font-size:12px;">
-          <p><strong>${App.I18n.t('documents.originalInvoice', 'Original Invoice')}:</strong> ${originalDoc.docNumber}</p>
-          <p><strong>${App.I18n.t('documents.customer', 'Customer')}:</strong> ${cust ? cust.company : '-'}</p>
-          <p><strong>${App.I18n.t('documents.amount', 'Amount')}:</strong> ${App.Utils.formatCurrency(originalDoc.grossTotal)}</p>
-          <p style="color:var(--color-danger);"><strong>${App.I18n.t('documents.creditAmount', 'Credit Amount')}:</strong> -${App.Utils.formatCurrency(originalDoc.grossTotal)}</p>
-        </div>
-
-        <label class="field-label" style="margin-top:12px;">${App.I18n.t('documents.stornoReason', 'Reason for Credit Note')}*</label>
-        <textarea id="storno-reason" class="input" rows="3" placeholder="${App.I18n.t('documents.stornoReasonPlaceholder', 'E.g., Customer returned goods, pricing error, etc.')}"></textarea>
-      </div>
-    `, [
-      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
-      {
-        text: App.I18n.t('documents.createStorno', 'Create Credit Note'),
-        variant: 'primary',
-        onClick: () => {
-          const reason = document.getElementById('storno-reason')?.value?.trim();
-          if (!reason) {
-            App.UI.Toast.show(App.I18n.t('documents.reasonRequired', 'Please provide a reason for the credit note'), 'warning');
-            return false;
-          }
-
-          // Generate credit note number
-          const stornoNumber = originalDoc.docNumber + '-ST';
-
-          // Create the credit note
-          const creditNote = {
-            id: App.Utils.generateId('doc'),
-            type: 'invoice',
-            isCreditNote: true,
-            linkedInvoiceId: originalDoc.id,
-            docNumber: stornoNumber,
-            customerId: originalDoc.customerId,
-            orderId: originalDoc.orderId,
-            date: new Date().toISOString(),
-            dueDate: new Date().toISOString(),
-            // Negative amounts
-            netTotal: -(originalDoc.netTotal || 0),
-            vatTotal: -(originalDoc.vatTotal || 0),
-            grossTotal: -(originalDoc.grossTotal || 0),
-            // Copy line items with negative quantities
-            items: (originalDoc.items || []).map(item => ({
-              ...item,
-              id: App.Utils.generateId('item'),
-              quantity: -(item.quantity || 0),
-              netAmount: -(item.netAmount || 0),
-              vatAmount: -(item.vatAmount || 0),
-              grossAmount: -(item.grossAmount || 0)
-            })),
-            // Metadata
-            notes: `${App.I18n.t('documents.stornoOf', 'Storno of')} ${originalDoc.docNumber}. ${App.I18n.t('documents.reason', 'Reason')}: ${reason}`,
-            stornoReason: reason,
-            // Credit notes are automatically finalized
-            isFinalized: true,
-            finalizedDate: new Date().toISOString(),
-            finalizedBy: App.Data.Config?.currentUserId || 'system',
-            createdDate: new Date().toISOString(),
-            modifiedDate: new Date().toISOString(),
-            paidAmount: 0
-          };
-
-          // Add to documents
-          App.Data.documents = App.Data.documents || [];
-          App.Data.documents.push(creditNote);
-          App.DB.save();
-
-          // Log activity
-          if (App.Services.ActivityLog) {
-            App.Services.ActivityLog.log('create', 'storno', creditNote.id, {
-              name: stornoNumber,
-              originalInvoice: originalDoc.docNumber,
-              customer: cust?.company,
-              amount: creditNote.grossTotal,
-              reason: reason
-            });
-          }
-
-          App.UI.Toast.show(App.I18n.t('documents.stornoCreated', 'Credit note created successfully'), 'success');
           App.Core.Router.navigate('documents');
         }
       }
