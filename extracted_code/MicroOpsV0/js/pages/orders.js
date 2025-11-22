@@ -567,42 +567,75 @@ App.UI.Views.Orders = {
       return { available: true, stock: 0, shortage: 0 };
     };
 
-    // Update stock warning for a row
+    // Update stock warning and margin indicator for a row
     const updateStockWarning = (row) => {
       const prodSelect = row.querySelector('.ord-item-prod');
       const qtyInput = row.querySelector('.ord-item-qty');
+      const priceInput = row.querySelector('.ord-item-price');
       let warning = row.querySelector('.stock-warning');
+      let marginIndicator = row.querySelector('.margin-indicator');
 
       const prodId = prodSelect.value;
       const qty = parseInt(qtyInput.value) || 0;
+      const price = parseFloat(priceInput.value) || 0;
       const stockInfo = checkStock(prodId, qty);
       const product = (App.Data.products || []).find(p => p.id === prodId);
 
-      // Remove existing warning
+      // Remove existing warnings
       if (warning) warning.remove();
+      if (marginIndicator) marginIndicator.remove();
 
       if (product && product.type !== 'Service') {
+        // Stock warning
         if (!stockInfo.available) {
-          // Out of stock or insufficient
           warning = document.createElement('div');
           warning.className = 'stock-warning';
           warning.style.cssText = 'font-size:11px; color:#f97373; margin-top:4px;';
           warning.innerHTML = `⚠️ Only ${stockInfo.stock} in stock (need ${qty}, short ${stockInfo.shortage})`;
           row.appendChild(warning);
         } else if (stockInfo.stock <= (product.minStock || 0)) {
-          // Low stock warning
           warning = document.createElement('div');
           warning.className = 'stock-warning';
           warning.style.cssText = 'font-size:11px; color:#f59e0b; margin-top:4px;';
           warning.innerHTML = `⚠️ Low stock: ${stockInfo.stock} available (min: ${product.minStock || 0})`;
           row.appendChild(warning);
         } else {
-          // Show available stock
           warning = document.createElement('div');
           warning.className = 'stock-warning';
           warning.style.cssText = 'font-size:11px; color:var(--color-text-muted); margin-top:4px;';
           warning.innerHTML = `✓ ${stockInfo.stock} in stock`;
           row.appendChild(warning);
+        }
+
+        // Margin indicator (green/yellow/red)
+        const purchasePrice = product.avgPurchasePrice || 0;
+        if (purchasePrice > 0 && price > 0) {
+          const margin = ((price - purchasePrice) / purchasePrice) * 100;
+          let marginColor, marginIcon, marginText;
+
+          if (margin >= 20) {
+            marginColor = '#16a34a';
+            marginIcon = '●';
+            marginText = `+${margin.toFixed(0)}% margin`;
+          } else if (margin >= 5) {
+            marginColor = '#f59e0b';
+            marginIcon = '●';
+            marginText = `+${margin.toFixed(0)}% margin`;
+          } else if (margin >= 0) {
+            marginColor = '#dc2626';
+            marginIcon = '●';
+            marginText = `+${margin.toFixed(0)}% low margin`;
+          } else {
+            marginColor = '#dc2626';
+            marginIcon = '▼';
+            marginText = `${margin.toFixed(0)}% LOSS`;
+          }
+
+          marginIndicator = document.createElement('span');
+          marginIndicator.className = 'margin-indicator';
+          marginIndicator.style.cssText = `font-size:10px; color:${marginColor}; margin-left:8px;`;
+          marginIndicator.innerHTML = `${marginIcon} ${marginText}`;
+          priceInput.parentNode.insertBefore(marginIndicator, priceInput.nextSibling);
         }
       }
     };
@@ -642,7 +675,10 @@ App.UI.Views.Orders = {
         recalcTotal();
       });
 
-      priceInput.addEventListener('input', recalcTotal);
+      priceInput.addEventListener('input', () => {
+        updateStockWarning(row);
+        recalcTotal();
+      });
 
       removeBtn.addEventListener('click', () => {
         if (itemsRoot.querySelectorAll('.ord-item-row').length > 1) {
@@ -664,6 +700,35 @@ App.UI.Views.Orders = {
     const custSelect = document.getElementById('ord-cust');
     if (custSelect) {
       custSelect.addEventListener('change', () => {
+        const selectedCustId = custSelect.value;
+        const customer = (App.Data.customers || []).find(c => c.id === selectedCustId);
+
+        // Auto-apply customer defaults (payment terms, delivery terms, carrier)
+        if (customer) {
+          // Store defaults for order creation
+          custSelect.dataset.paymentTerms = customer.paymentTerms || '';
+          custSelect.dataset.deliveryTerms = customer.deliveryTerms || '';
+          custSelect.dataset.defaultCarrier = customer.defaultCarrierId || '';
+          custSelect.dataset.segment = customer.segment || '';
+
+          // Show customer info tooltip
+          const infoText = [];
+          if (customer.paymentTerms) infoText.push(`Payment: ${customer.paymentTerms}`);
+          if (customer.deliveryTerms) infoText.push(`Delivery: ${customer.deliveryTerms}`);
+          if (customer.segment) infoText.push(`Segment: ${customer.segment}`);
+
+          if (infoText.length > 0) {
+            let infoDiv = document.getElementById('customer-defaults-info');
+            if (!infoDiv) {
+              infoDiv = document.createElement('div');
+              infoDiv.id = 'customer-defaults-info';
+              infoDiv.style.cssText = 'font-size:11px; color:var(--color-text-muted); margin-top:4px; padding:6px; background:var(--color-bg); border-radius:4px;';
+              custSelect.parentNode.appendChild(infoDiv);
+            }
+            infoDiv.innerHTML = infoText.join(' | ');
+          }
+        }
+
         // Recalculate all line item prices
         itemsRoot.querySelectorAll('.ord-item-row').forEach(row => {
           const prodSelect = row.querySelector('.ord-item-prod');

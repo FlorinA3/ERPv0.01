@@ -208,6 +208,31 @@ App.UI.Views.Dashboard = {
   _renderAlerts(overdueInvoices, overdueTasks, outOfStockProducts, outOfStockComponents, customers) {
     const alerts = [];
 
+    // Backup reminder check
+    const config = App.Data.config || {};
+    const lastBackupAt = config.lastBackupAt;
+    const backupReminderDays = config.backupReminderDays || 7;
+
+    if (lastBackupAt) {
+      const daysSinceBackup = Math.floor((Date.now() - new Date(lastBackupAt).getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceBackup >= backupReminderDays) {
+        alerts.push({
+          type: 'warning',
+          icon: '💾',
+          message: `Last backup was ${daysSinceBackup} days ago - consider backing up your data`,
+          action: "App.Core.Router.navigate('settings')"
+        });
+      }
+    } else {
+      // No backup ever made
+      alerts.push({
+        type: 'warning',
+        icon: '💾',
+        message: 'No backup found - please backup your data',
+        action: "App.Core.Router.navigate('settings')"
+      });
+    }
+
     if (overdueInvoices.length > 0) {
       alerts.push({
         type: 'error',

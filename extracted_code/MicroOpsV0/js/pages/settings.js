@@ -367,7 +367,21 @@ App.UI.Views.Settings = {
     // Backup/Restore Event Handlers
     document.getElementById('btn-backup').onclick = () => {
       const filename = App.DB.exportBackup();
+
+      // Track backup timestamp for reminders
+      if (!App.Data.config) App.Data.config = {};
+      App.Data.config.lastBackupAt = new Date().toISOString();
+      App.DB.save();
+
       App.UI.Toast.show(`Backup saved as ${filename}`);
+
+      // Log activity
+      if (App.Services.ActivityLog) {
+        App.Services.ActivityLog.log('export', 'backup', null, {
+          filename: filename,
+          action: 'database_backup'
+        });
+      }
     };
 
     document.getElementById('restore-file').onchange = async (e) => {

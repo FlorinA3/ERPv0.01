@@ -314,8 +314,70 @@ App.UI.Views.Documents = {
 
   generateFromOrder(orderId, type) {
     const o = App.Data.orders.find(x => x.id === orderId);
-    if (!o) return;
+    if (!o) {
+      App.UI.Toast.show('Order not found');
+      return;
+    }
+
     const cust = App.Data.customers.find(c => c.id === o.custId);
+
+    // Document creation guardrails
+    const errors = [];
+
+    if (!cust) {
+      errors.push('Customer not found for this order');
+    } else {
+      // Check for required addresses
+      const addresses = cust.addresses || [];
+      const hasBilling = addresses.some(a => a.role === 'billing' || addresses.length > 0);
+      const hasShipping = addresses.some(a => a.role === 'shipping' || addresses.length > 0);
+
+      if (addresses.length === 0) {
+        errors.push('Customer has no addresses configured');
+      } else {
+        if (!hasBilling) errors.push('Customer needs a billing address');
+        if (!hasShipping && type === 'delivery') errors.push('Customer needs a shipping address for delivery notes');
+      }
+
+      // Check VAT number for invoices (optional but recommended)
+      if (type === 'invoice' && !cust.vatNumber) {
+        // Just a warning, not blocking
+      }
+    }
+
+    // Check order has items
+    if (!o.items || o.items.length === 0) {
+      errors.push('Order has no line items');
+    }
+
+    // Check products exist
+    if (o.items) {
+      const missingProducts = o.items.filter(i => {
+        const p = App.Data.products.find(p => p.id === i.productId);
+        return !p;
+      });
+      if (missingProducts.length > 0) {
+        errors.push(`${missingProducts.length} product(s) not found in order`);
+      }
+    }
+
+    // If errors, show modal with issues
+    if (errors.length > 0) {
+      App.UI.Modal.open('Cannot Create Document', `
+        <div style="color:#dc2626;">
+          <p style="font-weight:600; margin-bottom:8px;">Please fix the following issues:</p>
+          <ul style="margin:0; padding-left:20px;">
+            ${errors.map(e => `<li style="margin-bottom:4px;">${e}</li>`).join('')}
+          </ul>
+        </div>
+        <p style="font-size:12px; color:var(--color-text-muted); margin-top:12px;">
+          Go to Customer or Order settings to add missing data.
+        </p>
+      `, [
+        { text: 'Close', variant: 'ghost', onClick: () => {} }
+      ]);
+      return;
+    }
 
     const docNum = type === 'delivery'
       ? App.Services.NumberSequence.nextDeliveryNumber()
