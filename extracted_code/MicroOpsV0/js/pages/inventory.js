@@ -92,7 +92,10 @@ App.UI.Views.Inventory = {
 
       ${needsReorder.length > 0 ? `
         <div class="card-soft" style="margin-bottom:16px; border-left:3px solid #f59e0b;">
-          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px; color:#f59e0b;">📦 Reorder Suggestions</h4>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h4 style="font-size:14px; font-weight:600; color:#f59e0b;">📦 Replenishment Suggestions</h4>
+            <button class="btn btn-ghost" id="btn-create-all-pos" style="font-size:12px;">Create All POs</button>
+          </div>
           <table class="table" style="font-size:13px;">
             <thead>
               <tr>
@@ -101,6 +104,7 @@ App.UI.Views.Inventory = {
                 <th style="text-align:right;">Min</th>
                 <th style="text-align:right;">Suggested Qty</th>
                 <th>Supplier</th>
+                <th style="text-align:right;">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -112,6 +116,7 @@ App.UI.Views.Inventory = {
                 const reorderQty = item.reorderQuantity || Math.max(minStock * 2 - (item.stock || 0), minStock);
                 const supplier = item.supplierId ?
                   (App.Data.suppliers || []).find(s => s.id === item.supplierId)?.name : '-';
+                const hasSupplierId = !!item.supplierId;
                 return `
                   <tr>
                     <td><strong>${sku}</strong> - ${name}</td>
@@ -119,6 +124,12 @@ App.UI.Views.Inventory = {
                     <td style="text-align:right;">${minStock}</td>
                     <td style="text-align:right; font-weight:500;">${Math.ceil(reorderQty)}</td>
                     <td>${supplier}</td>
+                    <td style="text-align:right;">
+                      ${hasSupplierId ?
+                        `<button class="btn btn-ghost btn-create-po" data-id="${item.id}" data-qty="${Math.ceil(reorderQty)}" data-supplier="${item.supplierId}" data-type="${isProduct ? 'product' : 'component'}" title="Create Purchase Order">📋</button>` :
+                        `<span style="font-size:11px; color:var(--color-text-muted);">No supplier</span>`
+                      }
+                    </td>
                   </tr>
                 `;
               }).join('')}
@@ -165,6 +176,150 @@ App.UI.Views.Inventory = {
     root.querySelectorAll('.btn-adjust').forEach(btn => {
       btn.addEventListener('click', () => this.adjustStock(btn.getAttribute('data-id')));
     });
+
+    // Create PO buttons for replenishment
+    root.querySelectorAll('.btn-create-po').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const itemId = btn.getAttribute('data-id');
+        const qty = parseInt(btn.getAttribute('data-qty')) || 1;
+        const supplierId = btn.getAttribute('data-supplier');
+        const itemType = btn.getAttribute('data-type');
+        this.createPurchaseOrder(itemId, qty, supplierId, itemType);
+      });
+    });
+
+    // Create all POs button
+    document.getElementById('btn-create-all-pos')?.addEventListener('click', () => {
+      this.createAllPurchaseOrders();
+    });
+  },
+
+  /**
+   * Create a purchase order for a specific item
+   */
+  createPurchaseOrder(itemId, qty, supplierId, itemType) {
+    const pos = App.Data.purchaseOrders || [];
+    const supplier = (App.Data.suppliers || []).find(s => s.id === supplierId);
+
+    let itemName, itemSku;
+    if (itemType === 'product') {
+      const product = (App.Data.products || []).find(p => p.id === itemId);
+      itemName = product?.nameDE || product?.nameEN || itemId;
+      itemSku = product?.internalArticleNumber || product?.sku || itemId;
+    } else {
+      const component = (App.Data.components || []).find(c => c.id === itemId);
+      itemName = component?.description || itemId;
+      itemSku = component?.componentNumber || itemId;
+    }
+
+    const po = {
+      id: App.Utils.generateId('pu'),
+      poNumber: `PU-${Date.now().toString(36).toUpperCase()}`,
+      supplierId: supplierId,
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+      createdBy: App.Services.Auth.currentUser?.id,
+      items: [{
+        itemId: itemId,
+        itemType: itemType,
+        quantity: qty,
+        description: `${itemSku} - ${itemName}`
+      }],
+      notes: 'Auto-created from replenishment suggestions'
+    };
+
+    pos.push(po);
+    App.Data.purchaseOrders = pos;
+    App.DB.save();
+
+    // Log activity
+    if (App.Services.ActivityLog) {
+      App.Services.ActivityLog.log('create', 'purchaseOrder', po.id, {
+        name: po.poNumber,
+        supplier: supplier?.name,
+        trigger: 'replenishment_suggestion'
+      });
+    }
+
+    App.UI.Toast.show(`Purchase Order ${po.poNumber} created for ${itemSku}`);
+    this.render(document.getElementById('main-content'));
+  },
+
+  /**
+   * Create purchase orders for all items with suppliers
+   */
+  createAllPurchaseOrders() {
+    const products = App.Data.products || [];
+    const components = App.Data.components || [];
+
+    const needsReorder = [
+      ...products.filter(p => p.type !== 'Service' && (p.stock || 0) <= (p.reorderPoint || p.minStock || 0) && p.supplierId),
+      ...components.filter(c => (c.stock || 0) <= (c.reorderPoint || c.safetyStock || 0) && c.supplierId)
+    ];
+
+    if (needsReorder.length === 0) {
+      App.UI.Toast.show('No items with suppliers need reordering');
+      return;
+    }
+
+    // Group by supplier
+    const bySupplier = {};
+    needsReorder.forEach(item => {
+      const sid = item.supplierId;
+      if (!bySupplier[sid]) bySupplier[sid] = [];
+      bySupplier[sid].push(item);
+    });
+
+    const pos = App.Data.purchaseOrders || [];
+    let created = 0;
+
+    // Create one PO per supplier
+    Object.entries(bySupplier).forEach(([supplierId, items]) => {
+      const supplier = (App.Data.suppliers || []).find(s => s.id === supplierId);
+
+      const poItems = items.map(item => {
+        const isProduct = !!item.internalArticleNumber;
+        const minStock = item.minStock || item.safetyStock || 0;
+        const reorderQty = item.reorderQuantity || Math.max(minStock * 2 - (item.stock || 0), minStock);
+
+        return {
+          itemId: item.id,
+          itemType: isProduct ? 'product' : 'component',
+          quantity: Math.ceil(reorderQty),
+          description: `${isProduct ? item.internalArticleNumber : item.componentNumber} - ${isProduct ? (item.nameDE || item.nameEN) : item.description}`
+        };
+      });
+
+      const po = {
+        id: App.Utils.generateId('pu'),
+        poNumber: `PU-${Date.now().toString(36).toUpperCase()}-${created}`,
+        supplierId: supplierId,
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+        createdBy: App.Services.Auth.currentUser?.id,
+        items: poItems,
+        notes: `Auto-created from replenishment suggestions (${poItems.length} items)`
+      };
+
+      pos.push(po);
+      created++;
+
+      // Log activity
+      if (App.Services.ActivityLog) {
+        App.Services.ActivityLog.log('create', 'purchaseOrder', po.id, {
+          name: po.poNumber,
+          supplier: supplier?.name,
+          itemCount: poItems.length,
+          trigger: 'bulk_replenishment'
+        });
+      }
+    });
+
+    App.Data.purchaseOrders = pos;
+    App.DB.save();
+
+    App.UI.Toast.show(`${created} Purchase Order(s) created for ${needsReorder.length} items`);
+    this.render(document.getElementById('main-content'));
   },
 
   receiveStock(id) {
