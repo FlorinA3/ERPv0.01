@@ -223,9 +223,42 @@ This release establishes the core foundation for production-ready ERP functional
 
 ---
 
+## [0.4.0] - 2025-11-22
+
+### Phase 4: Batch/LOT Management - Complete
+
+#### Batch Management Page (js/pages/batches.js)
+- **LOT Number Generation**: Auto-generated format YYMMDD-XXX
+- **Product & Component Batches**: Support for both types
+- **Expiry Date Tracking**: With status badges for expired/expiring
+- **QC Workflow**: Pending → Quarantine → Released/Rejected
+- **QC Modal**: Inspector, date, notes, status update
+- **Traceability Modal**: Forward and reverse traceability
+- **Stock Movement Link**: Track batch in movements
+- **Supplier LOT Reference**: For received goods
+
+#### Integration
+- **Sidebar Navigation**: Added batches under Inventory section
+- **Role Permissions**: Admin, Warehouse, Production can access
+- **i18n Support**: German and English translations
+- **Data Model**: Added batches collection to db.js
+
+---
+
 ## [Unreleased]
 
-### Planned for Version 0.3.1
+### Planned for Version 0.5.0
+
+#### Purchase Orders
+- [ ] PO data model (header + lines)
+- [ ] Creating POs for suppliers
+- [ ] Status workflow (Draft → Sent → Received → Closed)
+- [ ] Link POs to sales orders
+
+#### Financial Management
+- [ ] Payment tracking
+- [ ] Due date alerts
+- [ ] Overdue management
 
 #### Enhanced Order Wizard
 - [ ] Multi-step order creation flow

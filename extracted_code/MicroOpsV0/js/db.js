@@ -174,6 +174,7 @@ App.DB = {
     normalised.productionOrders = data.productionOrders || data.ProductionOrders || [];
     normalised.movements        = data.movements || data.Movements || [];
     normalised.tasks            = data.tasks || data.Tasks || [];
+    normalised.batches          = data.batches || data.Batches || [];
     // Mirror uppercase keys to preserve compatibility
     normalised.Config           = normalised.config;
     normalised.Users            = normalised.users;

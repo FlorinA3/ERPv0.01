@@ -62,6 +62,7 @@ window.App = window.App || {
           pricing: 'Preislisten',
           inventory: 'Lagerliste',
           movements: 'Lagerbewegungen',
+          batches: 'Chargen/LOT',
           ordersPage: 'Aufträge',
           production: 'Produktion',
           documents: 'Dokumente',
@@ -79,6 +80,7 @@ window.App = window.App || {
           pricing: { title: 'Preislisten' },
           inventory: { title: 'Lager & Material' },
           movements: { title: 'Lagerbewegungen' },
+          batches: { title: 'Chargen/LOT Verwaltung' },
           orders: { title: 'Aufträge' },
           production: { title: 'Produktionsaufträge' },
           documents: { title: 'Dokumente' },
@@ -155,6 +157,7 @@ window.App = window.App || {
           pricing: 'Price Lists',
           inventory: 'Inventory',
           movements: 'Movements',
+          batches: 'Batches/LOT',
           ordersPage: 'Orders',
           production: 'Production',
           documents: 'Documents',
@@ -172,6 +175,7 @@ window.App = window.App || {
           pricing: { title: 'Price Lists' },
           inventory: { title: 'Inventory & Material' },
           movements: { title: 'Stock Movements' },
+          batches: { title: 'Batch/LOT Management' },
           orders: { title: 'Orders' },
           production: { title: 'Production Orders' },
           documents: { title: 'Documents' },
@@ -732,10 +736,10 @@ App.Services.Auth = {
 
   // Role-based route permissions
   rolePermissions: {
-    admin: ['dashboard', 'customers', 'products', 'components', 'suppliers', 'carriers', 'pricing', 'inventory', 'movements', 'orders', 'production', 'documents', 'reports', 'tasks', 'settings'],
+    admin: ['dashboard', 'customers', 'products', 'components', 'suppliers', 'carriers', 'pricing', 'inventory', 'movements', 'batches', 'orders', 'production', 'documents', 'reports', 'tasks', 'settings'],
     sales: ['dashboard', 'customers', 'products', 'pricing', 'orders', 'documents', 'reports', 'tasks'],
-    warehouse: ['dashboard', 'inventory', 'movements', 'components', 'suppliers', 'carriers', 'production', 'tasks'],
-    production: ['dashboard', 'production', 'components', 'inventory', 'movements', 'tasks']
+    warehouse: ['dashboard', 'inventory', 'movements', 'batches', 'components', 'suppliers', 'carriers', 'production', 'tasks'],
+    production: ['dashboard', 'production', 'components', 'inventory', 'movements', 'batches', 'tasks']
   },
 
   initLoginScreen() {
