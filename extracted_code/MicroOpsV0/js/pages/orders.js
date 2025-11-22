@@ -343,6 +343,14 @@ App.UI.Views.Orders = {
             notes: order.statusNotes
           });
 
+          // Audit log
+          if (App.Audit) {
+            App.Audit.log('UPDATE', 'orders', order.id,
+              { status: currentStatus },
+              { status: newStatus, statusNotes: order.statusNotes }
+            );
+          }
+
           App.DB.save();
           App.UI.Toast.show(`Order status updated to ${newStatus}`);
 
@@ -523,7 +531,23 @@ App.UI.Views.Orders = {
         }
       });
 
+      // Validate order
+      if (App.Validate && App.Validate.order) {
+        try {
+          App.Validate.order(order);
+        } catch (err) {
+          App.UI.Toast.show(err.message, 'error');
+          return;
+        }
+      }
+
       App.Data.orders.push(order);
+
+      // Audit log
+      if (App.Audit) {
+        App.Audit.log('CREATE', 'orders', order.id, null, order);
+      }
+
       App.DB.save();
       App.UI.Toast.show(App.I18n.t('common.orderSaved', 'Order saved'));
 
@@ -537,7 +561,7 @@ App.UI.Views.Orders = {
         }
       }
 
-      // Log activity
+      // Log activity (legacy)
       if (App.Services.ActivityLog) {
         App.Services.ActivityLog.log('create', 'order', order.id, {
           name: order.orderId,
@@ -1034,9 +1058,15 @@ App.UI.Views.Orders = {
 
           // Delete the order
           App.Data.orders = orders.filter(o => o.id !== id);
+
+          // Audit log
+          if (App.Audit) {
+            App.Audit.log('DELETE', 'orders', id, order, null);
+          }
+
           App.DB.save();
 
-          // Log activity
+          // Log activity (legacy)
           if (App.Services.ActivityLog) {
             App.Services.ActivityLog.log('delete', 'order', id, {
               name: order.orderId,

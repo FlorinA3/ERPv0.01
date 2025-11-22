@@ -286,11 +286,37 @@ App.UI.Views.Customers = {
           };
 
           const list = App.Data.customers || App.Data.Customers || [];
+
+          // Validate before save
+          if (App.Validate && App.Validate.customer) {
+            try {
+              App.Validate.customer(n);
+            } catch (err) {
+              App.UI.Toast.show(err.message, 'error');
+              return;
+            }
+          }
+
+          let oldCustomer = null;
           if (isNew) {
             list.push(n);
           } else {
             const idx = list.findIndex(x => x.id === n.id);
-            if (idx >= 0) list[idx] = { ...list[idx], ...n };
+            if (idx >= 0) {
+              oldCustomer = { ...list[idx] };
+              list[idx] = { ...list[idx], ...n };
+            }
+          }
+
+          // Audit log
+          if (App.Audit) {
+            App.Audit.log(
+              isNew ? 'CREATE' : 'UPDATE',
+              'customers',
+              n.id,
+              oldCustomer,
+              n
+            );
           }
 
           App.DB.save();
@@ -423,10 +449,17 @@ App.UI.Views.Customers = {
         onClick: () => {
           const idx = customers.findIndex(c => c.id === id);
           if (idx >= 0) {
+            const deletedCustomer = { ...customers[idx] };
             customers.splice(idx, 1);
+
+            // Audit log
+            if (App.Audit) {
+              App.Audit.log('DELETE', 'customers', id, deletedCustomer, null);
+            }
+
             App.DB.save();
 
-            // Log activity
+            // Log activity (legacy)
             if (App.Services.ActivityLog) {
               App.Services.ActivityLog.log('delete', 'customer', id, {
                 name: customer.company,

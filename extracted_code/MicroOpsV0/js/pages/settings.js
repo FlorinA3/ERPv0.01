@@ -10,11 +10,13 @@ App.UI.Views.Settings = {
 
     root.innerHTML = `
       <div class="card-soft" style="margin-bottom:16px;">
-        <div style="display:flex; gap:8px; border-bottom:1px solid var(--color-border); padding-bottom:12px; margin-bottom:16px;">
+        <div style="display:flex; gap:8px; border-bottom:1px solid var(--color-border); padding-bottom:12px; margin-bottom:16px; flex-wrap:wrap;">
           <button class="btn ${this.activeTab === 'company' ? 'btn-primary' : 'btn-ghost'}" data-tab="company">${t('tabCompany', 'Company')}</button>
           <button class="btn ${this.activeTab === 'users' ? 'btn-primary' : 'btn-ghost'}" data-tab="users">${t('tabUsers', 'Users')}</button>
           <button class="btn ${this.activeTab === 'system' ? 'btn-primary' : 'btn-ghost'}" data-tab="system">${t('tabSystem', 'System')}</button>
           <button class="btn ${this.activeTab === 'communication' ? 'btn-primary' : 'btn-ghost'}" data-tab="communication">${t('tabCommunication', 'Communication')}</button>
+          <button class="btn ${this.activeTab === 'backups' ? 'btn-primary' : 'btn-ghost'}" data-tab="backups">${t('tabBackups', 'Backups')}</button>
+          <button class="btn ${this.activeTab === 'audit' ? 'btn-primary' : 'btn-ghost'}" data-tab="audit">${t('tabAudit', 'Audit Log')}</button>
           <button class="btn ${this.activeTab === 'activity' ? 'btn-primary' : 'btn-ghost'}" data-tab="activity">${t('tabActivity', 'Activity Log')}</button>
         </div>
 
@@ -36,6 +38,16 @@ App.UI.Views.Settings = {
         <!-- Communication Tab -->
         <div id="tab-communication" style="${this.activeTab !== 'communication' ? 'display:none;' : ''}">
           ${this._renderCommunicationTab(cfg)}
+        </div>
+
+        <!-- Backups Tab -->
+        <div id="tab-backups" style="${this.activeTab !== 'backups' ? 'display:none;' : ''}">
+          ${this._renderBackupsTab(cfg)}
+        </div>
+
+        <!-- Audit Log Tab -->
+        <div id="tab-audit" style="${this.activeTab !== 'audit' ? 'display:none;' : ''}">
+          ${this._renderAuditTab()}
         </div>
 
         <!-- Activity Log Tab -->
@@ -331,6 +343,180 @@ App.UI.Views.Settings = {
             </div>
           </div>
         </div>
+      </div>
+    `;
+  },
+
+  _renderBackupsTab(cfg) {
+    const t = (key, fallback) => App.I18n.t(`settings.${key}`, fallback);
+    const lastBackup = cfg.lastBackupAt ? new Date(cfg.lastBackupAt).toLocaleString() : 'Never';
+
+    return `
+      <div class="grid grid-2" style="gap:16px;">
+        <div>
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('autoBackups', 'Auto-Backups')}</h4>
+          <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:12px;">
+            ${t('autoBackupDesc', 'The system automatically saves backups when you close the browser. Up to 7 recent backups are kept.')}
+          </p>
+
+          <div id="backup-list" style="max-height:300px; overflow-y:auto; border:1px solid var(--color-border); border-radius:8px; padding:8px;">
+            <div style="text-align:center; color:var(--color-text-muted); padding:20px;">
+              <span class="loading-spinner"></span> ${t('loadingBackups', 'Loading backups...')}
+            </div>
+          </div>
+
+          <div style="margin-top:12px; display:flex; gap:8px;">
+            <button class="btn btn-ghost" id="btn-load-backups">🔄 ${t('refreshBackups', 'Refresh')}</button>
+            <button class="btn btn-primary" id="btn-create-backup">💾 ${t('createBackup', 'Create Backup Now')}</button>
+          </div>
+        </div>
+
+        <div>
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('manualBackup', 'Manual Backup')}</h4>
+          <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:12px;">
+            ${t('manualBackupDesc', 'Download a backup file to your computer or restore from a previous backup.')}
+          </p>
+
+          <div style="padding:16px; background:var(--color-bg); border-radius:8px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span>${t('lastManualBackup', 'Last manual backup')}:</span>
+              <strong>${lastBackup}</strong>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-ghost" id="btn-download-backup">📥 ${t('downloadBackup', 'Download Backup')}</button>
+            <label class="btn btn-ghost" style="cursor:pointer;">
+              📤 ${t('restoreBackup', 'Restore from File')}
+              <input type="file" id="restore-backup-file" accept=".json" style="display:none;" />
+            </label>
+          </div>
+
+          <h4 style="font-size:14px; font-weight:600; margin:16px 0 12px;">${t('encryptedBackup', 'Encrypted Backup')}</h4>
+          <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:12px;">
+            ${t('encryptedDesc', 'Create password-protected backups for extra security.')}
+          </p>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="password" id="backup-password" class="input" placeholder="${t('password', 'Password')}" style="width:150px;" />
+            <button class="btn btn-ghost" id="btn-encrypted-backup">🔐 ${t('encryptedDownload', 'Encrypted Download')}</button>
+          </div>
+
+          <h4 style="font-size:14px; font-weight:600; margin:16px 0 12px;">${t('storageInfo', 'Storage Information')}</h4>
+          <div id="storage-info" style="font-size:12px; color:var(--color-text-muted);">
+            ${t('checkingStorage', 'Checking storage usage...')}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderAuditTab() {
+    const t = (key, fallback) => App.I18n.t(`settings.${key}`, fallback);
+    const auditLog = App.Data.auditLog || [];
+    const recentEntries = auditLog.slice(0, 100);
+
+    const stats = App.Audit?.getStats ? App.Audit.getStats() : {
+      total: auditLog.length,
+      byAction: {},
+      byEntity: {}
+    };
+
+    const actionColors = {
+      CREATE: '#10b981',
+      UPDATE: '#3b82f6',
+      DELETE: '#ef4444'
+    };
+
+    return `
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h4 style="font-size:14px; font-weight:600;">${t('auditTrail', 'Audit Trail')}</h4>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-ghost" id="btn-export-audit">📥 ${t('exportCSV', 'Export CSV')}</button>
+            <button class="btn btn-ghost" id="btn-clear-audit">🗑️ ${t('clearOldEntries', 'Clear Old')}</button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-4" style="gap:8px; margin-bottom:16px;">
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('totalEntries', 'Total')}</div>
+            <div style="font-size:18px; font-weight:600; margin-top:4px;">${stats.total || auditLog.length}</div>
+          </div>
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('creates', 'Creates')}</div>
+            <div style="font-size:18px; font-weight:600; margin-top:4px; color:#10b981;">${stats.byAction?.CREATE || 0}</div>
+          </div>
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('updates', 'Updates')}</div>
+            <div style="font-size:18px; font-weight:600; margin-top:4px; color:#3b82f6;">${stats.byAction?.UPDATE || 0}</div>
+          </div>
+          <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('deletes', 'Deletes')}</div>
+            <div style="font-size:18px; font-weight:600; margin-top:4px; color:#ef4444;">${stats.byAction?.DELETE || 0}</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+          <select id="audit-filter-action" class="input" style="width:120px;">
+            <option value="">${t('allActions', 'All Actions')}</option>
+            <option value="CREATE">CREATE</option>
+            <option value="UPDATE">UPDATE</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+          <select id="audit-filter-entity" class="input" style="width:130px;">
+            <option value="">${t('allEntities', 'All Entities')}</option>
+            <option value="customers">Customers</option>
+            <option value="orders">Orders</option>
+            <option value="products">Products</option>
+            <option value="documents">Documents</option>
+          </select>
+          <input type="text" id="audit-search" class="input" placeholder="${t('searchAudit', 'Search...')}" style="width:150px;" />
+        </div>
+
+        <!-- Log Table -->
+        <div style="max-height:400px; overflow-y:auto; border:1px solid var(--color-border); border-radius:8px;">
+          <table class="table" style="font-size:11px;">
+            <thead style="position:sticky; top:0; background:var(--color-surface);">
+              <tr>
+                <th style="width:130px;">${t('timestamp', 'Timestamp')}</th>
+                <th style="width:80px;">${t('user', 'User')}</th>
+                <th style="width:70px;">${t('action', 'Action')}</th>
+                <th style="width:80px;">${t('entity', 'Entity')}</th>
+                <th style="width:80px;">${t('entityId', 'ID')}</th>
+                <th>${t('changes', 'Changes')}</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body">
+              ${recentEntries.length > 0 ? recentEntries.map(entry => {
+                const time = new Date(entry.timestamp);
+                const timeStr = time.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const actionColor = actionColors[entry.action] || '#888';
+                const changesStr = entry.changes?.length > 0
+                  ? entry.changes.map(c => `${c.field}`).join(', ')
+                  : (entry.action === 'CREATE' ? 'New record' : entry.action === 'DELETE' ? 'Deleted' : '-');
+
+                return `
+                  <tr class="audit-row" data-action="${entry.action}" data-entity="${entry.entity}">
+                    <td style="white-space:nowrap;">${timeStr}</td>
+                    <td>${entry.userName || 'System'}</td>
+                    <td><span style="color:${actionColor}; font-weight:600;">${entry.action}</span></td>
+                    <td>${entry.entity}</td>
+                    <td style="font-family:monospace; font-size:10px;">${entry.entityId ? entry.entityId.slice(-8) : '-'}</td>
+                    <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis;" title="${changesStr}">${changesStr}</td>
+                  </tr>
+                `;
+              }).join('') : `<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">${t('noAuditEntries', 'No audit entries yet')}</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+
+        ${recentEntries.length < auditLog.length ? `
+          <p style="font-size:11px; color:var(--color-text-muted); margin-top:8px; text-align:center;">
+            ${t('showingRecent', 'Showing')} ${recentEntries.length} ${t('of', 'of')} ${auditLog.length} ${t('entries', 'entries')}
+          </p>
+        ` : ''}
       </div>
     `;
   },
@@ -638,6 +824,241 @@ App.UI.Views.Settings = {
           App.UI.Toast.show(`${App.I18n.t('settings.backupFailed', 'Backup restore failed')}: ${result.message}`);
         }
         e.target.value = '';
+      };
+    }
+
+    // Backups Tab Event Handlers
+    this._wireUpBackupsHandlers(root, cfg);
+
+    // Audit Tab Event Handlers
+    this._wireUpAuditHandlers(root);
+  },
+
+  _wireUpBackupsHandlers(root, cfg) {
+    const loadBackupsBtn = document.getElementById('btn-load-backups');
+    const createBackupBtn = document.getElementById('btn-create-backup');
+    const downloadBackupBtn = document.getElementById('btn-download-backup');
+    const restoreBackupFile = document.getElementById('restore-backup-file');
+    const encryptedBackupBtn = document.getElementById('btn-encrypted-backup');
+    const backupList = document.getElementById('backup-list');
+    const storageInfo = document.getElementById('storage-info');
+
+    // Load auto-backup list
+    const loadBackups = async () => {
+      if (!backupList) return;
+
+      try {
+        const backups = await App.DB.listBackups();
+
+        if (backups.length === 0) {
+          backupList.innerHTML = `
+            <div style="text-align:center; color:var(--color-text-muted); padding:20px;">
+              No auto-backups found. Backups are created when you close the browser.
+            </div>
+          `;
+          return;
+        }
+
+        backupList.innerHTML = backups.map((backup, index) => {
+          const date = new Date(backup.timestamp);
+          const dateStr = date.toLocaleString();
+          const sizeKB = backup.size ? (backup.size / 1024).toFixed(1) : '?';
+
+          return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid var(--color-border); ${index === 0 ? 'background:rgba(59, 130, 246, 0.1);' : ''}">
+              <div>
+                <div style="font-weight:500; font-size:12px;">${dateStr}</div>
+                <div style="font-size:10px; color:var(--color-text-muted);">${sizeKB} KB ${index === 0 ? '(Latest)' : ''}</div>
+              </div>
+              <button class="btn btn-ghost btn-restore-auto" data-timestamp="${backup.timestamp}" title="Restore this backup">
+                ♻️
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        // Wire restore buttons
+        document.querySelectorAll('.btn-restore-auto').forEach(btn => {
+          btn.onclick = async () => {
+            const timestamp = parseInt(btn.getAttribute('data-timestamp'));
+            if (confirm('Are you sure you want to restore this backup? Current data will be replaced.')) {
+              try {
+                await App.DB.restoreFromBackup(timestamp);
+                App.UI.Toast.show('Backup restored successfully');
+                App.Core.Router.navigate('settings');
+              } catch (err) {
+                App.UI.Toast.show('Restore failed: ' + err.message, 'error');
+              }
+            }
+          };
+        });
+      } catch (err) {
+        backupList.innerHTML = `
+          <div style="text-align:center; color:var(--color-danger); padding:20px;">
+            Error loading backups: ${err.message}
+          </div>
+        `;
+      }
+    };
+
+    // Load storage info
+    const loadStorageInfo = async () => {
+      if (!storageInfo) return;
+
+      try {
+        const info = await App.DB.getStorageInfo();
+        storageInfo.innerHTML = `
+          <div style="margin-bottom:4px;">Used: ${(info.usage / 1024 / 1024).toFixed(2)} MB</div>
+          <div style="margin-bottom:4px;">Quota: ${(info.quota / 1024 / 1024).toFixed(0)} MB</div>
+          <div>Available: ${((info.quota - info.usage) / 1024 / 1024).toFixed(2)} MB</div>
+        `;
+      } catch (err) {
+        storageInfo.textContent = 'Unable to retrieve storage information';
+      }
+    };
+
+    if (loadBackupsBtn) {
+      loadBackupsBtn.onclick = () => {
+        loadBackups();
+        loadStorageInfo();
+      };
+    }
+
+    if (createBackupBtn) {
+      createBackupBtn.onclick = async () => {
+        try {
+          await App.DB.storeBackup();
+          App.UI.Toast.show('Backup created successfully');
+          loadBackups();
+        } catch (err) {
+          App.UI.Toast.show('Failed to create backup: ' + err.message, 'error');
+        }
+      };
+    }
+
+    if (downloadBackupBtn) {
+      downloadBackupBtn.onclick = () => {
+        const filename = App.DB.exportBackup();
+        cfg.lastBackupAt = new Date().toISOString();
+        App.DB.save();
+        App.UI.Toast.show(`Backup saved as ${filename}`);
+      };
+    }
+
+    if (restoreBackupFile) {
+      restoreBackupFile.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const result = await App.DB.importBackup(file);
+        if (result.success) {
+          App.UI.Toast.show('Backup restored successfully');
+          App.Core.Router.navigate('settings');
+        } else {
+          App.UI.Toast.show(`Restore failed: ${result.message}`, 'error');
+        }
+        e.target.value = '';
+      };
+    }
+
+    if (encryptedBackupBtn) {
+      encryptedBackupBtn.onclick = () => {
+        const password = document.getElementById('backup-password')?.value;
+        if (!password) {
+          App.UI.Toast.show('Please enter a password for encryption');
+          return;
+        }
+
+        const filename = App.DB.exportBackup(password);
+        cfg.lastBackupAt = new Date().toISOString();
+        App.DB.save();
+        App.UI.Toast.show(`Encrypted backup saved as ${filename}`);
+      };
+    }
+
+    // Initial load if on backups tab
+    if (this.activeTab === 'backups') {
+      setTimeout(() => {
+        loadBackups();
+        loadStorageInfo();
+      }, 100);
+    }
+  },
+
+  _wireUpAuditHandlers(root) {
+    const exportBtn = document.getElementById('btn-export-audit');
+    const clearBtn = document.getElementById('btn-clear-audit');
+    const actionFilter = document.getElementById('audit-filter-action');
+    const entityFilter = document.getElementById('audit-filter-entity');
+    const searchInput = document.getElementById('audit-search');
+
+    // Filter function
+    const applyFilters = () => {
+      const action = actionFilter?.value || '';
+      const entity = entityFilter?.value || '';
+      const search = searchInput?.value.toLowerCase() || '';
+
+      document.querySelectorAll('.audit-row').forEach(row => {
+        const rowAction = row.getAttribute('data-action');
+        const rowEntity = row.getAttribute('data-entity');
+        const text = row.textContent.toLowerCase();
+
+        const matchAction = !action || rowAction === action;
+        const matchEntity = !entity || rowEntity === entity;
+        const matchSearch = !search || text.includes(search);
+
+        row.style.display = matchAction && matchEntity && matchSearch ? '' : 'none';
+      });
+    };
+
+    if (actionFilter) actionFilter.onchange = applyFilters;
+    if (entityFilter) entityFilter.onchange = applyFilters;
+    if (searchInput) searchInput.oninput = applyFilters;
+
+    if (exportBtn) {
+      exportBtn.onclick = () => {
+        if (App.Audit?.downloadCSV) {
+          App.Audit.downloadCSV();
+          App.UI.Toast.show('Audit log exported');
+        } else {
+          App.UI.Toast.show('Export not available');
+        }
+      };
+    }
+
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        App.UI.Modal.open('Clear Old Audit Entries', `
+          <div>
+            <p>How old should entries be to be deleted?</p>
+            <select id="audit-clear-days" class="input" style="margin-top:8px;">
+              <option value="30">Older than 30 days</option>
+              <option value="60">Older than 60 days</option>
+              <option value="90">Older than 90 days</option>
+              <option value="180">Older than 180 days</option>
+            </select>
+          </div>
+        `, [
+          { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+          {
+            text: 'Clear',
+            variant: 'primary',
+            onClick: () => {
+              const days = parseInt(document.getElementById('audit-clear-days').value);
+              const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+              const before = (App.Data.auditLog || []).length;
+
+              App.Data.auditLog = (App.Data.auditLog || []).filter(entry => {
+                return new Date(entry.timestamp).getTime() > cutoff;
+              });
+
+              const removed = before - App.Data.auditLog.length;
+              App.DB.save();
+              App.UI.Toast.show(`Removed ${removed} entries older than ${days} days`);
+              App.Core.Router.navigate('settings');
+            }
+          }
+        ]);
       };
     }
   },

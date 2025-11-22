@@ -179,6 +179,19 @@ App.UI.Views.Products = {
             bom: isNew ? [] : (p.bom || [])
           };
 
+          // Validate product
+          if (App.Validate && App.Validate.product) {
+            try {
+              App.Validate.product(updated);
+            } catch (err) {
+              App.UI.Toast.show(err.message, 'error');
+              return false;
+            }
+          }
+
+          // Capture old product for audit
+          const oldProduct = isNew ? null : JSON.parse(JSON.stringify(p));
+
           if (isNew) {
             products.push(updated);
           } else {
@@ -186,6 +199,17 @@ App.UI.Views.Products = {
             if (idx >= 0) products[idx] = { ...products[idx], ...updated };
           }
           App.DB.save();
+
+          // Audit log
+          if (App.Audit) {
+            App.Audit.log(
+              isNew ? 'CREATE' : 'UPDATE',
+              'products',
+              updated.id,
+              oldProduct,
+              updated
+            );
+          }
           App.UI.Toast.show(App.I18n.t('common.productSaved', 'Product saved'));
           App.Core.Router.navigate('products');
         }
@@ -237,6 +261,7 @@ App.UI.Views.Products = {
         text: t('saveBOM', 'Save BOM'),
         variant: 'primary',
         onClick: () => {
+          const oldBom = JSON.parse(JSON.stringify(p.bom || []));
           const bom = [];
           document.querySelectorAll('.bom-row').forEach(row => {
             const compId = row.querySelector('.bom-comp').value;
@@ -247,6 +272,18 @@ App.UI.Views.Products = {
           });
           p.bom = bom;
           App.DB.save();
+
+          // Audit log for BOM change
+          if (App.Audit) {
+            App.Audit.log(
+              'UPDATE',
+              'products',
+              p.id,
+              { id: p.id, bom: oldBom },
+              { id: p.id, bom: bom }
+            );
+          }
+
           App.UI.Toast.show(`${t('bomSaved', 'BOM saved')} (${bom.length} ${t('components', 'components')})`);
           App.Core.Router.navigate('products');
         }
@@ -329,8 +366,16 @@ App.UI.Views.Products = {
         text: App.I18n.t('common.delete', 'Delete'),
         variant: 'primary',
         onClick: () => {
+          // Capture product for audit before deletion
+          const deletedProduct = JSON.parse(JSON.stringify(p));
+
           App.Data.products = products.filter(x => x.id !== id);
           App.DB.save();
+
+          // Audit log
+          if (App.Audit) {
+            App.Audit.log('DELETE', 'products', id, deletedProduct, null);
+          }
 
           // Log activity
           if (App.Services.ActivityLog) {

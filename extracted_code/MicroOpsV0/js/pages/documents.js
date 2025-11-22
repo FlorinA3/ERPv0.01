@@ -212,11 +212,19 @@ App.UI.Views.Documents = {
   },
 
   _performDocDelete(id, doc, cust) {
+    // Capture old state for audit
+    const oldDoc = JSON.parse(JSON.stringify(doc));
+
     // Soft delete - mark as deleted instead of removing
     doc.isDeleted = true;
     doc.deletedDate = new Date().toISOString();
     doc.deletedBy = App.Services.Auth?.currentUser?.id || 'system';
     App.DB.save();
+
+    // Audit log
+    if (App.Audit) {
+      App.Audit.log('DELETE', 'documents', id, oldDoc, { id: id, isDeleted: true, deletedDate: doc.deletedDate });
+    }
 
     // Recompute order status if linked
     if (App.Services.Automation && doc.orderId) {
@@ -318,10 +326,18 @@ App.UI.Views.Documents = {
     const doc = App.Data.documents.find(d => d.id === id);
     if (!doc) return;
 
+    // Capture old state for audit
+    const oldState = { id: id, isDeleted: true, deletedDate: doc.deletedDate };
+
     doc.isDeleted = false;
     delete doc.deletedDate;
     delete doc.deletedBy;
     App.DB.save();
+
+    // Audit log
+    if (App.Audit) {
+      App.Audit.log('UPDATE', 'documents', id, oldState, { id: id, isDeleted: false, restored: true });
+    }
 
     // Log activity
     if (App.Services.ActivityLog) {
@@ -358,8 +374,16 @@ App.UI.Views.Documents = {
         text: App.I18n.t('documents.deletePermanently', 'Delete Permanently'),
         variant: 'primary',
         onClick: () => {
+          // Capture for audit before deletion
+          const deletedDoc = JSON.parse(JSON.stringify(doc));
+
           App.Data.documents = App.Data.documents.filter(d => d.id !== id);
           App.DB.save();
+
+          // Audit log
+          if (App.Audit) {
+            App.Audit.log('DELETE', 'documents', id, deletedDoc, null);
+          }
 
           // Log activity
           if (App.Services.ActivityLog) {
@@ -397,8 +421,16 @@ App.UI.Views.Documents = {
         text: App.I18n.t('documents.emptyTrash', 'Empty Trash'),
         variant: 'primary',
         onClick: () => {
+          // Capture deleted docs for audit
+          const deletedIds = deletedDocs.map(d => d.id);
+
           App.Data.documents = App.Data.documents.filter(d => !d.isDeleted);
           App.DB.save();
+
+          // Audit log
+          if (App.Audit) {
+            App.Audit.log('DELETE', 'documents', null, { action: 'empty_trash', deletedIds: deletedIds, count: deletedDocs.length }, null);
+          }
 
           // Log activity
           if (App.Services.ActivityLog) {
@@ -457,6 +489,9 @@ App.UI.Views.Documents = {
         text: App.I18n.t('common.save', 'Save'),
         variant: 'primary',
         onClick: () => {
+          // Capture old state for audit
+          const oldDoc = JSON.parse(JSON.stringify(doc));
+
           doc.docNumber = document.getElementById('edit-doc-number').value.trim() || doc.docNumber;
           doc.date = document.getElementById('edit-doc-date').value || doc.date;
           if (doc.type === 'invoice') {
@@ -465,7 +500,22 @@ App.UI.Views.Documents = {
           doc.notes = document.getElementById('edit-doc-notes').value.trim();
           doc.modifiedDate = new Date().toISOString();
 
+          // Validate document
+          if (App.Validate && App.Validate.document) {
+            try {
+              App.Validate.document(doc);
+            } catch (err) {
+              App.UI.Toast.show(err.message, 'error');
+              return false;
+            }
+          }
+
           App.DB.save();
+
+          // Audit log
+          if (App.Audit) {
+            App.Audit.log('UPDATE', 'documents', id, oldDoc, doc);
+          }
 
           // Log activity
           if (App.Services.ActivityLog) {
@@ -514,6 +564,9 @@ App.UI.Views.Documents = {
         text: App.I18n.t('documents.finalize', 'Finalize'),
         variant: 'primary',
         onClick: () => {
+          // Capture old state for audit
+          const oldState = { id: docId, isFinalized: false };
+
           // Set finalization fields
           doc.isFinalized = true;
           doc.finalizedDate = new Date().toISOString();
@@ -521,6 +574,11 @@ App.UI.Views.Documents = {
           doc.modifiedDate = new Date().toISOString();
 
           App.DB.save();
+
+          // Audit log
+          if (App.Audit) {
+            App.Audit.log('UPDATE', 'documents', docId, oldState, { id: docId, isFinalized: true, finalizedDate: doc.finalizedDate });
+          }
 
           // Log activity
           if (App.Services.ActivityLog) {
@@ -606,11 +664,23 @@ App.UI.Views.Documents = {
             recordedBy: App.Services.Auth.currentUser?.id
           };
 
+          // Capture old state for audit
+          const oldPaidAmount = doc.paidAmount || 0;
+
           if (!doc.payments) doc.payments = [];
           doc.payments.push(payment);
           doc.paidAmount = (doc.paidAmount || 0) + amount;
 
           App.DB.save();
+
+          // Audit log
+          if (App.Audit) {
+            App.Audit.log('UPDATE', 'documents', doc.id,
+              { id: doc.id, paidAmount: oldPaidAmount, paymentsCount: doc.payments.length - 1 },
+              { id: doc.id, paidAmount: doc.paidAmount, paymentsCount: doc.payments.length, lastPayment: payment }
+            );
+          }
+
           App.UI.Toast.show(`Payment of ${App.Utils.formatCurrency(amount)} recorded`);
 
           // Recompute order status based on payment
@@ -1024,6 +1094,11 @@ App.UI.Views.Documents = {
 
     App.Data.documents.push(doc);
     App.DB.save();
+
+    // Audit log
+    if (App.Audit) {
+      App.Audit.log('CREATE', 'documents', doc.id, null, doc);
+    }
 
     // Recompute order status based on new document
     if (App.Services.Automation && doc.orderId) {
