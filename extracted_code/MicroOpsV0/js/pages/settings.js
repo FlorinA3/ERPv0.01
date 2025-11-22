@@ -14,6 +14,7 @@ App.UI.Views.Settings = {
           <button class="btn ${this.activeTab === 'company' ? 'btn-primary' : 'btn-ghost'}" data-tab="company">${t('tabCompany', 'Company')}</button>
           <button class="btn ${this.activeTab === 'users' ? 'btn-primary' : 'btn-ghost'}" data-tab="users">${t('tabUsers', 'Users')}</button>
           <button class="btn ${this.activeTab === 'system' ? 'btn-primary' : 'btn-ghost'}" data-tab="system">${t('tabSystem', 'System')}</button>
+          <button class="btn ${this.activeTab === 'communication' ? 'btn-primary' : 'btn-ghost'}" data-tab="communication">${t('tabCommunication', 'Communication')}</button>
           <button class="btn ${this.activeTab === 'activity' ? 'btn-primary' : 'btn-ghost'}" data-tab="activity">${t('tabActivity', 'Activity Log')}</button>
         </div>
 
@@ -30,6 +31,11 @@ App.UI.Views.Settings = {
         <!-- System Tab -->
         <div id="tab-system" style="${this.activeTab !== 'system' ? 'display:none;' : ''}">
           ${this._renderSystemTab(cfg, sequences)}
+        </div>
+
+        <!-- Communication Tab -->
+        <div id="tab-communication" style="${this.activeTab !== 'communication' ? 'display:none;' : ''}">
+          ${this._renderCommunicationTab(cfg)}
         </div>
 
         <!-- Activity Log Tab -->
@@ -237,6 +243,62 @@ App.UI.Views.Settings = {
     `;
   },
 
+  _renderCommunicationTab(cfg) {
+    const t = (key, fallback) => App.I18n.t(`settings.${key}`, fallback);
+    const emailTemplate = cfg.emailTemplate || {};
+    const defaultSubject = t('defaultEmailSubject', 'Invoice {{Rechnungsnummer}} / Delivery Note {{Lieferscheinnummer}}');
+    const defaultBody = t('defaultEmailBody', 'Dear Sir or Madam,\n\nPlease find attached:\n\n- Delivery Note No. {{Lieferscheinnummer}} dated {{Lieferscheindatum}}\n- Invoice No. {{Rechnungsnummer}} dated {{Rechnungsdatum}}\n\nInvoice Amount: {{Gesamtbetrag}}\nPayment Due: {{Zahlungsziel}}\n\nPlease transfer the amount quoting the invoice number.\n\nBest regards\n{{BenutzerName}}\n\n{{Firmensignatur}}');
+
+    return `
+      <div>
+        <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('emailTemplateTitle', 'Email Template LS/RE')}</h4>
+        <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:16px;">${t('emailTemplateDesc', 'Template for customer emails with delivery note and invoice')}</p>
+
+        <div class="grid grid-2" style="gap:16px;">
+          <div>
+            <div style="margin-bottom:12px;">
+              <label class="field-label" for="email-subject-template">${t('emailSubjectTemplate', 'Subject Template')}</label>
+              <input id="email-subject-template" class="input" value="${App.Utils.escapeHtml(emailTemplate.subject || defaultSubject)}" />
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <label class="field-label" for="email-body-template">${t('emailBodyTemplate', 'Email Body Template')}</label>
+              <textarea id="email-body-template" class="input" style="height:300px; font-family:monospace; font-size:12px;">${App.Utils.escapeHtml(emailTemplate.body || defaultBody)}</textarea>
+            </div>
+
+            <button class="btn btn-primary" id="btn-save-email-template">${t('saveEmailTemplate', 'Save Email Template')}</button>
+          </div>
+
+          <div>
+            <div style="margin-bottom:16px;">
+              <label class="field-label">${t('availablePlaceholders', 'Available Placeholders')}</label>
+              <div style="font-size:11px; background:var(--color-bg); padding:12px; border-radius:6px; font-family:monospace;">
+                <div style="margin-bottom:8px;"><strong>Kunde:</strong></div>
+                <code>{{Anrede}}</code>, <code>{{KundeName}}</code>, <code>{{KundenNummer}}</code>
+
+                <div style="margin:8px 0;"><strong>Rechnung:</strong></div>
+                <code>{{Rechnungsnummer}}</code>, <code>{{Rechnungsdatum}}</code>, <code>{{Gesamtbetrag}}</code>, <code>{{Zahlungsziel}}</code>
+
+                <div style="margin:8px 0;"><strong>Lieferschein:</strong></div>
+                <code>{{Lieferscheinnummer}}</code>, <code>{{Lieferscheindatum}}</code>
+
+                <div style="margin:8px 0;"><strong>Firma:</strong></div>
+                <code>{{Firmenname}}</code>, <code>{{Firmensignatur}}</code>, <code>{{BenutzerName}}</code>
+              </div>
+            </div>
+
+            <div>
+              <label class="field-label">${t('livePreview', 'Live Preview')}</label>
+              <div id="email-preview" style="font-size:12px; background:var(--color-bg); padding:12px; border-radius:6px; white-space:pre-wrap; max-height:280px; overflow-y:auto; border:1px solid var(--color-border);">
+                <!-- Preview will be rendered here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
   _renderActivityTab() {
     const activities = App.Services.ActivityLog?.getEntries({ limit: 50 }) || [];
     const summary = App.Services.ActivityLog?.getTodaySummary() || { total: 0 };
@@ -348,6 +410,67 @@ App.UI.Views.Settings = {
         App.UI.Toast.show(`Cleaned up ${removed} old log entries`);
         this.render(root);
       };
+    }
+
+    // Email Template Event Handlers
+    const saveEmailTemplateBtn = document.getElementById('btn-save-email-template');
+    const emailSubjectInput = document.getElementById('email-subject-template');
+    const emailBodyTextarea = document.getElementById('email-body-template');
+    const emailPreview = document.getElementById('email-preview');
+
+    // Function to update preview with sample data
+    const updateEmailPreview = () => {
+      if (!emailBodyTextarea || !emailPreview) return;
+
+      const sampleData = {
+        '{{Anrede}}': 'Sehr geehrte Damen und Herren',
+        '{{KundeName}}': 'Musterfirma GmbH',
+        '{{KundenNummer}}': 'K-001',
+        '{{Rechnungsnummer}}': 'RE-2024-001',
+        '{{Rechnungsdatum}}': '22.11.2024',
+        '{{Gesamtbetrag}}': '€ 1.234,56',
+        '{{Zahlungsziel}}': '22.12.2024',
+        '{{Lieferscheinnummer}}': 'LS-2024-001',
+        '{{Lieferscheindatum}}': '20.11.2024',
+        '{{Firmenname}}': cfg.companyName || 'MicroOps Global',
+        '{{Firmensignatur}}': `${cfg.companyName || 'MicroOps Global'}\n${cfg.street || ''}\n${cfg.phone || ''}`,
+        '{{BenutzerName}}': App.Services.Auth?.currentUser?.name || 'Max Mustermann'
+      };
+
+      let preview = emailBodyTextarea.value;
+      Object.keys(sampleData).forEach(placeholder => {
+        preview = preview.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), sampleData[placeholder]);
+      });
+      emailPreview.textContent = preview;
+    };
+
+    if (saveEmailTemplateBtn) {
+      saveEmailTemplateBtn.onclick = () => {
+        if (!cfg.emailTemplate) cfg.emailTemplate = {};
+        cfg.emailTemplate.subject = emailSubjectInput?.value || '';
+        cfg.emailTemplate.body = emailBodyTextarea?.value || '';
+        cfg.emailTemplate.lastModified = new Date().toISOString();
+        cfg.emailTemplate.modifiedBy = App.Services.Auth?.currentUser?.id || 'system';
+
+        App.Data.config = cfg;
+        App.DB.save();
+
+        // Log activity
+        if (App.Services.ActivityLog) {
+          App.Services.ActivityLog.log('update', 'config', 'emailTemplate', {
+            action: 'email_template_updated'
+          });
+        }
+
+        App.UI.Toast.show(App.I18n.t('settings.emailTemplateSaved', 'Email template saved'));
+      };
+    }
+
+    // Update preview on input
+    if (emailBodyTextarea) {
+      emailBodyTextarea.addEventListener('input', updateEmailPreview);
+      // Initial preview
+      updateEmailPreview();
     }
 
     // User Management Event Handlers

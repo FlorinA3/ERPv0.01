@@ -99,6 +99,7 @@ App.UI.Views.Documents = {
                     ${canFinalize ? `<button class="btn btn-ghost btn-doc-finalize" data-id="${d.id}" title="${App.I18n.t('documents.finalize', 'Finalize Invoice')}" aria-label="Finalize invoice">✅</button>` : ''}
                     ${canPay ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="${App.I18n.t('common.recordPayment', 'Record Payment')}" aria-label="Record payment">💰</button>` : ''}
                     ${isInv ? `<button class="btn btn-ghost btn-doc-history" data-id="${d.id}" title="${App.I18n.t('common.paymentHistory', 'Payment History')}" aria-label="Payment history">📋</button>` : ''}
+                    ${isInv ? `<button class="btn btn-ghost btn-doc-email" data-id="${d.id}" title="${App.I18n.t('emailTemplate.generateEmail', 'Email Text (Customer)')}" aria-label="Generate customer email">📧</button>` : ''}
                     <button class="btn btn-ghost btn-doc-delete" data-id="${d.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete document">🗑️</button>
                   </td>
                 </tr>
@@ -123,6 +124,11 @@ App.UI.Views.Documents = {
 
     root.querySelectorAll('.btn-doc-history').forEach(btn => {
       btn.addEventListener('click', () => this.openPaymentHistory(btn.getAttribute('data-id')));
+    });
+
+    // Generate customer email
+    root.querySelectorAll('.btn-doc-email').forEach(btn => {
+      btn.addEventListener('click', () => this.generateCustomerEmail(btn.getAttribute('data-id')));
     });
 
     // Edit document
@@ -1350,5 +1356,131 @@ ${conf.companyName || 'MicroOps Global'}
     }
 
     App.UI.Toast.show(`${App.I18n.t('common.exportSuccess', 'Export successful')} - ${docs.length} ${App.I18n.t('common.rows', 'rows')}`);
+  },
+
+  generateCustomerEmail(docId) {
+    const t = (key, fallback) => App.I18n.t(`emailTemplate.${key}`, fallback);
+    const ts = (key, fallback) => App.I18n.t(`settings.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+
+    // Get the invoice document
+    const invoice = (App.Data.documents || []).find(d => d.id === docId);
+    if (!invoice) {
+      App.UI.Toast.show(t('selectDocument', 'Please select a document'));
+      return;
+    }
+
+    // Check if invoice is finalized (has a number)
+    if (!invoice.docNumber) {
+      App.UI.Toast.show(t('noInvoiceNumber', 'No invoice number - invoice must be finalized first'));
+      return;
+    }
+
+    // Find associated delivery note(s) for the same order
+    const deliveryNotes = (App.Data.documents || []).filter(d =>
+      d.type === 'delivery' && d.orderId === invoice.orderId
+    );
+
+    // Get customer information
+    const customer = (App.Data.customers || []).find(c => c.id === invoice.customerId);
+    const cfg = App.Data.config || {};
+    const emailTemplate = cfg.emailTemplate || {};
+
+    // Get template or use defaults
+    const defaultSubject = ts('defaultEmailSubject', 'Invoice {{Rechnungsnummer}} / Delivery Note {{Lieferscheinnummer}}');
+    const defaultBody = ts('defaultEmailBody', 'Dear Sir or Madam,\n\nPlease find attached:\n\n- Delivery Note No. {{Lieferscheinnummer}} dated {{Lieferscheindatum}}\n- Invoice No. {{Rechnungsnummer}} dated {{Rechnungsdatum}}\n\nInvoice Amount: {{Gesamtbetrag}}\nPayment Due: {{Zahlungsziel}}\n\nPlease transfer the amount quoting the invoice number.\n\nBest regards\n{{BenutzerName}}\n\n{{Firmensignatur}}');
+
+    const subjectTemplate = emailTemplate.subject || defaultSubject;
+    const bodyTemplate = emailTemplate.body || defaultBody;
+
+    // Calculate due date
+    const invoiceDate = new Date(invoice.date);
+    const dueDays = cfg.invoiceDueDays || 30;
+    const dueDate = new Date(invoiceDate);
+    dueDate.setDate(dueDate.getDate() + dueDays);
+
+    // Build placeholder values
+    const placeholders = {
+      '{{Anrede}}': customer?.salutation || 'Sehr geehrte Damen und Herren',
+      '{{KundeName}}': customer?.company || customer?.name || '-',
+      '{{KundenNummer}}': customer?.customerNumber || customer?.internalId || '-',
+      '{{Rechnungsnummer}}': invoice.docNumber || '-',
+      '{{Rechnungsdatum}}': App.Utils.formatDate(invoice.date),
+      '{{Gesamtbetrag}}': App.Utils.formatCurrency(invoice.grossTotal || invoice.total || 0),
+      '{{Zahlungsziel}}': App.Utils.formatDate(dueDate.toISOString()),
+      '{{Lieferscheinnummer}}': deliveryNotes.map(d => d.docNumber || '-').join(', ') || '-',
+      '{{Lieferscheindatum}}': deliveryNotes.length > 0 ? App.Utils.formatDate(deliveryNotes[0].date) : '-',
+      '{{Firmenname}}': cfg.companyName || 'MicroOps',
+      '{{Firmensignatur}}': [cfg.companyName, cfg.street, cfg.phone, cfg.email].filter(Boolean).join('\n'),
+      '{{BenutzerName}}': App.Services.Auth?.currentUser?.name || 'MicroOps Team'
+    };
+
+    // Replace placeholders in templates
+    let subject = subjectTemplate;
+    let body = bodyTemplate;
+
+    Object.keys(placeholders).forEach(placeholder => {
+      const regex = new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g');
+      subject = subject.replace(regex, placeholders[placeholder]);
+      body = body.replace(regex, placeholders[placeholder]);
+    });
+
+    // Show modal with generated email
+    const modalBody = `
+      <div>
+        <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:12px;">
+          ${t('generatedFor', 'Generated for')} <strong>${esc(customer?.company || '-')}</strong>
+        </p>
+
+        <div style="margin-bottom:12px;">
+          <label class="field-label">${t('emailSubject', 'Subject')}</label>
+          <input id="email-subject-output" class="input" value="${esc(subject)}" readonly style="background:var(--color-bg);" />
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label class="field-label">${t('emailBody', 'Email Body')}</label>
+          <textarea id="email-body-output" class="input" readonly style="height:300px; background:var(--color-bg); font-family:inherit; font-size:13px;">${esc(body)}</textarea>
+        </div>
+
+        <button class="btn btn-primary" id="btn-copy-email" style="width:100%;">
+          📋 ${t('copyToClipboard', 'Copy to Clipboard')}
+        </button>
+      </div>
+    `;
+
+    App.UI.Modal.open(t('generateEmail', 'Email Text (Customer)'), modalBody, [
+      { text: App.I18n.t('common.close', 'Close'), variant: 'ghost', onClick: () => {} }
+    ]);
+
+    // Set up copy button
+    setTimeout(() => {
+      const copyBtn = document.getElementById('btn-copy-email');
+      if (copyBtn) {
+        copyBtn.onclick = async () => {
+          const bodyText = document.getElementById('email-body-output')?.value || '';
+          try {
+            await navigator.clipboard.writeText(bodyText);
+            App.UI.Toast.show(t('copied', 'Copied to clipboard!'));
+
+            // Log activity
+            if (App.Services.ActivityLog) {
+              App.Services.ActivityLog.log('export', 'email', invoice.id, {
+                action: 'email_copied',
+                invoiceNumber: invoice.docNumber,
+                customer: customer?.company
+              });
+            }
+          } catch (err) {
+            // Fallback for older browsers
+            const textarea = document.getElementById('email-body-output');
+            if (textarea) {
+              textarea.select();
+              document.execCommand('copy');
+              App.UI.Toast.show(t('copied', 'Copied to clipboard!'));
+            }
+          }
+        };
+      }
+    }, 100);
   }
 };
