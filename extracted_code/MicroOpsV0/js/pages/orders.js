@@ -91,6 +91,7 @@ App.UI.Views.Orders = {
                     <button class="btn btn-ghost btn-status-order" data-id="${o.id}" title="${App.I18n.t('common.changeStatus', 'Change Status')}" aria-label="Change order status">🔄</button>
                     <button class="btn btn-ghost btn-gen-delivery" data-id="${o.id}" title="${App.I18n.t('common.deliveryNote', 'Delivery Note')}" aria-label="Generate delivery note">📦</button>
                     <button class="btn btn-ghost btn-gen-invoice" data-id="${o.id}" title="${App.I18n.t('common.invoice', 'Invoice')}" aria-label="Generate invoice">🧾</button>
+                    <button class="btn btn-ghost btn-clone-order" data-id="${o.id}" title="${App.I18n.t('common.duplicate', 'Duplicate')}" aria-label="Clone order">📋</button>
                     <button class="btn btn-ghost btn-del-order" data-id="${o.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete order">🗑️</button>
                   </td>
                 </tr>
@@ -150,6 +151,10 @@ App.UI.Views.Orders = {
 
     root.querySelectorAll('.btn-status-order').forEach(btn => {
       btn.addEventListener('click', () => this.changeStatus(btn.getAttribute('data-id')));
+    });
+
+    root.querySelectorAll('.btn-clone-order').forEach(btn => {
+      btn.addEventListener('click', () => this.cloneOrder(btn.getAttribute('data-id')));
     });
 
     root.querySelectorAll('.btn-del-order').forEach(btn => {
@@ -966,6 +971,86 @@ App.UI.Views.Orders = {
           App.UI.Toast.show(`Production order ${po.orderNumber} created for ${qty} units`);
         }
       }
+    ]);
+  },
+
+  /**
+   * Clone/duplicate an existing order
+   */
+  cloneOrder(id) {
+    const orders = App.Data.orders || [];
+    const order = orders.find(o => o.id === id);
+    if (!order) return;
+
+    const cust = (App.Data.customers || []).find(c => c.id === order.custId);
+
+    App.UI.Modal.open(App.I18n.t('common.duplicateOrder', 'Duplicate Order'), `
+      <div>
+        <p style="margin-bottom:12px;">
+          Create a copy of order <strong>${order.orderId}</strong>?
+        </p>
+        <div style="font-size:12px; color:var(--color-text-muted);">
+          <p>Customer: ${cust ? cust.company : '-'}</p>
+          <p>Items: ${(order.items || []).length}</p>
+          <p>Total: ${App.Utils.formatCurrency(order.totalGross || 0)}</p>
+        </div>
+        <p style="margin-top:12px; font-size:12px; color:var(--color-primary);">
+          ℹ️ New order will be created as Draft status with today's date.
+        </p>
+      </div>
+    `, [
+      {
+        text: App.I18n.t('common.duplicate', 'Duplicate'),
+        variant: 'primary',
+        onClick: () => {
+          // Generate new order ID
+          const newOrderId = App.Services.NumberSequence.next('A');
+
+          // Clone items with fresh IDs
+          const clonedItems = (order.items || []).map(item => ({
+            ...item,
+            id: App.Utils.generateId()
+          }));
+
+          // Calculate totals
+          const subtotal = clonedItems.reduce((sum, item) => sum + (item.lineNet || 0), 0);
+          const vatRate = order.vatRate || 0.20;
+          const vat = subtotal * vatRate;
+          const total = subtotal + vat;
+
+          // Create new order
+          const newOrder = {
+            id: App.Utils.generateId(),
+            orderId: newOrderId,
+            custId: order.custId,
+            carrierId: order.carrierId,
+            status: 'draft',
+            date: new Date().toISOString(),
+            items: clonedItems,
+            subtotalNet: subtotal,
+            vatRate: vatRate,
+            vatAmount: vat,
+            totalGross: total,
+            notes: order.notes ? `(Copied from ${order.orderId}) ${order.notes}` : `Copied from ${order.orderId}`,
+            createdBy: App.Services.Auth.currentUser?.id,
+            paymentTerms: order.paymentTerms,
+            deliveryTerms: order.deliveryTerms
+          };
+
+          // Save
+          App.Data.orders.push(newOrder);
+          App.DB.save();
+
+          // Log audit
+          if (App.Audit) {
+            App.Audit.log('CREATE', 'orders', newOrder.id, null, newOrder);
+          }
+
+          App.UI.Toast.show(`Order ${newOrderId} created (copy of ${order.orderId})`, 'success');
+          this.render(document.getElementById('main-content'));
+        }
+      },
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} }
     ]);
   },
 
