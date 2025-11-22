@@ -202,6 +202,22 @@ App.UI.Views.Settings = {
               <input id="set-autolock" type="number" class="input" value="${cfg.autoLockMinutes || 15}" min="1" max="60" />
             </div>
           </div>
+
+          <h4 style="font-size:14px; font-weight:600; margin:16px 0 12px;">Tutorials & Help</h4>
+          <div class="grid" style="gap:8px;">
+            <div>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="set-tutorials-enabled" ${cfg.tutorialsEnabled !== false ? 'checked' : ''} />
+                <span>Show first-time tutorials</span>
+              </label>
+              <p style="font-size:11px; color:var(--color-text-muted); margin-top:4px;">Display helpful guides when visiting pages for the first time</p>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="btn btn-ghost" id="btn-reset-tutorials">Reset All Tutorials</button>
+              <button class="btn btn-ghost" id="btn-show-tutorial">Show Current Page Tutorial</button>
+            </div>
+          </div>
+
           <button class="btn btn-ghost" style="margin-top:12px;" id="btn-save-system">Save System Settings</button>
         </div>
 
@@ -416,9 +432,42 @@ App.UI.Views.Settings = {
       saveSystemBtn.onclick = () => {
         const autoLock = document.getElementById('set-autolock');
         if (autoLock) cfg.autoLockMinutes = parseInt(autoLock.value) || 15;
+
+        // Save tutorial settings
+        const tutorialsEnabled = document.getElementById('set-tutorials-enabled')?.checked ?? true;
+        cfg.tutorialsEnabled = tutorialsEnabled;
+        if (App.UI.Tutorial) App.UI.Tutorial.setEnabled(tutorialsEnabled);
+
         App.Data.config = cfg;
         App.DB.save();
         App.UI.Toast.show(App.I18n.t('common.settingsSaved', 'System settings saved'));
+      };
+    }
+
+    // Tutorial reset button
+    const resetTutorialsBtn = document.getElementById('btn-reset-tutorials');
+    if (resetTutorialsBtn) {
+      resetTutorialsBtn.onclick = () => {
+        if (App.UI.Tutorial) {
+          App.UI.Tutorial.reset();
+          App.UI.Toast.show('All tutorials have been reset. They will show again on first visit.');
+        }
+      };
+    }
+
+    // Show current tutorial button
+    const showTutorialBtn = document.getElementById('btn-show-tutorial');
+    if (showTutorialBtn) {
+      showTutorialBtn.onclick = () => {
+        if (App.UI.Tutorial) {
+          const tutorials = App.UI.Tutorial.getTutorials();
+          const tutorial = tutorials['settings'];
+          if (tutorial) {
+            App.UI.Tutorial.show(tutorial.title, tutorial.steps, null);
+          } else {
+            App.UI.Toast.show('No tutorial available for this page');
+          }
+        }
       };
     }
 

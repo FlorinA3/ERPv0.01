@@ -59,6 +59,11 @@ App.Core.Router = {
     }
 
     view.render(root);
+
+    // Show first-time tutorial for this page if enabled
+    if (App.UI.Tutorial && App.UI.Tutorial.showForPage) {
+      setTimeout(() => App.UI.Tutorial.showForPage(route), 500);
+    }
   },
 
   /**

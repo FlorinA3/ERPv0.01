@@ -66,8 +66,10 @@ App.UI.Views.Inventory = {
           <td style="text-align:center;">${minStock}</td>
           <td style="text-align:right;">${App.Utils.formatCurrency(p.dealerPrice || p.purchasePrice || 0)}</td>
           <td style="text-align:right;">
+            <button class="btn btn-ghost btn-edit-product" data-id="${p.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${App.I18n.t('common.edit', 'Edit')}">✏️</button>
             <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="${App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="${App.I18n.t('common.receiveStock', 'Receive Stock')}">⬆️</button>
             <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="${App.I18n.t('common.adjustStock', 'Adjust Stock')}">🔄</button>
+            <button class="btn btn-ghost btn-delete-product" data-id="${p.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="${App.I18n.t('common.delete', 'Delete')}">🗑️</button>
           </td>
         </tr>
       `;
@@ -183,6 +185,16 @@ App.UI.Views.Inventory = {
 
     root.querySelectorAll('.btn-adjust').forEach(btn => {
       btn.addEventListener('click', () => this.adjustStock(btn.getAttribute('data-id')));
+    });
+
+    // Edit product buttons
+    root.querySelectorAll('.btn-edit-product').forEach(btn => {
+      btn.addEventListener('click', () => this.editProduct(btn.getAttribute('data-id')));
+    });
+
+    // Delete product buttons
+    root.querySelectorAll('.btn-delete-product').forEach(btn => {
+      btn.addEventListener('click', () => this.deleteProduct(btn.getAttribute('data-id')));
     });
 
     // Create PO buttons for replenishment
@@ -439,6 +451,124 @@ App.UI.Views.Inventory = {
 
           App.DB.save();
           App.UI.Toast.show(App.I18n.t('common.stockAdjusted', 'Stock adjusted'));
+          App.Core.Router.navigate('inventory');
+        }
+      }
+    ]);
+  },
+
+  editProduct(id) {
+    const t = (key, fallback) => App.I18n.t(`inventory.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+    const products = App.Data.products || [];
+    const item = products.find(p => p.id === id);
+    if (!item) return;
+
+    const body = `
+      <div class="grid" style="gap:12px;">
+        <div class="grid grid-2" style="gap:12px;">
+          <div>
+            <label class="field-label">${App.I18n.t('common.articleNumber', 'Article Number')}</label>
+            <input id="edit-sku" class="input" value="${esc(item.internalArticleNumber || item.sku || '')}" />
+          </div>
+          <div>
+            <label class="field-label">${App.I18n.t('common.type', 'Type')}</label>
+            <select id="edit-type" class="input">
+              <option value="Finished" ${item.type === 'Finished' ? 'selected' : ''}>Finished</option>
+              <option value="Device" ${item.type === 'Device' ? 'selected' : ''}>Device</option>
+              <option value="Consumable" ${item.type === 'Consumable' ? 'selected' : ''}>Consumable</option>
+              <option value="Part" ${item.type === 'Part' ? 'selected' : ''}>Part</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-2" style="gap:12px;">
+          <div>
+            <label class="field-label">${App.I18n.t('common.nameDE', 'Name (DE)')}</label>
+            <input id="edit-name-de" class="input" value="${esc(item.nameDE || '')}" />
+          </div>
+          <div>
+            <label class="field-label">${App.I18n.t('common.nameEN', 'Name (EN)')}</label>
+            <input id="edit-name-en" class="input" value="${esc(item.nameEN || '')}" />
+          </div>
+        </div>
+        <div class="grid grid-3" style="gap:12px;">
+          <div>
+            <label class="field-label">${t('minStock', 'Min Stock')}</label>
+            <input id="edit-min-stock" type="number" class="input" value="${item.minStock || 0}" min="0" />
+          </div>
+          <div>
+            <label class="field-label">${App.I18n.t('common.purchasePrice', 'Purchase Price')}</label>
+            <input id="edit-purchase-price" type="number" step="0.01" class="input" value="${item.purchasePrice || 0}" />
+          </div>
+          <div>
+            <label class="field-label">${App.I18n.t('common.dealerPrice', 'Dealer Price')}</label>
+            <input id="edit-dealer-price" type="number" step="0.01" class="input" value="${item.dealerPrice || 0}" />
+          </div>
+        </div>
+      </div>
+    `;
+
+    App.UI.Modal.open(App.I18n.t('common.editProduct', 'Edit Product'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('common.save', 'Save'),
+        variant: 'primary',
+        onClick: () => {
+          item.internalArticleNumber = document.getElementById('edit-sku').value.trim();
+          item.sku = item.internalArticleNumber;
+          item.type = document.getElementById('edit-type').value;
+          item.nameDE = document.getElementById('edit-name-de').value.trim();
+          item.nameEN = document.getElementById('edit-name-en').value.trim();
+          item.minStock = parseInt(document.getElementById('edit-min-stock').value) || 0;
+          item.purchasePrice = parseFloat(document.getElementById('edit-purchase-price').value) || 0;
+          item.dealerPrice = parseFloat(document.getElementById('edit-dealer-price').value) || 0;
+          item.updatedAt = new Date().toISOString();
+
+          App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('update', 'product', item.id, {
+              name: item.nameDE || item.nameEN || item.internalArticleNumber
+            });
+          }
+
+          App.UI.Toast.show(App.I18n.t('common.productUpdated', 'Product updated'));
+          App.Core.Router.navigate('inventory');
+        }
+      }
+    ]);
+  },
+
+  deleteProduct(id) {
+    const esc = App.Utils.escapeHtml;
+    const products = App.Data.products || [];
+    const item = products.find(p => p.id === id);
+    if (!item) return;
+
+    const body = `
+      <p>${App.I18n.t('common.confirmDeleteProduct', 'Are you sure you want to delete this product?')}</p>
+      <p style="margin-top:8px;"><strong>${esc(item.internalArticleNumber || item.sku)}</strong> - ${esc(item.nameDE || item.nameEN)}</p>
+      <p style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">${App.I18n.t('common.actionCannotBeUndone', 'This action cannot be undone.')}</p>
+    `;
+
+    App.UI.Modal.open(App.I18n.t('common.deleteProduct', 'Delete Product'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('common.delete', 'Delete'),
+        variant: 'primary',
+        onClick: () => {
+          App.Data.products = products.filter(p => p.id !== id);
+          App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('delete', 'product', id, {
+              name: item.nameDE || item.nameEN || item.internalArticleNumber
+            });
+          }
+
+          App.UI.Toast.show(App.I18n.t('common.productDeleted', 'Product deleted'));
           App.Core.Router.navigate('inventory');
         }
       }
