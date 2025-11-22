@@ -453,6 +453,22 @@ window.App = window.App || {
           posCreated: 'Bestellung(en) erstellt für',
           items: 'Artikel'
         },
+        movements: {
+          date: 'Datum',
+          type: 'Typ',
+          item: 'Artikel',
+          quantity: 'Menge',
+          direction: 'Richtung',
+          ref: 'Referenz',
+          add: 'Bewegung hinzufügen',
+          noMovements: 'Keine Bewegungen',
+          typeReceipt: 'Wareneingang',
+          typeConsumption: 'Verbrauch',
+          typeProduction: 'Produktion',
+          directionIn: 'Eingang',
+          directionOut: 'Ausgang',
+          fillRequired: 'Bitte füllen Sie alle Pflichtfelder aus'
+        },
         orders: {
           create: 'Auftrag anlegen',
           customer: 'Kunde',
@@ -1038,6 +1054,22 @@ window.App = window.App || {
           posCreated: 'Purchase Order(s) created for',
           items: 'items'
         },
+        movements: {
+          date: 'Date',
+          type: 'Type',
+          item: 'Item',
+          quantity: 'Quantity',
+          direction: 'Direction',
+          ref: 'Reference',
+          add: 'Add Movement',
+          noMovements: 'No movements',
+          typeReceipt: 'Receipt',
+          typeConsumption: 'Consumption',
+          typeProduction: 'Production',
+          directionIn: 'In',
+          directionOut: 'Out',
+          fillRequired: 'Please fill all required fields'
+        },
         orders: {
           create: 'Create Order',
           customer: 'Customer',
@@ -1574,6 +1606,22 @@ window.App = window.App || {
           poCreated: 'Comandă creată',
           posCreated: 'Comandă(e) create pentru',
           items: 'articole'
+        },
+        movements: {
+          date: 'Data',
+          type: 'Tip',
+          item: 'Articol',
+          quantity: 'Cantitate',
+          direction: 'Direcție',
+          ref: 'Referință',
+          add: 'Adaugă Mișcare',
+          noMovements: 'Nicio mișcare',
+          typeReceipt: 'Recepție',
+          typeConsumption: 'Consum',
+          typeProduction: 'Producție',
+          directionIn: 'Intrare',
+          directionOut: 'Ieșire',
+          fillRequired: 'Completați toate câmpurile obligatorii'
         },
         orders: {
           create: 'Creează Comandă',

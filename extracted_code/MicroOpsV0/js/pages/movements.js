@@ -1,6 +1,8 @@
 // Stock Movements page
 App.UI.Views.Movements = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`movements.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const movements = App.Data.movements || App.Data.Movements || [];
     root.innerHTML = `
       <div class="card-soft">
@@ -14,27 +16,27 @@ App.UI.Views.Movements = {
         <table class="table">
           <thead>
             <tr>
-              <th>${App.I18n.t('movements.date','Date')}</th>
-              <th>${App.I18n.t('movements.type','Type')}</th>
-              <th>${App.I18n.t('movements.item','Item')}</th>
-              <th style="text-align:right;">${App.I18n.t('movements.quantity','Qty')}</th>
-              <th>${App.I18n.t('movements.direction','Direction')}</th>
-              <th>${App.I18n.t('movements.ref','Reference')}</th>
+              <th>${t('date','Date')}</th>
+              <th>${t('type','Type')}</th>
+              <th>${t('item','Item')}</th>
+              <th style="text-align:right;">${t('quantity','Qty')}</th>
+              <th>${t('direction','Direction')}</th>
+              <th>${t('ref','Reference')}</th>
             </tr>
           </thead>
           <tbody>
-            ${movements.map(m => {
+            ${movements.length > 0 ? movements.map(m => {
               const item = (m.productId && (App.Data.products||[]).find(p=>p.id===m.productId)) || (m.componentId && (App.Data.components||[]).find(c=>c.id===m.componentId)) || {};
               return `
               <tr>
                 <td>${App.Utils.formatDate(m.date)}</td>
-                <td>${m.type || '-'}</td>
-                <td>${item.name || item.description || '-'}</td>
+                <td>${esc(m.type || '-')}</td>
+                <td>${esc(item.name || item.nameDE || item.nameEN || item.description || '-')}</td>
                 <td style="text-align:right;">${m.quantity ?? '-'}</td>
-                <td>${m.direction || '-'}</td>
-                <td>${m.reference || '-'}</td>
+                <td>${esc(m.direction || '-')}</td>
+                <td>${esc(m.reference || '-')}</td>
               </tr>`;
-            }).join('') || `<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">No movements</td></tr>`}
+            }).join('') : `<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">${t('noMovements', 'No movements')}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -71,43 +73,45 @@ App.UI.Views.Movements = {
    * levels are updated accordingly.
    */
   openMovementModal() {
+    const t = (key, fallback) => App.I18n.t(`movements.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const products = (App.Data.products || []).filter(p => p.type !== 'Service');
     const components = App.Data.components || [];
-    const productOptions = products.map(p => `<option value="prod:${p.id}">${p.nameDE || p.nameEN || p.id}</option>`).join('');
-    const compOptions = components.map(c => `<option value="cmp:${c.id}">${c.description || c.componentNumber}</option>`).join('');
+    const productOptions = products.map(p => `<option value="prod:${p.id}">${esc(p.nameDE || p.nameEN || p.id)}</option>`).join('');
+    const compOptions = components.map(c => `<option value="cmp:${c.id}">${esc(c.description || c.componentNumber)}</option>`).join('');
     const body = `
       <div>
-        <label class="field-label">${App.I18n.t('movements.date','Date')}*</label>
-        <input id="mv-date" class="input" type="date" value="${new Date().toISOString().split('T')[0]}" />
+        <label class="field-label" for="mv-date">${t('date','Date')}*</label>
+        <input id="mv-date" class="input" type="date" value="${new Date().toISOString().split('T')[0]}" aria-required="true" />
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('movements.type','Type')}</label>
+        <label class="field-label" for="mv-type" style="margin-top:8px;">${t('type','Type')}</label>
         <select id="mv-type" class="input">
-          <option value="receipt">Receipt</option>
-          <option value="consumption">Consumption</option>
-          <option value="production">Production</option>
+          <option value="receipt">${t('typeReceipt', 'Receipt')}</option>
+          <option value="consumption">${t('typeConsumption', 'Consumption')}</option>
+          <option value="production">${t('typeProduction', 'Production')}</option>
         </select>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('movements.item','Item')}*</label>
-        <select id="mv-item" class="input">
+        <label class="field-label" for="mv-item" style="margin-top:8px;">${t('item','Item')}*</label>
+        <select id="mv-item" class="input" aria-required="true">
           <option value="">-</option>
           ${productOptions}
           ${compOptions}
         </select>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('movements.quantity','Quantity')}*</label>
-        <input id="mv-qty" class="input" type="number" step="0.01" min="0" value="1" />
+        <label class="field-label" for="mv-qty" style="margin-top:8px;">${t('quantity','Quantity')}*</label>
+        <input id="mv-qty" class="input" type="number" step="0.01" min="0" value="1" aria-required="true" />
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('movements.direction','Direction')}</label>
+        <label class="field-label" for="mv-direction" style="margin-top:8px;">${t('direction','Direction')}</label>
         <select id="mv-direction" class="input">
-          <option value="in">In</option>
-          <option value="out">Out</option>
+          <option value="in">${t('directionIn', 'In')}</option>
+          <option value="out">${t('directionOut', 'Out')}</option>
         </select>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('movements.ref','Reference')}</label>
+        <label class="field-label" for="mv-ref" style="margin-top:8px;">${t('ref','Reference')}</label>
         <input id="mv-ref" class="input" />
       </div>
     `;
-    App.UI.Modal.open(App.I18n.t('movements.add','Add Movement'), body, [
+    App.UI.Modal.open(t('add','Add Movement'), body, [
       { text: App.I18n.t('common.cancel','Cancel'), variant:'ghost', onClick: () => {} },
       { text: App.I18n.t('common.save','Save'), variant:'primary', onClick: () => {
           const date = document.getElementById('mv-date').value;
@@ -117,7 +121,7 @@ App.UI.Views.Movements = {
           const direction = document.getElementById('mv-direction').value;
           const ref = document.getElementById('mv-ref').value.trim() || null;
           if (!date || !item || qty <= 0) {
-            App.UI.Toast.show('Please fill all required fields');
+            App.UI.Toast.show(t('fillRequired', 'Please fill all required fields'));
             return false;
           }
           const m = {
