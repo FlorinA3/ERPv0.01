@@ -470,6 +470,23 @@ window.App = window.App || {
           linkedPOs: 'verknüpfte Bestellungen',
           nameRequired: 'Name ist erforderlich'
         },
+        carriers: {
+          name: 'Name',
+          account: 'Kontonummer',
+          contact: 'Ansprechpartner',
+          phone: 'Telefon',
+          email: 'E-Mail',
+          notes: 'Notizen',
+          add: 'Spediteur hinzufügen',
+          edit: 'Spediteur bearbeiten',
+          noCarriers: 'Keine Spediteure',
+          confirmDelete: 'Möchten Sie wirklich löschen',
+          cannotDelete: 'Kann nicht gelöscht werden',
+          usedInOrders: 'Dieser Spediteur wird in',
+          ordersUsed: 'Auftrag/Aufträgen verwendet',
+          removeFirst: 'Entfernen Sie den Spediteur zuerst aus diesen Aufträgen.',
+          nameRequired: 'Name ist erforderlich'
+        },
         dashboard: {
           overview: 'Dashboard Übersicht',
           pressF1: 'für Tastenkürzel drücken',
@@ -977,6 +994,23 @@ window.App = window.App || {
           cannotDelete: 'Cannot delete:',
           linkedPOs: 'purchase orders linked',
           nameRequired: 'Name is required'
+        },
+        carriers: {
+          name: 'Name',
+          account: 'Account Number',
+          contact: 'Contact Person',
+          phone: 'Phone',
+          email: 'Email',
+          notes: 'Notes',
+          add: 'Add Carrier',
+          edit: 'Edit Carrier',
+          noCarriers: 'No carriers',
+          confirmDelete: 'Are you sure you want to delete',
+          cannotDelete: 'Cannot Delete Carrier',
+          usedInOrders: 'This carrier is used in',
+          ordersUsed: 'order(s)',
+          removeFirst: 'Remove the carrier from these orders first.',
+          nameRequired: 'Name is required'
         }
       },
       ro: {
@@ -1436,6 +1470,23 @@ window.App = window.App || {
           confirmDelete: 'Sigur doriți să ștergeți',
           cannotDelete: 'Nu se poate șterge:',
           linkedPOs: 'comenzi de achiziție legate',
+          nameRequired: 'Numele este obligatoriu'
+        },
+        carriers: {
+          name: 'Nume',
+          account: 'Număr Cont',
+          contact: 'Persoană Contact',
+          phone: 'Telefon',
+          email: 'Email',
+          notes: 'Note',
+          add: 'Adaugă Transportator',
+          edit: 'Editează Transportator',
+          noCarriers: 'Niciun transportator',
+          confirmDelete: 'Sigur doriți să ștergeți',
+          cannotDelete: 'Nu se poate șterge transportatorul',
+          usedInOrders: 'Acest transportator este folosit în',
+          ordersUsed: 'comandă(i)',
+          removeFirst: 'Eliminați mai întâi transportatorul din aceste comenzi.',
           nameRequired: 'Numele este obligatoriu'
         }
       }

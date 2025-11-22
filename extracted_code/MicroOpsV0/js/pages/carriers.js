@@ -1,6 +1,8 @@
 // Carriers page
 App.UI.Views.Carriers = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`carriers.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const carriers = App.Data.carriers || App.Data.Carriers || [];
     root.innerHTML = `
       <div class="card-soft">
@@ -11,24 +13,24 @@ App.UI.Views.Carriers = {
         <table class="table">
           <thead>
             <tr>
-              <th>${App.I18n.t('carriers.name','Name')}</th>
-              <th>${App.I18n.t('carriers.account','Account')}</th>
-              <th>${App.I18n.t('carriers.contact','Contact')}</th>
+              <th>${t('name','Name')}</th>
+              <th>${t('account','Account')}</th>
+              <th>${t('contact','Contact')}</th>
               <th style="text-align:right;">${App.I18n.t('common.actions','Actions')}</th>
             </tr>
           </thead>
           <tbody>
-            ${carriers.map(c => `
+            ${carriers.length > 0 ? carriers.map(c => `
               <tr>
-                <td>${c.name || '-'}</td>
-                <td>${c.accountNumber || '-'}</td>
-                <td>${c.contactPerson || '-'}</td>
+                <td>${esc(c.name || '-')}</td>
+                <td>${esc(c.accountNumber || '-')}</td>
+                <td>${esc(c.contactPerson || '-')}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-edit-carrier" data-id="${c.id}" title="Edit" aria-label="Edit carrier">✏️</button>
-                  <button class="btn btn-ghost btn-del-carrier" data-id="${c.id}" title="Delete" aria-label="Delete carrier">🗑️</button>
+                  <button class="btn btn-ghost btn-edit-carrier" data-id="${c.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${t('edit', 'Edit Carrier')}">✏️</button>
+                  <button class="btn btn-ghost btn-del-carrier" data-id="${c.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="${App.I18n.t('common.deleteCarrier', 'Delete Carrier')}">🗑️</button>
                 </td>
               </tr>
-            `).join('') || `<tr><td colspan="4" style="text-align:center; color:var(--color-text-muted);">No carriers</td></tr>`}
+            `).join('') : `<tr><td colspan="4" style="text-align:center; color:var(--color-text-muted);">${t('noCarriers', 'No carriers')}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -59,6 +61,8 @@ App.UI.Views.Carriers = {
   },
 
   deleteCarrier(id) {
+    const t = (key, fallback) => App.I18n.t(`carriers.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const carriers = App.Data.carriers || [];
     const carrier = carriers.find(c => c.id === id);
     if (!carrier) return;
@@ -68,23 +72,23 @@ App.UI.Views.Carriers = {
     const usedInOrders = orders.filter(o => o.carrierId === id);
 
     if (usedInOrders.length > 0) {
-      App.UI.Modal.open(App.I18n.t('common.cannotDeleteCarrier', 'Cannot Delete Carrier'), `
-        <div style="color:#dc2626;">
-          <p>This carrier is used in <strong>${usedInOrders.length}</strong> order(s).</p>
-          <p style="font-size:12px; margin-top:8px;">Remove the carrier from these orders first.</p>
+      App.UI.Modal.open(t('cannotDelete', 'Cannot Delete Carrier'), `
+        <div style="color:var(--color-danger);">
+          <p>${t('usedInOrders', 'This carrier is used in')} <strong>${usedInOrders.length}</strong> ${t('ordersUsed', 'order(s)')}.</p>
+          <p style="font-size:12px; margin-top:8px;">${t('removeFirst', 'Remove the carrier from these orders first.')}</p>
         </div>
       `, [
-        { text: 'Close', variant: 'ghost', onClick: () => {} }
+        { text: App.I18n.t('common.close', 'Close'), variant: 'ghost', onClick: () => {} }
       ]);
       return;
     }
 
     App.UI.Modal.open(App.I18n.t('common.deleteCarrier', 'Delete Carrier'), `
-      <p>Are you sure you want to delete <strong>${carrier.name}</strong>?</p>
+      <p>${t('confirmDelete', 'Are you sure you want to delete')} <strong>${esc(carrier.name)}</strong>?</p>
     `, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Delete',
+        text: App.I18n.t('common.delete', 'Delete'),
         variant: 'primary',
         onClick: () => {
           App.Data.carriers = carriers.filter(c => c.id !== id);
@@ -100,35 +104,37 @@ App.UI.Views.Carriers = {
    * Opens a modal to add or edit a carrier.
    */
   openCarrierModal(car) {
+    const t = (key, fallback) => App.I18n.t(`carriers.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const isEdit = !!car;
     const body = `
       <div>
-        <label class="field-label">${App.I18n.t('carriers.name','Name')}*</label>
-        <input id="car-name" class="input" value="${car ? car.name : ''}" />
+        <label class="field-label" for="car-name">${t('name','Name')}*</label>
+        <input id="car-name" class="input" value="${esc(car ? car.name : '')}" aria-required="true" />
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('carriers.account','Account Number')}</label>
-        <input id="car-account" class="input" value="${car ? car.accountNumber || '' : ''}" />
+        <label class="field-label" for="car-account" style="margin-top:8px;">${t('account','Account Number')}</label>
+        <input id="car-account" class="input" value="${esc(car ? car.accountNumber || '' : '')}" />
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('carriers.contact','Contact Person')}</label>
-        <input id="car-contact" class="input" value="${car ? car.contactPerson || '' : ''}" />
+        <label class="field-label" for="car-contact" style="margin-top:8px;">${t('contact','Contact Person')}</label>
+        <input id="car-contact" class="input" value="${esc(car ? car.contactPerson || '' : '')}" />
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('carriers.phone','Phone')}</label>
-        <input id="car-phone" class="input" value="${car ? car.phone || '' : ''}" />
+        <label class="field-label" for="car-phone" style="margin-top:8px;">${t('phone','Phone')}</label>
+        <input id="car-phone" class="input" value="${esc(car ? car.phone || '' : '')}" />
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('carriers.email','Email')}</label>
-        <input id="car-email" class="input" value="${car ? car.email || '' : ''}" />
+        <label class="field-label" for="car-email" style="margin-top:8px;">${t('email','Email')}</label>
+        <input id="car-email" class="input" value="${esc(car ? car.email || '' : '')}" />
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('carriers.notes','Notes')}</label>
-        <textarea id="car-notes" class="input" style="height:60px;">${car ? car.notes || '' : ''}</textarea>
+        <label class="field-label" for="car-notes" style="margin-top:8px;">${t('notes','Notes')}</label>
+        <textarea id="car-notes" class="input" style="height:60px;">${esc(car ? car.notes || '' : '')}</textarea>
       </div>
     `;
-    const title = isEdit ? App.I18n.t('carriers.edit','Edit Carrier') : App.I18n.t('carriers.add','Add Carrier');
+    const title = isEdit ? t('edit','Edit Carrier') : t('add','Add Carrier');
     App.UI.Modal.open(title, body, [
       { text: App.I18n.t('common.cancel','Cancel'), variant:'ghost', onClick: () => {} },
       { text: App.I18n.t('common.save','Save'), variant:'primary', onClick: () => {
           const name = document.getElementById('car-name').value.trim();
           if (!name) {
-            App.UI.Toast.show(App.I18n.t('carriers.name','Name') + ' is required');
+            App.UI.Toast.show(t('nameRequired', 'Name is required'));
             return false;
           }
           const list = App.Data.carriers || [];
