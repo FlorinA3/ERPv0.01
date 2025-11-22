@@ -290,14 +290,29 @@ This release establishes the core foundation for production-ready ERP functional
 
 ---
 
+## [0.6.0] - 2025-11-22
+
+### Financial Management - Complete
+
+#### Payment Tracking (js/pages/documents.js)
+- **Due Date Calculation**: Auto-calculated from payment terms (Net 7/15/30/45/60)
+- **Payment Status**: Open, Partial, Paid, Overdue with color-coded badges
+- **Record Payments**: Modal to record payments with amount, date, method, reference
+- **Payment History**: View all payments for an invoice with running totals
+- **Multiple Payment Methods**: Bank transfer, cash, credit card, cheque, PayPal
+- **Printed Invoice Updates**: Shows paid amount and balance due
+
+#### Dashboard Enhancements (js/pages/dashboard.js)
+- **Overdue Invoices Card**: Shows total overdue amount with visual alert
+- **Unpaid Invoices Card**: Shows outstanding invoice amounts
+- **Overdue Invoice List**: Top 5 overdue invoices with days overdue
+- **Payment Status in Documents**: Color-coded status badges throughout
+
+---
+
 ## [Unreleased]
 
-### Planned for Version 0.6.0
-
-#### Financial Management
-- [ ] Payment tracking
-- [ ] Due date alerts
-- [ ] Overdue management
+### Planned for Version 0.7.0
 
 #### Sequential Customer Numbering
 - [ ] Auto-generated customer numbers (K-YYYY-XXXX)

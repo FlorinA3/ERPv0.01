@@ -1,8 +1,36 @@
 App.UI.Views.Documents = {
   render(root) {
-    const docs = App.Data.documents || App.Data.Documents || [];
-    // Sort descending by date
+    const docs = App.Data.documents || [];
     docs.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+    const getPaymentStatus = (doc) => {
+      if (doc.type !== 'invoice') return '';
+      const paid = doc.paidAmount || 0;
+      const total = doc.grossTotal || 0;
+
+      if (paid >= total) {
+        return '<span class="tag tag-success">Paid</span>';
+      }
+
+      const now = new Date();
+      const due = doc.dueDate ? new Date(doc.dueDate) : null;
+
+      if (paid > 0 && paid < total) {
+        return '<span class="tag" style="background:#dbeafe;color:#1d4ed8;">Partial</span>';
+      }
+
+      if (due && due < now) {
+        const daysOverdue = Math.ceil((now - due) / (1000 * 60 * 60 * 24));
+        return `<span class="tag" style="background:#fee2e2;color:#dc2626;">Overdue ${daysOverdue}d</span>`;
+      }
+
+      return '<span class="tag" style="background:#fef3c7;color:#d97706;">Open</span>';
+    };
+
+    const formatDueDate = (doc) => {
+      if (doc.type !== 'invoice' || !doc.dueDate) return '-';
+      return doc.dueDate.split('T')[0];
+    };
 
     root.innerHTML = `
       <div class="card-soft">
@@ -20,57 +48,195 @@ App.UI.Views.Documents = {
               <th>Number</th>
               <th>Customer</th>
               <th>Date</th>
-              <th>Ref</th>
+              <th>Due Date</th>
               <th style="text-align:right;">Total</th>
+              <th style="text-align:center;">Payment</th>
               <th style="text-align:center;">Actions</th>
             </tr>
           </thead>
           <tbody>
-            ${docs.map(d => {
+            ${docs.length > 0 ? docs.map(d => {
               const cust = App.Data.customers.find(c => c.id === d.customerId);
               const isInv = d.type === 'invoice';
               const icon = isInv ? '🧾' : '📦';
               return `
                 <tr>
                   <td><span title="${d.type}">${icon}</span></td>
-                  <td>${d.docNumber || d.id}</td>
+                  <td><strong>${d.docNumber || d.id}</strong></td>
                   <td>${cust ? cust.company : '-'}</td>
                   <td>${App.Utils.formatDate(d.date)}</td>
-                  <td>${d.ref || d.orderId || '-'}</td>
+                  <td>${formatDueDate(d)}</td>
                   <td style="text-align:right;">${isInv ? App.Utils.formatCurrency(d.grossTotal || d.total) : '-'}</td>
+                  <td style="text-align:center;">${getPaymentStatus(d)}</td>
                   <td style="text-align:center;">
                     <button class="btn btn-ghost btn-doc-view" data-id="${d.id}" title="View/Print">👁️</button>
+                    ${isInv && (d.paidAmount || 0) < (d.grossTotal || 0) ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="Record Payment">💰</button>` : ''}
+                    ${isInv ? `<button class="btn btn-ghost btn-doc-history" data-id="${d.id}" title="Payment History">📋</button>` : ''}
                   </td>
                 </tr>
               `;
-            }).join('')}
+            }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--color-text-muted);">No documents</td></tr>'}
           </tbody>
         </table>
       </div>
     `;
-    document.getElementById('btn-add-invoice').onclick = () => this.openCreateModal('invoice');
-    document.getElementById('btn-add-delivery').onclick = () => this.openCreateModal('delivery');
-    
+
+    document.getElementById('btn-add-invoice')?.addEventListener('click', () => this.openCreateModal('invoice'));
+    document.getElementById('btn-add-delivery')?.addEventListener('click', () => this.openCreateModal('delivery'));
+
     root.querySelectorAll('.btn-doc-view').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        this.printDocument(id);
-      });
+      btn.addEventListener('click', () => this.printDocument(btn.getAttribute('data-id')));
+    });
+
+    root.querySelectorAll('.btn-doc-pay').forEach(btn => {
+      btn.addEventListener('click', () => this.openPaymentModal(btn.getAttribute('data-id')));
+    });
+
+    root.querySelectorAll('.btn-doc-history').forEach(btn => {
+      btn.addEventListener('click', () => this.openPaymentHistory(btn.getAttribute('data-id')));
     });
   },
 
-  /**
-   * Modal to create a manual document or from an order.
-   */
+  openPaymentModal(docId) {
+    const doc = App.Data.documents.find(d => d.id === docId);
+    if (!doc) return;
+
+    const remaining = (doc.grossTotal || 0) - (doc.paidAmount || 0);
+    const today = new Date().toISOString().split('T')[0];
+
+    const body = `
+      <div>
+        <p style="margin-bottom:12px;">
+          Invoice: <strong>${doc.docNumber}</strong><br/>
+          Total: <strong>${App.Utils.formatCurrency(doc.grossTotal)}</strong><br/>
+          Paid: <strong>${App.Utils.formatCurrency(doc.paidAmount || 0)}</strong><br/>
+          Remaining: <strong style="color:#dc2626;">${App.Utils.formatCurrency(remaining)}</strong>
+        </p>
+
+        <label class="field-label">Payment Amount (€)*</label>
+        <input id="pay-amount" class="input" type="number" min="0.01" step="0.01" value="${remaining.toFixed(2)}" />
+
+        <label class="field-label" style="margin-top:8px;">Payment Date</label>
+        <input id="pay-date" class="input" type="date" value="${today}" />
+
+        <label class="field-label" style="margin-top:8px;">Payment Method</label>
+        <select id="pay-method" class="input">
+          <option value="bank_transfer">Bank Transfer</option>
+          <option value="cash">Cash</option>
+          <option value="credit_card">Credit Card</option>
+          <option value="cheque">Cheque</option>
+          <option value="paypal">PayPal</option>
+        </select>
+
+        <label class="field-label" style="margin-top:8px;">Reference</label>
+        <input id="pay-ref" class="input" placeholder="Transaction ID, cheque number, etc." />
+
+        <label class="field-label" style="margin-top:8px;">Notes</label>
+        <textarea id="pay-notes" class="input" rows="2"></textarea>
+      </div>
+    `;
+
+    App.UI.Modal.open('Record Payment', body, [
+      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      {
+        text: 'Save Payment',
+        variant: 'primary',
+        onClick: () => {
+          const amount = parseFloat(document.getElementById('pay-amount').value);
+          if (!amount || amount <= 0) {
+            App.UI.Toast.show('Please enter a valid amount');
+            return false;
+          }
+
+          if (amount > remaining + 0.01) {
+            App.UI.Toast.show('Amount exceeds remaining balance');
+            return false;
+          }
+
+          const payment = {
+            id: App.Utils.generateId('pay'),
+            amount: amount,
+            date: document.getElementById('pay-date').value,
+            method: document.getElementById('pay-method').value,
+            reference: document.getElementById('pay-ref').value.trim() || null,
+            notes: document.getElementById('pay-notes').value.trim() || null,
+            recordedAt: new Date().toISOString(),
+            recordedBy: App.Services.Auth.currentUser?.id
+          };
+
+          if (!doc.payments) doc.payments = [];
+          doc.payments.push(payment);
+          doc.paidAmount = (doc.paidAmount || 0) + amount;
+
+          App.DB.save();
+          App.UI.Toast.show(`Payment of ${App.Utils.formatCurrency(amount)} recorded`);
+          App.Core.Router.navigate('documents');
+        }
+      }
+    ]);
+  },
+
+  openPaymentHistory(docId) {
+    const doc = App.Data.documents.find(d => d.id === docId);
+    if (!doc) return;
+
+    const payments = doc.payments || [];
+    const remaining = (doc.grossTotal || 0) - (doc.paidAmount || 0);
+
+    const paymentRows = payments.length > 0 ? payments.map(p => `
+      <tr>
+        <td>${p.date || '-'}</td>
+        <td>${App.Utils.formatCurrency(p.amount)}</td>
+        <td>${p.method || '-'}</td>
+        <td>${p.reference || '-'}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--color-text-muted);">No payments recorded</td></tr>';
+
+    const body = `
+      <div>
+        <div style="margin-bottom:12px; padding:12px; background:var(--color-bg); border-radius:4px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Total:</span>
+            <strong>${App.Utils.formatCurrency(doc.grossTotal || 0)}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Paid:</span>
+            <strong style="color:#16a34a;">${App.Utils.formatCurrency(doc.paidAmount || 0)}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; border-top:1px solid var(--color-border); padding-top:4px;">
+            <span>Remaining:</span>
+            <strong style="color:${remaining > 0 ? '#dc2626' : '#16a34a'};">${App.Utils.formatCurrency(remaining)}</strong>
+          </div>
+        </div>
+
+        <table class="table" style="font-size:12px;">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody>${paymentRows}</tbody>
+        </table>
+      </div>
+    `;
+
+    App.UI.Modal.open(`Payment History - ${doc.docNumber}`, body, [
+      { text: 'Close', variant: 'ghost', onClick: () => {} }
+    ]);
+  },
+
   openCreateModal(type) {
     const custOptions = (App.Data.customers || [])
       .map(c => `<option value="${c.id}">${c.company}</option>`)
       .join('');
     const orderOptions = (App.Data.orders || [])
-      .filter(o => o.status !== 'draft') // Only confirmed orders
+      .filter(o => o.status !== 'draft')
       .map(o => `<option value="${o.id}">${o.orderId} (${App.Utils.formatDate(o.date)})</option>`)
       .join('');
-      
+
     const title = type === 'delivery' ? 'Create Delivery Note' : 'Create Invoice';
     const body = `
       <div>
@@ -79,12 +245,12 @@ App.UI.Views.Documents = {
           <option value="order">From Order</option>
           <option value="manual">Manual (Blank)</option>
         </select>
-        
+
         <div id="doc-order-section" style="margin-top:8px;">
           <label class="field-label">Select Order</label>
           <select id="doc-order" class="input">${orderOptions}</select>
         </div>
-        
+
         <div id="doc-manual-section" style="margin-top:8px; display:none;">
           <label class="field-label">Customer</label>
           <select id="doc-cust" class="input">${custOptions}</select>
@@ -129,24 +295,35 @@ App.UI.Views.Documents = {
     }, 0);
   },
 
-  /**
-   * Generates a document from an order object, saving it to DB.
-   */
+  calculateDueDate(invoiceDate, paymentTerms) {
+    const date = new Date(invoiceDate);
+    let days = 30;
+
+    if (paymentTerms) {
+      const match = paymentTerms.match(/Net\s*(\d+)/i);
+      if (match) {
+        days = parseInt(match[1]);
+      } else if (paymentTerms.toLowerCase().includes('cod') || paymentTerms.toLowerCase().includes('prepaid')) {
+        days = 0;
+      }
+    }
+
+    date.setDate(date.getDate() + days);
+    return date.toISOString();
+  },
+
   generateFromOrder(orderId, type) {
     const o = App.Data.orders.find(x => x.id === orderId);
     if (!o) return;
     const cust = App.Data.customers.find(c => c.id === o.custId);
-    
-    // Generate document number using NumberSequence service
+
     const docNum = type === 'delivery'
       ? App.Services.NumberSequence.nextDeliveryNumber()
       : App.Services.NumberSequence.nextInvoiceNumber();
 
-    // Address logic
     const billAddr = cust.addresses.find(a => a.id === o.billingAddressId) || cust.addresses.find(a => a.role === 'billing') || cust.addresses[0];
     const shipAddr = cust.addresses.find(a => a.id === o.shippingAddressId) || cust.addresses.find(a => a.role === 'shipping') || cust.addresses[0];
 
-    // Map items
     const items = o.items.map(i => {
       const p = App.Data.products.find(p => p.id === i.productId);
       return {
@@ -156,7 +333,7 @@ App.UI.Views.Documents = {
         qty: i.qty,
         unit: p ? p.unit : 'Stk',
         unitPrice: i.unitPrice,
-        vatRate: 0.2, // Default Austria VAT, should come from product/settings
+        vatRate: 0.2,
         lineNet: i.lineNet || (i.qty * i.unitPrice),
         lineVat: (i.lineNet || (i.qty * i.unitPrice)) * 0.2,
         lineTotal: (i.lineNet || (i.qty * i.unitPrice)) * 1.2
@@ -166,12 +343,14 @@ App.UI.Views.Documents = {
     const subNet = items.reduce((sum, i) => sum + i.lineNet, 0);
     const vatAmt = subNet * 0.2;
     const total = subNet + vatAmt;
+    const invoiceDate = new Date().toISOString();
 
     const doc = {
       id: App.Utils.generateId('d'),
       type: type,
       docNumber: docNum,
-      date: new Date().toISOString(),
+      date: invoiceDate,
+      dueDate: type === 'invoice' ? this.calculateDueDate(invoiceDate, cust.paymentTerms) : null,
       customerId: cust.id,
       billingAddressId: billAddr ? billAddr.id : null,
       shippingAddressId: shipAddr ? shipAddr.id : null,
@@ -183,10 +362,11 @@ App.UI.Views.Documents = {
       netTotal: subNet,
       vatSummary: [{ rate: 0.2, base: subNet, amount: vatAmt }],
       grossTotal: total,
+      paidAmount: 0,
+      payments: [],
       status: 'Draft'
     };
 
-    // Save
     App.Data.documents.push(doc);
     App.DB.save();
     App.UI.Toast.show(`${type === 'invoice' ? 'Invoice' : 'Delivery Note'} generated`);
@@ -194,27 +374,21 @@ App.UI.Views.Documents = {
   },
 
   createManual(custId, type) {
-    // Basic stub for manual creation
-    alert("Manual creation is complex - generated via Order for now.");
+    App.UI.Toast.show("Manual creation - use Order workflow for now");
   },
 
-  /**
-   * Generates and opens a print-ready HTML window for the document.
-   * Matches the style of "R20250068".
-   */
   printDocument(id) {
     const d = App.Data.documents.find(x => x.id === id);
     if (!d) return;
     const cust = App.Data.customers.find(c => c.id === d.customerId);
     const conf = App.Data.config || {};
-    
+
     const billAddr = (cust.addresses || []).find(a => a.id === d.billingAddressId) || (cust.addresses || [])[0] || {};
     const shipAddr = (cust.addresses || []).find(a => a.id === d.shippingAddressId) || billAddr;
 
     const isInv = d.type === 'invoice';
     const title = isInv ? 'Rechnung / Invoice' : 'Lieferschein / Delivery Note';
-    
-    // Format items
+
     const rows = d.items.map(i => `
       <tr>
         <td>${i.articleNumber || ''}</td>
@@ -226,14 +400,16 @@ App.UI.Views.Documents = {
       </tr>
     `).join('');
 
-    // Format totals (Invoice only)
     let totalsHtml = '';
     if (isInv) {
+      const remaining = (d.grossTotal || 0) - (d.paidAmount || 0);
       totalsHtml = `
         <div class="totals-block">
           <div class="row"><span class="label">Netto / Net:</span> <span class="val">${App.Utils.formatCurrency(d.netTotal)}</span></div>
           <div class="row"><span class="label">MwSt / VAT (20%):</span> <span class="val">${App.Utils.formatCurrency(d.grossTotal - d.netTotal)}</span></div>
           <div class="row bold"><span class="label">Gesamt / Total:</span> <span class="val">${App.Utils.formatCurrency(d.grossTotal)}</span></div>
+          ${d.paidAmount > 0 ? `<div class="row" style="color:#16a34a;"><span class="label">Paid:</span> <span class="val">-${App.Utils.formatCurrency(d.paidAmount)}</span></div>` : ''}
+          ${remaining > 0 ? `<div class="row" style="color:#dc2626;"><span class="label">Balance Due:</span> <span class="val">${App.Utils.formatCurrency(remaining)}</span></div>` : ''}
         </div>
       `;
     }
@@ -249,21 +425,21 @@ App.UI.Views.Documents = {
           .company-info { font-size: 11px; color: #666; }
           .doc-title { font-size: 24px; font-weight: bold; color: #000; text-transform: uppercase; }
           .doc-meta { text-align: right; margin-top: 10px; font-size: 13px; }
-          
+
           .addresses { display: flex; gap: 40px; margin-bottom: 40px; }
           .addr-box { flex: 1; border: 1px solid #eee; padding: 15px; border-radius: 4px; }
           .addr-title { font-weight: bold; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; color: #888; }
-          
+
           table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
           th { text-align: left; border-bottom: 2px solid #333; padding: 8px; font-size: 11px; text-transform: uppercase; }
           td { border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }
-          
+
           .totals-block { width: 300px; margin-left: auto; margin-top: 20px; }
           .totals-block .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
           .totals-block .bold { font-weight: bold; font-size: 14px; border-top: 1px solid #333; padding-top: 5px; }
-          
+
           .footer { margin-top: 60px; font-size: 10px; color: #888; border-top: 1px solid #eee; padding-top: 10px; display: flex; justify-content: space-between; }
-          
+
           @media print {
             body { padding: 0; }
             .no-print { display: none; }
@@ -284,6 +460,7 @@ App.UI.Views.Documents = {
             <div class="doc-meta">
               <strong>No:</strong> ${d.docNumber}<br/>
               <strong>Date:</strong> ${d.date.split('T')[0]}<br/>
+              ${isInv && d.dueDate ? `<strong>Due:</strong> ${d.dueDate.split('T')[0]}<br/>` : ''}
               <strong>Ref:</strong> ${d.ref || '-'}
             </div>
           </div>
@@ -332,13 +509,13 @@ App.UI.Views.Documents = {
           </div>
           <div>
             <strong>Bank:</strong> ${conf.bankName || '-'}<br/>
-            <strong>IBAN:</strong> ${cust.iban || '-'}
+            <strong>IBAN:</strong> ${conf.iban || '-'}
           </div>
           <div>
             MicroOps ERP Generated
           </div>
         </div>
-        
+
         <div class="no-print" style="position:fixed; bottom:20px; right:20px;">
           <button onclick="window.print()" style="padding:10px 20px; background:#333; color:#fff; border:none; cursor:pointer;">PRINT</button>
         </div>
