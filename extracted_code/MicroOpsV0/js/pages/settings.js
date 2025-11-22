@@ -18,6 +18,7 @@ App.UI.Views.Settings = {
           <button class="btn ${this.activeTab === 'backups' ? 'btn-primary' : 'btn-ghost'}" data-tab="backups">${t('tabBackups', 'Backups')}</button>
           <button class="btn ${this.activeTab === 'audit' ? 'btn-primary' : 'btn-ghost'}" data-tab="audit">${t('tabAudit', 'Audit Log')}</button>
           <button class="btn ${this.activeTab === 'activity' ? 'btn-primary' : 'btn-ghost'}" data-tab="activity">${t('tabActivity', 'Activity Log')}</button>
+          <button class="btn ${this.activeTab === 'health' ? 'btn-primary' : 'btn-ghost'}" data-tab="health">${t('tabHealth', 'System Health')}</button>
         </div>
 
         <!-- Company Tab -->
@@ -53,6 +54,11 @@ App.UI.Views.Settings = {
         <!-- Activity Log Tab -->
         <div id="tab-activity" style="${this.activeTab !== 'activity' ? 'display:none;' : ''}">
           ${this._renderActivityTab()}
+        </div>
+
+        <!-- Health Tab -->
+        <div id="tab-health" style="${this.activeTab !== 'health' ? 'display:none;' : ''}">
+          ${this._renderHealthTab()}
         </div>
       </div>
     `;
@@ -521,6 +527,60 @@ App.UI.Views.Settings = {
     `;
   },
 
+  _renderHealthTab() {
+    const t = (key, fallback) => App.I18n.t(`settings.${key}`, fallback);
+
+    return `
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h4 style="font-size:14px; font-weight:600;">${t('systemHealth', 'System Health')}</h4>
+          <button class="btn btn-primary" id="btn-run-health-check">🔍 ${t('runHealthCheck', 'Run Health Check')}</button>
+        </div>
+
+        <!-- Health Status Display -->
+        <div id="health-status" style="margin-bottom:16px;">
+          <div style="text-align:center; color:var(--color-text-muted); padding:40px;">
+            ${t('clickToRunCheck', 'Click "Run Health Check" to analyze system health')}
+          </div>
+        </div>
+
+        <!-- Integrity Check Section -->
+        <div style="margin-top:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h4 style="font-size:14px; font-weight:600;">${t('dataIntegrity', 'Data Integrity')}</h4>
+            <button class="btn btn-ghost" id="btn-run-integrity-check">⚙️ ${t('runIntegrityCheck', 'Run Integrity Check')}</button>
+          </div>
+          <div id="integrity-results" style="border:1px solid var(--color-border); border-radius:8px; padding:12px;">
+            <div style="text-align:center; color:var(--color-text-muted);">
+              ${t('integrityNotRun', 'No integrity check has been run yet')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div style="margin-top:24px;">
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('quickStats', 'Quick Statistics')}</h4>
+          <div class="grid grid-3" style="gap:8px;">
+            <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+              <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('totalRecords', 'Total Records')}</div>
+              <div style="font-size:18px; font-weight:600; margin-top:4px;">
+                ${(App.Data.customers || []).length + (App.Data.orders || []).length + (App.Data.products || []).length + (App.Data.documents || []).length}
+              </div>
+            </div>
+            <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+              <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('auditEntries', 'Audit Entries')}</div>
+              <div style="font-size:18px; font-weight:600; margin-top:4px;">${(App.Data.auditLog || []).length}</div>
+            </div>
+            <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
+              <div style="font-size:10px; text-transform:uppercase; color:var(--color-text-muted);">${t('activeSessions', 'Active Sessions')}</div>
+              <div style="font-size:18px; font-weight:600; margin-top:4px;">${(App.Data.activeSessions || []).length}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
   _renderActivityTab() {
     const activities = App.Services.ActivityLog?.getEntries({ limit: 50 }) || [];
     const summary = App.Services.ActivityLog?.getTodaySummary() || { total: 0 };
@@ -832,6 +892,106 @@ App.UI.Views.Settings = {
 
     // Audit Tab Event Handlers
     this._wireUpAuditHandlers(root);
+
+    // Health Tab Event Handlers
+    this._wireUpHealthHandlers(root);
+  },
+
+  _wireUpHealthHandlers(root) {
+    const healthCheckBtn = document.getElementById('btn-run-health-check');
+    const integrityCheckBtn = document.getElementById('btn-run-integrity-check');
+    const healthStatus = document.getElementById('health-status');
+    const integrityResults = document.getElementById('integrity-results');
+
+    if (healthCheckBtn) {
+      healthCheckBtn.onclick = async () => {
+        healthCheckBtn.disabled = true;
+        healthCheckBtn.textContent = 'Checking...';
+
+        try {
+          const results = await App.Services.Health.check();
+          const getColor = App.Services.Health.getStatusColor;
+
+          healthStatus.innerHTML = `
+            <div style="padding:16px; background:var(--color-bg); border-radius:8px; border-left:4px solid ${getColor(results.status)};">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div>
+                  <span style="font-weight:600; font-size:16px; color:${getColor(results.status)}; text-transform:uppercase;">
+                    ${results.status}
+                  </span>
+                </div>
+                <span style="font-size:11px; color:var(--color-text-muted);">${new Date(results.timestamp).toLocaleString()}</span>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;">
+                ${Object.entries(results.checks).map(([key, check]) => `
+                  <div style="padding:10px; background:var(--color-surface); border-radius:6px; border-left:3px solid ${getColor(check.status)};">
+                    <div style="font-weight:500; margin-bottom:6px; text-transform:capitalize;">${key}</div>
+                    <div style="font-size:12px; color:${getColor(check.status)}; font-weight:600;">${check.status.toUpperCase()}</div>
+                    ${key === 'storage' ? `<div style="font-size:11px; color:var(--color-text-muted); margin-top:4px;">${check.percent}% used</div>` : ''}
+                    ${key === 'backups' ? `<div style="font-size:11px; color:var(--color-text-muted); margin-top:4px;">${check.count} backups, last ${check.hoursSince}h ago</div>` : ''}
+                    ${key === 'data' ? `<div style="font-size:11px; color:var(--color-text-muted); margin-top:4px;">${check.counts?.orphanOrders || 0} orphan refs</div>` : ''}
+                    ${key === 'audit' ? `<div style="font-size:11px; color:var(--color-text-muted); margin-top:4px;">${check.entries} entries</div>` : ''}
+                    ${check.message ? `<div style="font-size:11px; color:var(--color-danger); margin-top:4px;">${check.message}</div>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } catch (err) {
+          healthStatus.innerHTML = `
+            <div style="padding:16px; background:var(--color-danger-bg); border-radius:8px; color:var(--color-danger);">
+              Error running health check: ${err.message}
+            </div>
+          `;
+        }
+
+        healthCheckBtn.disabled = false;
+        healthCheckBtn.textContent = '🔍 Run Health Check';
+      };
+    }
+
+    if (integrityCheckBtn) {
+      integrityCheckBtn.onclick = () => {
+        integrityCheckBtn.disabled = true;
+
+        try {
+          const issues = App.Services.Health.runIntegrityChecks();
+
+          if (issues.length === 0) {
+            integrityResults.innerHTML = `
+              <div style="text-align:center; color:#10b981; padding:20px;">
+                ✓ No integrity issues found. All data references are valid.
+              </div>
+            `;
+          } else {
+            integrityResults.innerHTML = `
+              <div style="margin-bottom:12px; color:var(--color-warning);">
+                Found ${issues.length} issue${issues.length === 1 ? '' : 's'}:
+              </div>
+              <div style="max-height:200px; overflow-y:auto;">
+                ${issues.map(issue => `
+                  <div style="padding:8px; margin-bottom:6px; background:var(--color-bg); border-radius:4px; font-size:12px;">
+                    <div style="font-weight:500;">${issue.message}</div>
+                    <div style="font-size:10px; color:var(--color-text-muted); margin-top:2px;">
+                      ${issue.entity} → ${issue.field} = ${issue.value}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          }
+        } catch (err) {
+          integrityResults.innerHTML = `
+            <div style="color:var(--color-danger);">
+              Error running integrity check: ${err.message}
+            </div>
+          `;
+        }
+
+        integrityCheckBtn.disabled = false;
+      };
+    }
   },
 
   _wireUpBackupsHandlers(root, cfg) {

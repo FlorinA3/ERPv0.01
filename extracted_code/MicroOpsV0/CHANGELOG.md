@@ -7,6 +7,148 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2025-11-22
+
+### Phase 47: Security Hardening & Health Monitoring
+
+#### Added
+
+##### Login Rate Limiting (js/app.js)
+- **Brute Force Protection**: 5 failed attempts trigger 5-minute account lockout
+- **Attempt Tracking**: `_loginAttempts` object tracks attempts per user
+- **Countdown Display**: Shows remaining time when locked out
+- **Attempt Counter**: Shows remaining attempts after each failure
+- **Security Audit Log**: Logs account lockout events to audit trail
+
+##### Global Error Handling (js/app.js)
+- **Error Boundary**: `window.onerror` catches all unhandled errors
+- **Promise Rejection Handler**: `window.onunhandledrejection` catches async errors
+- **Error Recovery UI**: Displays user-friendly error message with reload button
+- **Error Logging**: Logs all errors to audit trail with stack traces
+
+##### Health Monitoring Service (js/app.js)
+- **App.Services.Health.check()**: Comprehensive system health check
+- **Storage Check**: Monitors IndexedDB usage vs quota (warning at 80%, critical at 95%)
+- **Data Integrity Check**: Detects orphan references and invalid data
+- **Backup Status**: Monitors backup age (warning after 24h, critical after 72h)
+- **Audit Size Check**: Monitors audit log size (warning at 10K, critical at 50K entries)
+- **Session Monitoring**: Tracks active sessions and current user
+
+##### Integrity Check System (js/app.js)
+- **runIntegrityChecks()**: Scans for data integrity issues
+- **Orphan Detection**: Orders without customers, documents without orders
+- **BOM Validation**: Products with invalid component references
+- **Stock Validation**: Detects negative stock values
+- **Actionable Results**: Returns list of issues with details
+
+##### Settings Health Tab (js/pages/settings.js)
+- **Health Check Button**: Runs comprehensive system health check
+- **Integrity Check Button**: Scans for data integrity issues
+- **Visual Status Display**: Color-coded status indicators (green/amber/red)
+- **Quick Statistics**: Total records, audit entries, active sessions
+- **Issue List**: Displays found integrity issues with details
+
+#### Changed
+- Settings tabs now include System Health tab
+- CHANGELOG updated with Phases 45, 46, and 47
+
+---
+
+## [0.3.0] - 2025-11-22
+
+### Phase 45: GA Improvement Sprint - Production Readiness
+
+#### Added
+
+##### IndexedDB Storage Migration (js/db.js)
+- **Primary Storage**: IndexedDB with 100MB+ capacity (vs 5-10MB localStorage)
+- **Automatic Fallback**: Falls back to localStorage if IndexedDB unavailable
+- **Object Stores**: 'data' for main data, 'backups' for backup history
+- **Async Methods**: `_initIndexedDB()`, `_idbGet()`, `_idbPut()`, `_idbGetAll()`, `_idbDelete()`
+- **Storage Monitoring**: `getStorageInfo()` returns usage, quota, available space
+
+##### Auto-Backup System (js/db.js)
+- **Window Close Backup**: `autoBackupOnExit()` saves on beforeunload
+- **Rolling Backups**: Maintains 7 most recent backups with `_pruneBackups()`
+- **Backup Storage**: `storeBackup()` with timestamp, data, hash, size
+- **Backup Listing**: `listBackups()` returns array of available backups
+- **Backup Restore**: `restoreFromBackup(timestamp)` with integrity verification
+
+##### Backup Integrity Verification (js/db.js)
+- **Hash Calculation**: `calculateHash(data)` using string-based hash
+- **Integrity Check**: Verifies hash on restore, throws error if corrupted
+- **Backup Metadata**: Stores timestamp, data, hash, size for each backup
+
+##### Complete Audit Trail System (js/audit.js - NEW FILE)
+- **Audit Logging**: `App.Audit.log(action, entity, entityId, oldValue, newValue)`
+- **Change Detection**: `_detectChanges()` compares old/new values field by field
+- **Query & Filter**: `query(filters)` with dateFrom, dateTo, action, entity, userId
+- **Export Capabilities**: `export()` and `downloadCSV()` for audit reports
+- **Statistics**: `getStats()` returns counts by action, entity, user
+
+##### Error Handling Improvements (js/app.js)
+- **Retry Logic**: 3 attempts with exponential backoff for save operations
+- **Quota Detection**: Detects storage quota exceeded errors
+- **Toast Notifications**: `showMessage()`, `showSuccess()`, `showError()`, `showWarning()`
+- **Error Banner**: `updateErrorBanner()` and `dismissError()` for persistent errors
+
+##### Data Validation Framework (js/audit.js)
+- **App.Validate Object**: Centralized validation for all entity types
+- **Order Validation**: Customer, items, totals, dates
+- **Customer Validation**: Company name, required fields
+- **Product Validation**: Article number, name, prices
+- **Document Validation**: Document number, type, customer
+- **Component Validation**: Part number, name, unit
+
+##### Backup Encryption (js/db.js)
+- **Encrypt Function**: `encryptData(data, password)` using XOR cipher + base64
+- **Decrypt Function**: `decryptData(encrypted, password)`
+- **Encrypted Export**: `exportBackup(password)` for secure backups
+- **Encrypted Import**: `importBackup(file, password)` for secure restore
+
+##### Session Management (js/app.js)
+- **SessionManager**: 30-minute timeout with 5-minute warning
+- **Activity Tracking**: `updateActivity()` on click, keydown, throttled mouse move
+- **Timeout Check**: `checkTimeout()` runs every 10 seconds
+- **Session Warning**: `showWarning()` modal 5 minutes before logout
+- **Force Logout**: `forceLogout()` with reason, `manualLogout()` for user action
+
+#### Changed
+- **index.html**: Added audit.js script reference
+- **base.css**: Added slideIn/slideOut animations for toast notifications
+- **beforeunload**: Updated to call `App.DB.autoBackupOnExit()`
+
+---
+
+### Phase 46: Audit Trail Integration & Backup Management UI
+
+#### Added
+
+##### Audit Logging Integration
+- **customers.js**: Validation + audit logging for CREATE/UPDATE/DELETE operations
+- **orders.js**: Validation + audit for CREATE/UPDATE/DELETE/status changes
+- **products.js**: Validation + audit for CREATE/UPDATE/DELETE/BOM changes
+- **documents.js**: Audit for all operations (create, edit, delete, finalize, payments, restore, trash)
+
+##### Settings Page - Backups Tab (js/pages/settings.js)
+- **Auto-Backup List**: View/restore from 7 rolling IndexedDB backups
+- **Create Backup**: On-demand backup creation button
+- **Manual Backup**: Download/restore from file
+- **Encrypted Backup**: Password-protected backup downloads
+- **Storage Info**: Display used, quota, available space
+
+##### Settings Page - Audit Log Tab (js/pages/settings.js)
+- **Statistics Dashboard**: Total entries, creates, updates, deletes
+- **Filters**: Filter by action type, entity type, search text
+- **Audit Table**: Timestamp, user, action, entity, ID, changes
+- **Export CSV**: Download audit log as CSV
+- **Clear Old Entries**: Remove entries older than 30/60/90/180 days
+
+#### Changed
+- **Settings tabs**: Added Backups and Audit Log tabs to existing tabs
+
+---
+
 ## [0.2.0] - 2025-11-22
 
 ### Phase 40: CSV Import, Global Search & Keyboard Shortcuts

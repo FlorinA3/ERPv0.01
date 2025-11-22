@@ -3243,6 +3243,11 @@ App.Services.Auth = {
     };
   },
 
+  // Rate limiting state
+  _loginAttempts: {},
+  _maxLoginAttempts: 5,
+  _lockoutDuration: 5 * 60 * 1000, // 5 minutes
+
   _attemptLogin() {
     const userSelect = document.getElementById('login-user');
     const pinInput = document.getElementById('login-pin');
@@ -3253,14 +3258,60 @@ App.Services.Auth = {
     const user = (App.Data.users || App.Data.Users || []).find(u => u.id === userId);
     const pin = pinInput.value.trim();
 
+    // Check for lockout
+    const attemptData = this._loginAttempts[userId];
+    if (attemptData) {
+      const timeSinceLockout = Date.now() - attemptData.lockedAt;
+      if (attemptData.count >= this._maxLoginAttempts && timeSinceLockout < this._lockoutDuration) {
+        const remainingSeconds = Math.ceil((this._lockoutDuration - timeSinceLockout) / 1000);
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        err.textContent = `Account locked. Try again in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        err.classList.remove('hidden');
+        pinInput.classList.add('shake');
+        setTimeout(() => pinInput.classList.remove('shake'), 500);
+        return;
+      }
+      // Reset if lockout expired
+      if (timeSinceLockout >= this._lockoutDuration) {
+        delete this._loginAttempts[userId];
+      }
+    }
+
     if (!user || pin !== user.pin || user.active === false) {
+      // Track failed attempt
+      if (!this._loginAttempts[userId]) {
+        this._loginAttempts[userId] = { count: 0, lockedAt: 0 };
+      }
+      this._loginAttempts[userId].count++;
+
+      // Check if should lock
+      if (this._loginAttempts[userId].count >= this._maxLoginAttempts) {
+        this._loginAttempts[userId].lockedAt = Date.now();
+        err.textContent = `Too many failed attempts. Account locked for 5 minutes.`;
+
+        // Log security event
+        if (App.Audit) {
+          App.Audit.log('SECURITY', 'authentication', userId, null, {
+            event: 'account_locked',
+            attempts: this._loginAttempts[userId].count
+          });
+        }
+      } else {
+        const remaining = this._maxLoginAttempts - this._loginAttempts[userId].count;
+        err.textContent = `Invalid PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`;
+      }
+
       err.classList.remove('hidden');
       pinInput.classList.add('shake');
       setTimeout(() => pinInput.classList.remove('shake'), 500);
       return;
     }
 
+    // Successful login - reset attempts
+    delete this._loginAttempts[userId];
     err.classList.add('hidden');
+    err.textContent = 'Invalid PIN'; // Reset to default
     this.currentUser = user;
 
     // Remember user if checkbox is checked
@@ -4652,6 +4703,221 @@ App.Services.Keyboard = {
   // Remove a shortcut
   unregister(key) {
     delete this.shortcuts[key.toLowerCase()];
+  }
+};
+
+// Global error boundary
+window.onerror = function(message, source, lineno, colno, error) {
+  console.error('Global error:', { message, source, lineno, colno, error });
+
+  // Log to audit trail if available
+  if (App.Audit) {
+    App.Audit.log('ERROR', 'system', null, null, {
+      message: String(message),
+      source: source,
+      line: lineno,
+      col: colno,
+      stack: error?.stack
+    });
+  }
+
+  // Show user-friendly error
+  const errorContainer = document.getElementById('global-error');
+  if (errorContainer) {
+    errorContainer.innerHTML = `
+      <div style="padding:20px; background:var(--color-danger-bg, #fee); border-radius:8px; margin:20px;">
+        <h3 style="margin:0 0 10px; color:var(--color-danger, #c00);">An error occurred</h3>
+        <p style="margin:0 0 10px;">The application encountered an unexpected error. Your data is safe.</p>
+        <p style="font-size:12px; color:var(--color-text-muted);">${App.Utils.escapeHtml(String(message))}</p>
+        <button onclick="location.reload()" class="btn btn-primary" style="margin-top:10px;">Reload Application</button>
+      </div>
+    `;
+    errorContainer.classList.remove('hidden');
+  } else {
+    // Fallback if error container not available
+    App.UI.Toast.show('An unexpected error occurred. Please reload the page.', 'error', 10000);
+  }
+
+  return true; // Prevent default error handling
+};
+
+// Unhandled promise rejection handler
+window.onunhandledrejection = function(event) {
+  console.error('Unhandled promise rejection:', event.reason);
+
+  if (App.Audit) {
+    App.Audit.log('ERROR', 'system', null, null, {
+      type: 'unhandled_promise_rejection',
+      reason: String(event.reason),
+      stack: event.reason?.stack
+    });
+  }
+
+  App.UI.Toast?.show('An operation failed. Please try again.', 'error', 5000);
+};
+
+// Health monitoring service
+App.Services.Health = {
+  // Check overall system health
+  async check() {
+    const results = {
+      timestamp: new Date().toISOString(),
+      status: 'healthy',
+      checks: {}
+    };
+
+    // Check storage
+    try {
+      const storageInfo = await App.DB.getStorageInfo();
+      const usagePercent = (storageInfo.usage / storageInfo.quota) * 100;
+      results.checks.storage = {
+        status: usagePercent < 80 ? 'ok' : usagePercent < 95 ? 'warning' : 'critical',
+        used: storageInfo.usage,
+        quota: storageInfo.quota,
+        percent: usagePercent.toFixed(1)
+      };
+      if (results.checks.storage.status !== 'ok') results.status = results.checks.storage.status;
+    } catch (e) {
+      results.checks.storage = { status: 'error', message: e.message };
+      results.status = 'critical';
+    }
+
+    // Check data integrity
+    try {
+      const dataChecks = {
+        customers: (App.Data.customers || []).length,
+        orders: (App.Data.orders || []).length,
+        products: (App.Data.products || []).length,
+        documents: (App.Data.documents || []).length,
+        orphanOrders: (App.Data.orders || []).filter(o => {
+          return o.custId && !(App.Data.customers || []).find(c => c.id === o.custId);
+        }).length
+      };
+      results.checks.data = {
+        status: dataChecks.orphanOrders === 0 ? 'ok' : 'warning',
+        counts: dataChecks
+      };
+      if (dataChecks.orphanOrders > 0 && results.status === 'healthy') {
+        results.status = 'warning';
+      }
+    } catch (e) {
+      results.checks.data = { status: 'error', message: e.message };
+      results.status = 'critical';
+    }
+
+    // Check backups
+    try {
+      const backups = await App.DB.listBackups();
+      const lastBackup = backups[0]?.timestamp;
+      const hoursSinceBackup = lastBackup ? (Date.now() - lastBackup) / (1000 * 60 * 60) : Infinity;
+      results.checks.backups = {
+        status: hoursSinceBackup < 24 ? 'ok' : hoursSinceBackup < 72 ? 'warning' : 'critical',
+        count: backups.length,
+        lastBackup: lastBackup ? new Date(lastBackup).toISOString() : null,
+        hoursSince: hoursSinceBackup === Infinity ? 'never' : hoursSinceBackup.toFixed(1)
+      };
+      if (results.checks.backups.status !== 'ok' && results.status === 'healthy') {
+        results.status = results.checks.backups.status;
+      }
+    } catch (e) {
+      results.checks.backups = { status: 'error', message: e.message };
+    }
+
+    // Check audit log size
+    try {
+      const auditSize = (App.Data.auditLog || []).length;
+      results.checks.audit = {
+        status: auditSize < 10000 ? 'ok' : auditSize < 50000 ? 'warning' : 'critical',
+        entries: auditSize
+      };
+    } catch (e) {
+      results.checks.audit = { status: 'error', message: e.message };
+    }
+
+    // Check session status
+    results.checks.session = {
+      status: 'ok',
+      currentUser: App.Services.Auth?.currentUser?.name || 'none',
+      activeSessions: (App.Data.activeSessions || []).length
+    };
+
+    return results;
+  },
+
+  // Get status badge color
+  getStatusColor(status) {
+    return {
+      healthy: '#10b981',
+      ok: '#10b981',
+      warning: '#f59e0b',
+      critical: '#ef4444',
+      error: '#ef4444'
+    }[status] || '#888';
+  },
+
+  // Run integrity checks
+  runIntegrityChecks() {
+    const issues = [];
+
+    // Check for orders without customers
+    (App.Data.orders || []).forEach(order => {
+      if (order.custId && !(App.Data.customers || []).find(c => c.id === order.custId)) {
+        issues.push({
+          type: 'orphan_reference',
+          entity: 'order',
+          id: order.id,
+          field: 'custId',
+          value: order.custId,
+          message: `Order ${order.orderNumber || order.id} references non-existent customer`
+        });
+      }
+    });
+
+    // Check for documents without orders
+    (App.Data.documents || []).forEach(doc => {
+      if (doc.orderId && !(App.Data.orders || []).find(o => o.id === doc.orderId)) {
+        issues.push({
+          type: 'orphan_reference',
+          entity: 'document',
+          id: doc.id,
+          field: 'orderId',
+          value: doc.orderId,
+          message: `Document ${doc.docNumber || doc.id} references non-existent order`
+        });
+      }
+    });
+
+    // Check for products with invalid BOM references
+    (App.Data.products || []).forEach(product => {
+      if (product.bom && Array.isArray(product.bom)) {
+        product.bom.forEach(bomItem => {
+          if (bomItem.componentId && !(App.Data.components || []).find(c => c.id === bomItem.componentId)) {
+            issues.push({
+              type: 'orphan_reference',
+              entity: 'product',
+              id: product.id,
+              field: 'bom.componentId',
+              value: bomItem.componentId,
+              message: `Product ${product.nameDE || product.id} BOM references non-existent component`
+            });
+          }
+        });
+      }
+    });
+
+    // Check for negative stock
+    (App.Data.products || []).filter(p => (p.stock || 0) < 0).forEach(product => {
+      issues.push({
+        type: 'invalid_value',
+        entity: 'product',
+        id: product.id,
+        field: 'stock',
+        value: product.stock,
+        message: `Product ${product.nameDE || product.id} has negative stock (${product.stock})`
+      });
+    });
+
+    return issues;
   }
 };
 
