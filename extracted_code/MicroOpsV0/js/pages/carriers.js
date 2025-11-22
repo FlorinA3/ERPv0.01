@@ -89,7 +89,7 @@ App.UI.Views.Carriers = {
         onClick: () => {
           App.Data.carriers = carriers.filter(c => c.id !== id);
           App.DB.save();
-          App.UI.Toast.show('Carrier deleted');
+          App.UI.Toast.show(App.I18n.t('common.carrierDeleted', 'Carrier deleted'));
           App.Core.Router.navigate('carriers');
         }
       }

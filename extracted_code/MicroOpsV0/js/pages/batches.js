@@ -187,7 +187,7 @@ App.UI.Views.Batches = {
           }
 
           App.DB.save();
-          App.UI.Toast.show('Batch saved');
+          App.UI.Toast.show(App.I18n.t('common.batchSaved', 'Batch saved'));
           App.Core.Router.navigate('batches');
         }
       }
@@ -239,7 +239,7 @@ App.UI.Views.Batches = {
           batch.qcDate = document.getElementById('qc-date').value;
           batch.qcNotes = document.getElementById('qc-notes').value.trim();
           App.DB.save();
-          App.UI.Toast.show('QC status updated');
+          App.UI.Toast.show(App.I18n.t('common.qcUpdated', 'QC status updated'));
           App.Core.Router.navigate('batches');
         }
       }

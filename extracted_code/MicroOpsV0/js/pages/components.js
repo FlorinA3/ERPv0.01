@@ -94,7 +94,7 @@ App.UI.Views.Components = {
               if (idx >= 0) {
                 comps.splice(idx, 1);
                 App.DB.save();
-                App.UI.Toast.show('Component deleted');
+                App.UI.Toast.show(App.I18n.t('common.componentDeleted', 'Component deleted'));
                 App.Core.Router.navigate('components');
               }
             }
@@ -256,7 +256,7 @@ App.UI.Views.Components = {
           }
 
           App.DB.save();
-          App.UI.Toast.show('Component saved');
+          App.UI.Toast.show(App.I18n.t('common.componentSaved', 'Component saved'));
           App.Core.Router.navigate('components');
         }
       }

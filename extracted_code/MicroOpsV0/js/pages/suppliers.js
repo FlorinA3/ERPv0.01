@@ -102,7 +102,7 @@ App.UI.Views.Suppliers = {
               if (idx >= 0) {
                 suppliers.splice(idx, 1);
                 App.DB.save();
-                App.UI.Toast.show('Supplier deleted');
+                App.UI.Toast.show(App.I18n.t('common.supplierDeleted', 'Supplier deleted'));
                 App.Core.Router.navigate('suppliers');
               }
             }
@@ -290,7 +290,7 @@ App.UI.Views.Suppliers = {
           }
 
           App.DB.save();
-          App.UI.Toast.show('Supplier saved');
+          App.UI.Toast.show(App.I18n.t('common.supplierSaved', 'Supplier saved'));
           App.Core.Router.navigate('suppliers');
         }
       }

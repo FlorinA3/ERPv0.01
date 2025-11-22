@@ -206,7 +206,7 @@ App.UI.Views.PurchaseOrders = {
           }
 
           App.DB.save();
-          App.UI.Toast.show('Purchase order saved');
+          App.UI.Toast.show(App.I18n.t('common.poSaved', 'Purchase order saved'));
           App.Core.Router.navigate('purchaseOrders');
         }
       }
@@ -298,7 +298,7 @@ App.UI.Views.PurchaseOrders = {
           po.status = 'received';
           po.receivedDate = receiveDate;
           App.DB.save();
-          App.UI.Toast.show('PO received and stock updated');
+          App.UI.Toast.show(App.I18n.t('common.poReceived', 'PO received and stock updated'));
           App.Core.Router.navigate('purchaseOrders');
         }
       }

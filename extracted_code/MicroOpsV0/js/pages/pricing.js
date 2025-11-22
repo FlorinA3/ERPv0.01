@@ -125,7 +125,7 @@ App.UI.Views.Pricing = {
         onClick: () => {
           App.Data.priceLists = (App.Data.priceLists || []).filter(pl => pl.id !== id);
           App.DB.save();
-          App.UI.Toast.show('Price list deleted');
+          App.UI.Toast.show(App.I18n.t('common.priceListDeleted', 'Price list deleted'));
           App.Core.Router.navigate('pricing');
         }
       }

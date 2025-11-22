@@ -213,7 +213,7 @@ App.UI.Views.Production = {
       });
     }
 
-    App.UI.Toast.show('Production order deleted');
+    App.UI.Toast.show(App.I18n.t('common.productionDeleted', 'Production order deleted'));
     App.Core.Router.navigate('production');
   },
 

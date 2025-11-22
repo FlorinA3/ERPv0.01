@@ -426,7 +426,7 @@ App.UI.Views.Inventory = {
           });
 
           App.DB.save();
-          App.UI.Toast.show('Stock adjusted');
+          App.UI.Toast.show(App.I18n.t('common.stockAdjusted', 'Stock adjusted'));
           App.Core.Router.navigate('inventory');
         }
       }

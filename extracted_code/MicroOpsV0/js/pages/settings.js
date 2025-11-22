@@ -330,7 +330,7 @@ App.UI.Views.Settings = {
         if (autoLock) cfg.autoLockMinutes = parseInt(autoLock.value) || 15;
         App.Data.config = cfg;
         App.DB.save();
-        App.UI.Toast.show('System settings saved');
+        App.UI.Toast.show(App.I18n.t('common.settingsSaved', 'System settings saved'));
       };
     }
 
@@ -533,7 +533,7 @@ App.UI.Views.Settings = {
         onClick: () => {
           App.Data.users = users.filter(u => u.id !== user.id);
           App.DB.save();
-          App.UI.Toast.show('User deleted');
+          App.UI.Toast.show(App.I18n.t('common.userDeleted', 'User deleted'));
           App.Core.Router.navigate('settings');
         }
       }

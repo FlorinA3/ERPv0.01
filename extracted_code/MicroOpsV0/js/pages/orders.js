@@ -523,7 +523,7 @@ App.UI.Views.Orders = {
 
       App.Data.orders.push(order);
       App.DB.save();
-      App.UI.Toast.show('Order saved');
+      App.UI.Toast.show(App.I18n.t('common.orderSaved', 'Order saved'));
 
       // Trigger automation - create production orders for products with BOM
       if (App.Services.Automation) {
@@ -1043,7 +1043,7 @@ App.UI.Views.Orders = {
             });
           }
 
-          App.UI.Toast.show('Order deleted and stock restored');
+          App.UI.Toast.show(App.I18n.t('common.orderDeleted', 'Order deleted and stock restored'));
           App.Core.Router.navigate('orders');
         }
       }

@@ -287,7 +287,7 @@ App.UI.Views.Customers = {
           }
 
           App.DB.save();
-          App.UI.Toast.show('Customer saved');
+          App.UI.Toast.show(App.I18n.t('common.customerSaved', 'Customer saved'));
           App.Core.Router.navigate('customers');
         }
       }
@@ -424,7 +424,7 @@ App.UI.Views.Customers = {
               });
             }
 
-            App.UI.Toast.show('Customer deleted');
+            App.UI.Toast.show(App.I18n.t('common.customerDeleted', 'Customer deleted'));
             App.Core.Router.navigate('customers');
           }
         }

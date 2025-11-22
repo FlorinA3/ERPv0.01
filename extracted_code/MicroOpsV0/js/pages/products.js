@@ -179,7 +179,7 @@ App.UI.Views.Products = {
             if (idx >= 0) products[idx] = { ...products[idx], ...updated };
           }
           App.DB.save();
-          App.UI.Toast.show('Product saved');
+          App.UI.Toast.show(App.I18n.t('common.productSaved', 'Product saved'));
           App.Core.Router.navigate('products');
         }
       }
@@ -324,7 +324,7 @@ App.UI.Views.Products = {
             });
           }
 
-          App.UI.Toast.show('Product deleted');
+          App.UI.Toast.show(App.I18n.t('common.productDeleted', 'Product deleted'));
           App.Core.Router.navigate('products');
         }
       }
