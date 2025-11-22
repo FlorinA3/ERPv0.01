@@ -1,33 +1,35 @@
 // Price lists page
 App.UI.Views.Pricing = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`pricing.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const lists = App.Data.priceLists || App.Data.PriceLists || [];
 
     // Get scope display name
     const getScopeDisplay = (pl) => {
       if (pl.customerId) {
         const customer = (App.Data.customers || []).find(c => c.id === pl.customerId);
-        return customer ? customer.company : pl.customerId;
+        return customer ? esc(customer.company) : esc(pl.customerId);
       }
       if (pl.segmentId) {
-        return pl.segmentId.charAt(0).toUpperCase() + pl.segmentId.slice(1);
+        return esc(pl.segmentId.charAt(0).toUpperCase() + pl.segmentId.slice(1));
       }
-      return 'Default';
+      return t('defaultScope', 'Default');
     };
 
     // Get status badge
     const getStatusBadge = (pl) => {
       const now = new Date();
       if (pl.active === false) {
-        return '<span class="tag tag-muted">Inactive</span>';
+        return `<span class="tag tag-muted">${t('statusInactive', 'Inactive')}</span>`;
       }
       if (pl.validFrom && new Date(pl.validFrom) > now) {
-        return '<span class="tag tag-info">Scheduled</span>';
+        return `<span class="tag tag-info">${t('statusScheduled', 'Scheduled')}</span>`;
       }
       if (pl.validTo && new Date(pl.validTo) < now) {
-        return '<span class="tag tag-muted">Expired</span>';
+        return `<span class="tag tag-muted">${t('statusExpired', 'Expired')}</span>`;
       }
-      return '<span class="tag tag-success">Active</span>';
+      return `<span class="tag tag-success">${t('statusActive', 'Active')}</span>`;
     };
 
     root.innerHTML = `
@@ -39,32 +41,32 @@ App.UI.Views.Pricing = {
         <table class="table">
           <thead>
             <tr>
-              <th>${App.I18n.t('pricing.name','Name')}</th>
-              <th>${App.I18n.t('pricing.type','Type')}</th>
-              <th>${App.I18n.t('pricing.scope','Scope')}</th>
-              <th>Status</th>
-              <th>${App.I18n.t('pricing.validity','Validity')}</th>
-              <th style="text-align:center;">Items</th>
+              <th>${t('name','Name')}</th>
+              <th>${t('type','Type')}</th>
+              <th>${t('scope','Scope')}</th>
+              <th>${t('status','Status')}</th>
+              <th>${t('validity','Validity')}</th>
+              <th style="text-align:center;">${t('items','Items')}</th>
               <th style="text-align:right;">${App.I18n.t('common.actions','Actions')}</th>
             </tr>
           </thead>
           <tbody>
-            ${lists.map(pl => `
+            ${lists.length > 0 ? lists.map(pl => `
               <tr>
-                <td><strong>${pl.name || '-'}</strong></td>
-                <td>${pl.type === 'customer' ? '👤 Customer' : (pl.type === 'segment' ? '📊 Segment' : '📋 Default')}</td>
+                <td><strong>${esc(pl.name || '-')}</strong></td>
+                <td>${pl.type === 'customer' ? '👤 ' + t('typeCustomer', 'Customer') : (pl.type === 'segment' ? '📊 ' + t('typeSegment', 'Segment') : '📋 ' + t('typeDefault', 'Default'))}</td>
                 <td>${getScopeDisplay(pl)}</td>
                 <td>${getStatusBadge(pl)}</td>
-                <td>${pl.validFrom || 'Always'} ${pl.validTo ? ' → ' + pl.validTo : ''}</td>
+                <td>${pl.validFrom || t('always', 'Always')}${pl.validTo ? ' → ' + pl.validTo : ''}</td>
                 <td style="text-align:center;">${(pl.entries || []).length}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-prices-pl" data-id="${pl.id}" title="${App.I18n.t('pricing.managePrices', 'Manage Prices')}" aria-label="Manage prices">💰</button>
-                  <button class="btn btn-ghost btn-edit-pl" data-id="${pl.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="Edit price list">✏️</button>
-                  <button class="btn btn-ghost btn-export-pl" data-id="${pl.id}" title="${App.I18n.t('pricing.export', 'Export CSV')}" aria-label="Export price list">📥</button>
-                  <button class="btn btn-ghost btn-delete-pl" data-id="${pl.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete price list">🗑️</button>
+                  <button class="btn btn-ghost btn-prices-pl" data-id="${pl.id}" title="${t('managePrices', 'Manage Prices')}" aria-label="${t('managePrices', 'Manage Prices')}">💰</button>
+                  <button class="btn btn-ghost btn-edit-pl" data-id="${pl.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${t('edit', 'Edit Price List')}">✏️</button>
+                  <button class="btn btn-ghost btn-export-pl" data-id="${pl.id}" title="${t('export', 'Export CSV')}" aria-label="${t('export', 'Export CSV')}">📥</button>
+                  <button class="btn btn-ghost btn-delete-pl" data-id="${pl.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="${App.I18n.t('common.deletePriceList', 'Delete Price List')}">🗑️</button>
                 </td>
               </tr>
-            `).join('') || `<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">No price lists</td></tr>`}
+            `).join('') : `<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">${t('noPriceLists', 'No price lists')}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -111,16 +113,18 @@ App.UI.Views.Pricing = {
   },
 
   deleteList(id) {
+    const t = (key, fallback) => App.I18n.t(`pricing.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const list = (App.Data.priceLists || []).find(pl => pl.id === id);
     if (!list) return;
 
     App.UI.Modal.open(App.I18n.t('common.deletePriceList', 'Delete Price List'), `
-      <p>Are you sure you want to delete <strong>${list.name}</strong>?</p>
-      <p style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">This will remove all ${(list.entries || []).length} price entries.</p>
+      <p>${t('confirmDelete', 'Are you sure you want to delete')} <strong>${esc(list.name)}</strong>?</p>
+      <p style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">${t('willRemoveEntries', 'This will remove all')} ${(list.entries || []).length} ${t('priceEntries', 'price entries')}.</p>
     `, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Delete',
+        text: App.I18n.t('common.delete', 'Delete'),
         variant: 'primary',
         onClick: () => {
           App.Data.priceLists = (App.Data.priceLists || []).filter(pl => pl.id !== id);
@@ -154,6 +158,8 @@ App.UI.Views.Pricing = {
   },
 
   openPriceEntriesModal(pl) {
+    const t = (key, fallback) => App.I18n.t(`pricing.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const products = App.Data.products || [];
     const entries = pl.entries || [];
 
@@ -164,14 +170,14 @@ App.UI.Views.Pricing = {
       const sku = prod ? prod.internalArticleNumber : '-';
       return `
         <tr data-entry-idx="${idx}">
-          <td style="font-size:12px;"><strong>${sku}</strong></td>
-          <td style="font-size:12px;">${name}</td>
+          <td style="font-size:12px;"><strong>${esc(sku)}</strong></td>
+          <td style="font-size:12px;">${esc(name)}</td>
           <td><input type="number" class="input entry-price" value="${entry.price || 0}" step="0.01" min="0" style="width:80px; padding:4px;" /></td>
           <td><input type="number" class="input entry-uvp" value="${entry.uvp || 0}" step="0.01" min="0" style="width:80px; padding:4px;" /></td>
           <td><input type="number" class="input entry-moq" value="${entry.minOrderQty || 1}" min="1" style="width:60px; padding:4px;" /></td>
         </tr>
       `;
-    }).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--color-text-muted);">No entries</td></tr>';
+    }).join('') : `<tr><td colspan="5" style="text-align:center; color:var(--color-text-muted);">${t('noEntries', 'No entries')}</td></tr>`;
 
     const body = `
       <div>
@@ -200,7 +206,7 @@ App.UI.Views.Pricing = {
       </div>
     `;
 
-    App.UI.Modal.open(`${App.I18n.t('pricing.managePrices', 'Manage Prices')} - ${pl.name}`, body, [
+    App.UI.Modal.open(`${t('managePrices', 'Manage Prices')} - ${esc(pl.name)}`, body, [
       { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
         text: App.I18n.t('common.save', 'Save'),
@@ -246,50 +252,52 @@ App.UI.Views.Pricing = {
   },
 
   openPriceListModal(pl) {
+    const t = (key, fallback) => App.I18n.t(`pricing.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const isEdit = !!pl;
     const customers = App.Data.customers || [];
-    const customerOptions = customers.map(c => `<option value="${c.id}" ${pl && pl.customerId === c.id ? 'selected' : ''}>${c.company}</option>`).join('');
+    const customerOptions = customers.map(c => `<option value="${c.id}" ${pl && pl.customerId === c.id ? 'selected' : ''}>${esc(c.company)}</option>`).join('');
     const segments = ['dealer','endcustomer','lepage'];
-    const segOptions = segments.map(s => `<option value="${s}" ${pl && pl.segmentId === s ? 'selected' : ''}>${s}</option>`).join('');
+    const segOptions = segments.map(s => `<option value="${s}" ${pl && pl.segmentId === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
     const type = pl ? pl.type : 'segment';
     const body = `
       <div>
-        <label class="field-label">${App.I18n.t('pricing.name','Name')}*</label>
-        <input id="pl-name" class="input" value="${pl ? pl.name : ''}" />
+        <label class="field-label" for="pl-name">${t('name','Name')}*</label>
+        <input id="pl-name" class="input" value="${esc(pl ? pl.name : '')}" aria-required="true" />
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('pricing.type','Type')}</label>
+        <label class="field-label" for="pl-type" style="margin-top:8px;">${t('type','Type')}</label>
         <select id="pl-type" class="input">
-          <option value="segment" ${type === 'segment' ? 'selected' : ''}>Segment</option>
-          <option value="customer" ${type === 'customer' ? 'selected' : ''}>Customer</option>
+          <option value="segment" ${type === 'segment' ? 'selected' : ''}>${t('typeSegment', 'Segment')}</option>
+          <option value="customer" ${type === 'customer' ? 'selected' : ''}>${t('typeCustomer', 'Customer')}</option>
         </select>
 
         <div id="pl-segment-row" style="margin-top:8px; display:${type === 'segment' ? 'block' : 'none'};">
-          <label class="field-label">${App.I18n.t('pricing.segment','Segment')}</label>
+          <label class="field-label" for="pl-segment">${t('segment','Segment')}</label>
           <select id="pl-segment" class="input">
             ${segOptions}
           </select>
         </div>
         <div id="pl-customer-row" style="margin-top:8px; display:${type === 'customer' ? 'block' : 'none'};">
-          <label class="field-label">${App.I18n.t('pricing.customer','Customer')}</label>
+          <label class="field-label" for="pl-customer">${t('customer','Customer')}</label>
           <select id="pl-customer" class="input">
             <option value="">-</option>
             ${customerOptions}
           </select>
         </div>
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('pricing.validFrom','Valid From')}</label>
+        <label class="field-label" for="pl-from" style="margin-top:8px;">${t('validFrom','Valid From')}</label>
         <input id="pl-from" class="input" type="date" value="${pl && pl.validFrom ? pl.validFrom : ''}" />
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('pricing.validTo','Valid To')}</label>
+        <label class="field-label" for="pl-to" style="margin-top:8px;">${t('validTo','Valid To')}</label>
         <input id="pl-to" class="input" type="date" value="${pl && pl.validTo ? pl.validTo : ''}" />
       </div>
     `;
-    const title = isEdit ? App.I18n.t('pricing.edit','Edit Price List') : App.I18n.t('pricing.add','Add Price List');
+    const title = isEdit ? t('edit','Edit Price List') : t('add','Add Price List');
     const onSaveButtons = [
       { text: App.I18n.t('common.cancel','Cancel'), variant:'ghost', onClick: () => {} },
       { text: App.I18n.t('common.save','Save'), variant:'primary', onClick: () => {
           const name = document.getElementById('pl-name').value.trim();
           if (!name) {
-            App.UI.Toast.show(App.I18n.t('pricing.name','Name') + ' is required');
+            App.UI.Toast.show(t('nameRequired', 'Name is required'));
             return false;
           }
           const typeVal = document.getElementById('pl-type').value;
