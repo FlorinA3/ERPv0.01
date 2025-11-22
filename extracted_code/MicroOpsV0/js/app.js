@@ -139,7 +139,13 @@ window.App = window.App || {
           userSection: 'Benutzerverwaltung',
           role: 'Rolle',
           save: 'Einstellungen speichern',
-          saved: 'Gespeichert'
+          saved: 'Gespeichert',
+          backupSection: 'Datensicherung',
+          downloadBackup: 'Backup herunterladen',
+          restoreBackup: 'Backup wiederherstellen',
+          backupSaved: 'Backup gespeichert als',
+          backupRestored: 'Backup erfolgreich wiederhergestellt',
+          backupFailed: 'Backup-Wiederherstellung fehlgeschlagen'
         },
         dashboard: {
           total: 'Gesamtumsatz',
@@ -309,7 +315,13 @@ window.App = window.App || {
           userSection: 'User Management',
           role: 'Role',
           save: 'Save Settings',
-          saved: 'Settings saved'
+          saved: 'Settings saved',
+          backupSection: 'Database Backup',
+          downloadBackup: 'Download Backup',
+          restoreBackup: 'Restore Backup',
+          backupSaved: 'Backup saved as',
+          backupRestored: 'Backup restored successfully',
+          backupFailed: 'Backup restore failed'
         },
         dashboard: {
           total: 'Total Revenue',
@@ -477,7 +489,13 @@ window.App = window.App || {
           userSection: 'Gestionare Utilizatori',
           role: 'Rol',
           save: 'Salvează Setările',
-          saved: 'Setări salvate'
+          saved: 'Setări salvate',
+          backupSection: 'Salvare Date',
+          downloadBackup: 'Descarcă Backup',
+          restoreBackup: 'Restaurează Backup',
+          backupSaved: 'Backup salvat ca',
+          backupRestored: 'Backup restaurat cu succes',
+          backupFailed: 'Restaurare backup eșuată'
         },
         dashboard: {
           total: 'Venit Total',

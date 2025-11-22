@@ -153,11 +153,11 @@ App.UI.Views.Settings = {
 
       <!-- Backup/Restore Section -->
       <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--color-border);">
-        <h4 style="font-size:14px; font-weight:600; margin-bottom:8px;">Database Backup</h4>
+        <h4 style="font-size:14px; font-weight:600; margin-bottom:8px;">${App.I18n.t('settings.backupSection', 'Database Backup')}</h4>
         <div style="display:flex; gap:8px;">
-          <button class="btn btn-ghost" id="btn-backup">📥 Download Backup</button>
+          <button class="btn btn-ghost" id="btn-backup">📥 ${App.I18n.t('settings.downloadBackup', 'Download Backup')}</button>
           <label class="btn btn-ghost" style="cursor:pointer;">
-            📤 Restore Backup
+            📤 ${App.I18n.t('settings.restoreBackup', 'Restore Backup')}
             <input type="file" id="restore-file" accept=".json" style="display:none;" />
           </label>
         </div>
@@ -365,38 +365,55 @@ App.UI.Views.Settings = {
     });
 
     // Backup/Restore Event Handlers
-    document.getElementById('btn-backup').onclick = () => {
-      const filename = App.DB.exportBackup();
+    const backupBtn = document.getElementById('btn-backup');
+    const restoreInput = document.getElementById('restore-file');
 
-      // Track backup timestamp for reminders
-      if (!App.Data.config) App.Data.config = {};
-      App.Data.config.lastBackupAt = new Date().toISOString();
-      App.DB.save();
+    if (backupBtn) {
+      backupBtn.onclick = () => {
+        const filename = App.DB.exportBackup();
 
-      App.UI.Toast.show(`Backup saved as ${filename}`);
+        // Track backup timestamp for reminders
+        if (!App.Data.config) App.Data.config = {};
+        App.Data.config.lastBackupAt = new Date().toISOString();
+        App.DB.save();
 
-      // Log activity
-      if (App.Services.ActivityLog) {
-        App.Services.ActivityLog.log('export', 'backup', null, {
-          filename: filename,
-          action: 'database_backup'
-        });
-      }
-    };
+        App.UI.Toast.show(`${App.I18n.t('settings.backupSaved', 'Backup saved as')} ${filename}`);
 
-    document.getElementById('restore-file').onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+        // Log activity
+        if (App.Services.ActivityLog) {
+          App.Services.ActivityLog.log('export', 'backup', null, {
+            filename: filename,
+            action: 'database_backup'
+          });
+        }
+      };
+    }
 
-      const result = await App.DB.importBackup(file);
-      if (result.success) {
-        App.UI.Toast.show(result.message);
-        App.Core.Router.navigate('settings');
-      } else {
-        App.UI.Toast.show(result.message);
-      }
-      e.target.value = '';
-    };
+    if (restoreInput) {
+      restoreInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const result = await App.DB.importBackup(file);
+        if (result.success) {
+          App.UI.Toast.show(App.I18n.t('settings.backupRestored', 'Backup restored successfully'));
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('import', 'backup', null, {
+              filename: file.name,
+              action: 'database_restore',
+              stats: result.stats
+            });
+          }
+
+          App.Core.Router.navigate('settings');
+        } else {
+          App.UI.Toast.show(`${App.I18n.t('settings.backupFailed', 'Backup restore failed')}: ${result.message}`);
+        }
+        e.target.value = '';
+      };
+    }
   },
 
   openUserModal(user) {
