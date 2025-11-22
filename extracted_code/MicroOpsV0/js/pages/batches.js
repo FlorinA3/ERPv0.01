@@ -59,9 +59,9 @@ App.UI.Views.Batches = {
                 <td>${getStatusBadge(b)}</td>
                 <td>${b.createdAt ? b.createdAt.split('T')[0] : '-'}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-edit-batch" data-id="${b.id}" title="Edit">✏️</button>
-                  <button class="btn btn-ghost btn-qc-batch" data-id="${b.id}" title="QC">🔬</button>
-                  <button class="btn btn-ghost btn-trace-batch" data-id="${b.id}" title="Trace">🔍</button>
+                  <button class="btn btn-ghost btn-edit-batch" data-id="${b.id}" title="Edit" aria-label="Edit batch">✏️</button>
+                  <button class="btn btn-ghost btn-qc-batch" data-id="${b.id}" title="QC" aria-label="Quality control">🔬</button>
+                  <button class="btn btn-ghost btn-trace-batch" data-id="${b.id}" title="Trace" aria-label="Trace batch">🔍</button>
                 </td>
               </tr>
             `).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--color-text-muted);">No batches</td></tr>'}

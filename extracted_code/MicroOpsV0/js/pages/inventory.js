@@ -58,8 +58,8 @@ App.UI.Views.Inventory = {
           <td style="text-align:center;">${minStock}</td>
           <td style="text-align:right;">${App.Utils.formatCurrency(p.dealerPrice || p.purchasePrice || 0)}</td>
           <td style="text-align:right;">
-            <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="Receive Stock">⬆️</button>
-            <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="Adjust Stock">🔄</button>
+            <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="Receive Stock" aria-label="Receive stock">⬆️</button>
+            <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="Adjust Stock" aria-label="Adjust stock">🔄</button>
           </td>
         </tr>
       `;

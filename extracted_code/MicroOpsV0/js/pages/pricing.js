@@ -58,9 +58,9 @@ App.UI.Views.Pricing = {
                 <td>${pl.validFrom || 'Always'} ${pl.validTo ? ' → ' + pl.validTo : ''}</td>
                 <td style="text-align:center;">${(pl.entries || []).length}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-edit-pl" data-id="${pl.id}" title="Edit">✏️</button>
-                  <button class="btn btn-ghost btn-export-pl" data-id="${pl.id}" title="Export CSV">📥</button>
-                  <button class="btn btn-ghost btn-delete-pl" data-id="${pl.id}" title="Delete">🗑️</button>
+                  <button class="btn btn-ghost btn-edit-pl" data-id="${pl.id}" title="Edit" aria-label="Edit price list">✏️</button>
+                  <button class="btn btn-ghost btn-export-pl" data-id="${pl.id}" title="Export CSV" aria-label="Export price list">📥</button>
+                  <button class="btn btn-ghost btn-delete-pl" data-id="${pl.id}" title="Delete" aria-label="Delete price list">🗑️</button>
                 </td>
               </tr>
             `).join('') || `<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">No price lists</td></tr>`}

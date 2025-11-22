@@ -37,6 +37,7 @@ App.UI.Views.Documents = {
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.documents.title','Documents')}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="doc-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
             <button class="btn btn-ghost" id="btn-add-delivery">+ ${App.I18n.t('documents.createDelivery','Delivery Note')}</button>
             <button class="btn btn-primary" id="btn-add-invoice">+ ${App.I18n.t('documents.createInvoice','Invoice')}</button>
           </div>
@@ -100,6 +101,19 @@ App.UI.Views.Documents = {
     root.querySelectorAll('.btn-doc-delete').forEach(btn => {
       btn.addEventListener('click', () => this.deleteDocument(btn.getAttribute('data-id')));
     });
+
+    // Search functionality
+    const searchInput = document.getElementById('doc-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const rows = root.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = query === '' || text.includes(query) ? '' : 'none';
+        });
+      });
+    }
   },
 
   deleteDocument(id) {

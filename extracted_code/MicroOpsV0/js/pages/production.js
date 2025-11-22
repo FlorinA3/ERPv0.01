@@ -9,7 +9,8 @@ App.UI.Views.Production = {
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.production.title','Production Orders')}</h3>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="production-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
             <button class="btn btn-ghost" id="btn-auto-settings" title="Automation Settings">⚙️ Automation</button>
             <button class="btn btn-primary" id="btn-add-po">+ ${App.I18n.t('common.add','Add')}</button>
           </div>
@@ -40,10 +41,11 @@ App.UI.Views.Production = {
                   <td><span class="tag ${statusColor}">${po.status || '-'}</span></td>
                   <td>${po.plannedStart ? App.Utils.formatDate(po.plannedStart) : '-'}</td>
                   <td style="text-align:right;">
-                    <button class="btn btn-ghost btn-edit-po" data-id="${po.id}" title="Edit">✏️</button>
-                    ${po.status === 'planned' ? `<button class="btn btn-ghost btn-start-po" data-id="${po.id}" title="Start Production (Deduct Components)">▶️</button>` : ''}
-                    ${po.status === 'in_progress' ? `<button class="btn btn-ghost btn-complete-po" data-id="${po.id}" title="Complete & Book Stock">✅</button>` : ''}
-                    ${po.sourceOrderId ? `<button class="btn btn-ghost btn-view-source" data-id="${po.sourceOrderId}" title="View Source Order">🔗</button>` : ''}
+                    <button class="btn btn-ghost btn-edit-po" data-id="${po.id}" title="Edit" aria-label="Edit production order">✏️</button>
+                    ${po.status === 'planned' ? `<button class="btn btn-ghost btn-start-po" data-id="${po.id}" title="Start Production (Deduct Components)" aria-label="Start production">▶️</button>` : ''}
+                    ${po.status === 'in_progress' ? `<button class="btn btn-ghost btn-complete-po" data-id="${po.id}" title="Complete & Book Stock" aria-label="Complete production">✅</button>` : ''}
+                    ${po.sourceOrderId ? `<button class="btn btn-ghost btn-view-source" data-id="${po.sourceOrderId}" title="View Source Order" aria-label="View source order">🔗</button>` : ''}
+                    <button class="btn btn-ghost btn-delete-po" data-id="${po.id}" title="Delete" aria-label="Delete production order">🗑️</button>
                   </td>
                 </tr>`;
             }).join('') || `<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">No production orders</td></tr>`}
@@ -107,6 +109,112 @@ App.UI.Views.Production = {
         }, 100);
       });
     });
+
+    root.querySelectorAll('.btn-delete-po').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const po = pos.find(p => p.id === id);
+        if (po) this.deleteProductionOrder(po);
+      });
+    });
+
+    // Search functionality
+    const searchInput = document.getElementById('production-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const rows = root.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = query === '' || text.includes(query) ? '' : 'none';
+        });
+      });
+    }
+  },
+
+  /**
+   * Delete a production order with safety checks
+   */
+  deleteProductionOrder(po) {
+    const prod = (App.Data.products || []).find(p => p.id === po.productId);
+
+    // Warn if production is in progress or completed
+    if (po.status === 'in_progress') {
+      App.UI.Modal.open('Cannot Delete', `
+        <div style="color:#f59e0b;">
+          <p><strong>⚠️ Production is in progress</strong></p>
+          <p style="font-size:12px; margin-top:8px;">
+            Complete or cancel this production order before deleting.
+            Components may have already been deducted.
+          </p>
+        </div>
+      `, [{ text: 'Close', variant: 'ghost', onClick: () => {} }]);
+      return;
+    }
+
+    if (po.status === 'completed') {
+      App.UI.Modal.open('Delete Completed Order', `
+        <div style="color:#f59e0b;">
+          <p><strong>⚠️ This production order is completed</strong></p>
+          <p style="font-size:12px; margin-top:8px;">
+            Deleting will remove the record but will NOT reverse stock movements.
+            The produced items will remain in inventory.
+          </p>
+        </div>
+        <p style="margin-top:12px;">Delete <strong>${po.orderNumber}</strong> anyway?</p>
+      `, [
+        { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+        {
+          text: 'Delete Record',
+          variant: 'primary',
+          onClick: () => {
+            this._performPODelete(po, prod);
+          }
+        }
+      ]);
+      return;
+    }
+
+    // Normal deletion for planned orders
+    App.UI.Modal.open('Delete Production Order', `
+      <div>
+        <p>Are you sure you want to delete <strong>${po.orderNumber}</strong>?</p>
+        <div style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">
+          <p>Product: ${prod ? (prod.nameDE || prod.nameEN) : '-'}</p>
+          <p>Quantity: ${po.quantity}</p>
+          <p>Status: ${po.status}</p>
+        </div>
+      </div>
+    `, [
+      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      {
+        text: 'Delete',
+        variant: 'primary',
+        onClick: () => {
+          this._performPODelete(po, prod);
+        }
+      }
+    ]);
+  },
+
+  _performPODelete(po, prod) {
+    const pos = App.Data.productionOrders || [];
+    App.Data.productionOrders = pos.filter(p => p.id !== po.id);
+    App.DB.save();
+
+    // Log activity
+    if (App.Services.ActivityLog) {
+      App.Services.ActivityLog.log('delete', 'productionOrder', po.id, {
+        name: po.orderNumber,
+        product: prod ? (prod.nameDE || prod.nameEN) : null,
+        quantity: po.quantity,
+        status: po.status
+      });
+    }
+
+    App.UI.Toast.show('Production order deleted');
+    App.Core.Router.navigate('production');
   },
 
   /**

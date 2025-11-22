@@ -273,8 +273,39 @@ App.UI.Views.Products = {
     const p = products.find(x => x.id === id);
     if (!p) return;
 
+    // Check for linked orders
+    const orders = App.Data.orders || [];
+    const linkedOrders = orders.filter(o => (o.items || []).some(i => i.productId === id));
+
+    // Check for linked production orders
+    const productionOrders = App.Data.productionOrders || [];
+    const linkedPOs = productionOrders.filter(po => po.productId === id);
+
+    // Check for linked documents
+    const documents = App.Data.documents || [];
+    const linkedDocs = documents.filter(d => (d.items || []).some(i => i.productId === id));
+
+    if (linkedOrders.length > 0 || linkedPOs.length > 0 || linkedDocs.length > 0) {
+      App.UI.Modal.open('Cannot Delete Product', `
+        <div style="color:#dc2626;">
+          <p>This product has linked records that must be deleted first:</p>
+          <ul style="margin:8px 0; padding-left:20px; font-size:12px;">
+            ${linkedOrders.length > 0 ? `<li>${linkedOrders.length} order(s)</li>` : ''}
+            ${linkedPOs.length > 0 ? `<li>${linkedPOs.length} production order(s)</li>` : ''}
+            ${linkedDocs.length > 0 ? `<li>${linkedDocs.length} document(s)</li>` : ''}
+          </ul>
+          <p style="font-size:12px; margin-top:8px;">Delete these records first, then try again.</p>
+        </div>
+      `, [{ text: 'Close', variant: 'ghost', onClick: () => {} }]);
+      return;
+    }
+
     App.UI.Modal.open('Delete Product', `
       <p>Are you sure you want to delete <strong>${p.nameDE || p.nameEN || p.internalArticleNumber}</strong>?</p>
+      <div style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">
+        <p>Art. No: ${p.internalArticleNumber || '-'}</p>
+        <p>Stock: ${p.stock || 0} ${p.unit || 'Stk'}</p>
+      </div>
     `, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
@@ -283,6 +314,15 @@ App.UI.Views.Products = {
         onClick: () => {
           App.Data.products = products.filter(x => x.id !== id);
           App.DB.save();
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('delete', 'product', id, {
+              name: p.nameDE || p.nameEN,
+              articleNumber: p.internalArticleNumber
+            });
+          }
+
           App.UI.Toast.show('Product deleted');
           App.Core.Router.navigate('products');
         }

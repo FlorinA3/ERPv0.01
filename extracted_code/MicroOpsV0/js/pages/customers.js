@@ -379,10 +379,25 @@ App.UI.Views.Customers = {
     const customer = customers.find(c => c.id === id);
     if (!customer) return;
 
+    // Check for linked orders
     const orders = App.Data.orders || [];
     const linkedOrders = orders.filter(o => o.custId === id);
-    if (linkedOrders.length > 0) {
-      App.UI.Toast.show(`Cannot delete: ${linkedOrders.length} orders linked to this customer`);
+
+    // Check for linked documents
+    const documents = App.Data.documents || [];
+    const linkedDocs = documents.filter(d => d.customerId === id);
+
+    if (linkedOrders.length > 0 || linkedDocs.length > 0) {
+      App.UI.Modal.open('Cannot Delete Customer', `
+        <div style="color:#dc2626;">
+          <p>This customer has linked records that must be deleted first:</p>
+          <ul style="margin:8px 0; padding-left:20px; font-size:12px;">
+            ${linkedOrders.length > 0 ? `<li>${linkedOrders.length} order(s)</li>` : ''}
+            ${linkedDocs.length > 0 ? `<li>${linkedDocs.length} document(s)</li>` : ''}
+          </ul>
+          <p style="font-size:12px; margin-top:8px;">Delete these records first, then try again.</p>
+        </div>
+      `, [{ text: 'Close', variant: 'ghost', onClick: () => {} }]);
       return;
     }
 
@@ -399,6 +414,15 @@ App.UI.Views.Customers = {
           if (idx >= 0) {
             customers.splice(idx, 1);
             App.DB.save();
+
+            // Log activity
+            if (App.Services.ActivityLog) {
+              App.Services.ActivityLog.log('delete', 'customer', id, {
+                name: customer.company,
+                customerNumber: customer.customerNumber
+              });
+            }
+
             App.UI.Toast.show('Customer deleted');
             App.Core.Router.navigate('customers');
           }

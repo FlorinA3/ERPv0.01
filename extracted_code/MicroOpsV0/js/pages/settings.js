@@ -144,8 +144,8 @@ App.UI.Views.Settings = {
               ${u.active === false ? '<span style="font-size:10px; color:#f97373; margin-left:4px;">(inactive)</span>' : ''}
             </div>
             <div style="display:flex; gap:4px;">
-              <button class="btn btn-ghost btn-edit-user" data-id="${u.id}" title="Edit">✏️</button>
-              <button class="btn btn-ghost btn-delete-user" data-id="${u.id}" title="Delete">🗑️</button>
+              <button class="btn btn-ghost btn-edit-user" data-id="${u.id}" title="Edit" aria-label="Edit user">✏️</button>
+              <button class="btn btn-ghost btn-delete-user" data-id="${u.id}" title="Delete" aria-label="Delete user">🗑️</button>
             </div>
           </div>
         `).join('')}

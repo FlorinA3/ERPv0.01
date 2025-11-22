@@ -47,8 +47,8 @@ App.UI.Views.Components = {
                   <td>${supInfo.name}${supInfo.leadTime ? ` <small style="color:var(--color-text-muted);">(${supInfo.leadTime}d)</small>` : ''}</td>
                   <td style="text-align:right;">${c.purchasePrice ? '€' + c.purchasePrice.toFixed(2) : '-'}</td>
                   <td style="text-align:right;">
-                    <button class="btn btn-ghost btn-edit-comp" data-id="${c.id}" title="Edit">✏️</button>
-                    <button class="btn btn-ghost btn-delete-comp" data-id="${c.id}" title="Delete">🗑️</button>
+                    <button class="btn btn-ghost btn-edit-comp" data-id="${c.id}" title="Edit" aria-label="Edit component">✏️</button>
+                    <button class="btn btn-ghost btn-delete-comp" data-id="${c.id}" title="Delete" aria-label="Delete component">🗑️</button>
                   </td>
                 </tr>
               `;

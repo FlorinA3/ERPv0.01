@@ -23,7 +23,10 @@ App.UI.Views.Suppliers = {
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.suppliers.title','Suppliers')}</h3>
-          <button class="btn btn-primary" id="btn-add-supplier">+ ${App.I18n.t('common.add','Add')}</button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="supplier-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
+            <button class="btn btn-primary" id="btn-add-supplier">+ ${App.I18n.t('common.add','Add')}</button>
+          </div>
         </div>
         <table class="table">
           <thead>
@@ -53,8 +56,8 @@ App.UI.Views.Suppliers = {
                   <td style="text-align:center;${stats.receivedCount > 0 ? onTimeClass : ''}">${stats.receivedCount > 0 ? stats.onTimeRate + '%' : '-'}</td>
                   <td style="text-align:right;">${stats.totalSpend > 0 ? '€' + stats.totalSpend.toFixed(2) : '-'}</td>
                   <td style="text-align:right;">
-                    <button class="btn btn-ghost btn-edit-sup" data-id="${s.id}" title="Edit">✏️</button>
-                    <button class="btn btn-ghost btn-delete-sup" data-id="${s.id}" title="Delete">🗑️</button>
+                    <button class="btn btn-ghost btn-edit-sup" data-id="${s.id}" title="Edit" aria-label="Edit supplier">✏️</button>
+                    <button class="btn btn-ghost btn-delete-sup" data-id="${s.id}" title="Delete" aria-label="Delete supplier">🗑️</button>
                   </td>
                 </tr>
               `;
@@ -107,6 +110,19 @@ App.UI.Views.Suppliers = {
         ]);
       });
     });
+
+    // Search functionality
+    const searchInput = document.getElementById('supplier-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const rows = root.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = query === '' || text.includes(query) ? '' : 'none';
+        });
+      });
+    }
   },
 
   openSupplierModal(sup) {
