@@ -369,6 +369,177 @@ App.Utils.formatDate = function (iso) {
   });
 };
 
+/**
+ * Number Sequence Service - Generates sequential document numbers
+ */
+App.Services.NumberSequence = {
+  /**
+   * Get next order number (A2025-0076)
+   */
+  nextOrderNumber() {
+    const config = App.Data.config || App.Data.Config || {};
+    const seq = config.numberSequences || {};
+    const year = new Date().getFullYear();
+    const next = (seq.lastOrderNumber || 0) + 1;
+    seq.lastOrderNumber = next;
+    config.numberSequences = seq;
+    App.DB.save();
+    return `A${year}-${String(next).padStart(4, '0')}`;
+  },
+
+  /**
+   * Get next delivery note number (L20250059)
+   */
+  nextDeliveryNumber() {
+    const config = App.Data.config || App.Data.Config || {};
+    const seq = config.numberSequences || {};
+    const year = new Date().getFullYear();
+    const next = (seq.lastDeliveryNumber || 0) + 1;
+    seq.lastDeliveryNumber = next;
+    config.numberSequences = seq;
+    App.DB.save();
+    return `L${year}${String(next).padStart(5, '0')}`;
+  },
+
+  /**
+   * Get next invoice number (R20250069)
+   */
+  nextInvoiceNumber() {
+    const config = App.Data.config || App.Data.Config || {};
+    const seq = config.numberSequences || {};
+    const year = new Date().getFullYear();
+    const next = (seq.lastInvoiceNumber || 0) + 1;
+    seq.lastInvoiceNumber = next;
+    config.numberSequences = seq;
+    App.DB.save();
+    return `R${year}${String(next).padStart(5, '0')}`;
+  },
+
+  /**
+   * Get next production order number (PO-2025-002)
+   */
+  nextProductionOrderNumber() {
+    const config = App.Data.config || App.Data.Config || {};
+    const seq = config.numberSequences || {};
+    const year = new Date().getFullYear();
+    const next = (seq.lastProductionOrderNumber || 0) + 1;
+    seq.lastProductionOrderNumber = next;
+    config.numberSequences = seq;
+    App.DB.save();
+    return `PO-${year}-${String(next).padStart(3, '0')}`;
+  },
+
+  /**
+   * Get current sequence numbers (for display in settings)
+   */
+  getCurrentNumbers() {
+    const config = App.Data.config || App.Data.Config || {};
+    const seq = config.numberSequences || {};
+    return {
+      lastOrderNumber: seq.lastOrderNumber || 0,
+      lastDeliveryNumber: seq.lastDeliveryNumber || 0,
+      lastInvoiceNumber: seq.lastInvoiceNumber || 0,
+      lastProductionOrderNumber: seq.lastProductionOrderNumber || 0
+    };
+  }
+};
+
+/**
+ * Validation Service - Form and data validation utilities
+ */
+App.Services.Validation = {
+  /**
+   * Validate required fields
+   * @param {Object} data - Object with field values
+   * @param {Array} requiredFields - Array of field names that are required
+   * @returns {Object} { valid: boolean, errors: string[] }
+   */
+  validateRequired(data, requiredFields) {
+    const errors = [];
+    for (const field of requiredFields) {
+      const value = data[field];
+      if (value === undefined || value === null || value === '' || (typeof value === 'string' && !value.trim())) {
+        errors.push(`${field} is required`);
+      }
+    }
+    return { valid: errors.length === 0, errors };
+  },
+
+  /**
+   * Validate email format
+   */
+  isValidEmail(email) {
+    if (!email) return true; // Empty is valid (use validateRequired for required check)
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  },
+
+  /**
+   * Validate phone format (basic)
+   */
+  isValidPhone(phone) {
+    if (!phone) return true;
+    const re = /^[+]?[\d\s\-()]{7,20}$/;
+    return re.test(phone);
+  },
+
+  /**
+   * Validate IBAN format (basic)
+   */
+  isValidIBAN(iban) {
+    if (!iban) return true;
+    const cleaned = iban.replace(/\s/g, '');
+    return cleaned.length >= 15 && cleaned.length <= 34 && /^[A-Z]{2}\d{2}[A-Z\d]+$/.test(cleaned);
+  },
+
+  /**
+   * Validate VAT number format (basic)
+   */
+  isValidVAT(vat) {
+    if (!vat) return true;
+    return /^[A-Z]{2}[\dA-Z]{8,12}$/.test(vat.replace(/\s/g, ''));
+  },
+
+  /**
+   * Validate positive number
+   */
+  isPositive(value) {
+    return typeof value === 'number' && value > 0;
+  },
+
+  /**
+   * Validate non-negative number
+   */
+  isNonNegative(value) {
+    return typeof value === 'number' && value >= 0;
+  },
+
+  /**
+   * Check stock availability
+   * @param {string} productId - Product ID
+   * @param {number} quantity - Requested quantity
+   * @returns {Object} { available: boolean, stock: number, shortage: number }
+   */
+  checkStockAvailability(productId, quantity) {
+    const products = App.Data.products || App.Data.Products || [];
+    const product = products.find(p => p.id === productId);
+    if (!product) {
+      return { available: false, stock: 0, shortage: quantity };
+    }
+    // Services don't need stock
+    if (product.type === 'Service') {
+      return { available: true, stock: Infinity, shortage: 0 };
+    }
+    const stock = product.stock || 0;
+    const available = stock >= quantity;
+    return {
+      available,
+      stock,
+      shortage: available ? 0 : quantity - stock
+    };
+  }
+};
+
 App.Services.Auth = {
   currentUser: null,
   lastActivity: Date.now(),

@@ -137,21 +137,10 @@ App.UI.Views.Documents = {
     if (!o) return;
     const cust = App.Data.customers.find(c => c.id === o.custId);
     
-    // Config for numbering
-    const config = App.Data.config || {};
-    const year = new Date().getFullYear();
-    let docNum = '';
-    
-    // Simple auto-increment logic based on existing docs of same type/year
-    const existing = (App.Data.documents || []).filter(d => d.type === type && d.date.startsWith(''+year));
-    const count = existing.length + 1;
-    const seq = (''+count).padStart(5,'0');
-    
-    if (type === 'delivery') {
-      docNum = `L${year}${seq}`;
-    } else {
-      docNum = `R${year}${seq}`;
-    }
+    // Generate document number using NumberSequence service
+    const docNum = type === 'delivery'
+      ? App.Services.NumberSequence.nextDeliveryNumber()
+      : App.Services.NumberSequence.nextInvoiceNumber();
 
     // Address logic
     const billAddr = cust.addresses.find(a => a.id === o.billingAddressId) || cust.addresses.find(a => a.role === 'billing') || cust.addresses[0];

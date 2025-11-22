@@ -146,14 +146,16 @@ App.UI.Views.Orders = {
 
           const order = {
             id: App.Utils.generateId('o'),
-            orderId: `A${new Date().getFullYear()}-${Math.floor(Math.random()*1000)}`, // Simple ID gen
+            orderId: App.Services.NumberSequence.nextOrderNumber(),
             custId,
-            status: 'confirmed', // Defaulting to confirmed for workflow speed
+            createdBy: App.Services.Auth.currentUser?.id,
+            status: 'confirmed',
             date: new Date().toISOString(),
             items,
             subtotalNet: subtotal,
             vatAmount: vat,
-            totalGross: total
+            totalGross: total,
+            currency: App.Data.config?.currency || 'EUR'
           };
           
           // Deduct stock immediately? Spec says "stock reduced when orders saved".

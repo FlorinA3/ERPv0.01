@@ -158,14 +158,14 @@ App.UI.Views.Production = {
           const list = App.Data.productionOrders || [];
           const newPo = {
             id: isEdit ? po.id : App.Utils.generateId('po'),
-            orderNumber: isEdit ? (po.orderNumber || po.id) : `PO-${new Date().getFullYear()}-${(''+(list.length+1)).padStart(3,'0')}`,
+            orderNumber: isEdit ? (po.orderNumber || po.id) : App.Services.NumberSequence.nextProductionOrderNumber(),
             productId: productId,
             quantity: qty,
             createdBy: App.Services.Auth.currentUser ? App.Services.Auth.currentUser.id : null,
             createdAt: isEdit ? po.createdAt : new Date().toISOString(),
             plannedStart: start,
             plannedEnd: end,
-            status: isEdit ? po.status : 'open',
+            status: isEdit ? po.status : 'planned',
             components: comps,
             notes: notes
           };
