@@ -10,6 +10,7 @@ App.UI.Views.Customers = {
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.customers.title','Customers')}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
             <input type="text" id="customer-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
+            <button class="btn btn-ghost" id="btn-import-customers" title="${t('importCSV', 'Import CSV')}">📥 ${t('importCSV', 'Import')}</button>
             <button class="btn btn-primary" id="btn-add-customer">+ ${App.I18n.t('common.add','Add')}</button>
           </div>
         </div>
@@ -53,6 +54,7 @@ App.UI.Views.Customers = {
     `;
 
     document.getElementById('btn-add-customer')?.addEventListener('click', () => this.openEditModal());
+    document.getElementById('btn-import-customers')?.addEventListener('click', () => this.openImportModal());
 
     root.querySelectorAll('.btn-edit-customer').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -438,5 +440,199 @@ App.UI.Views.Customers = {
         }
       }
     ]);
+  },
+
+  openImportModal() {
+    const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+
+    const body = `
+      <div>
+        <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:12px;">
+          ${t('csvFormatHelp', 'CSV format: First row = column headers')}
+        </p>
+        <div style="margin-bottom:12px;">
+          <strong>${t('requiredFields', 'Required fields')}:</strong> company<br>
+          <strong>${t('optionalFields', 'Optional fields')}:</strong> contact, email, phone, street, city, zip, country, segment, vatNumber, paymentTerms, notes
+        </div>
+        <div style="margin-bottom:12px;">
+          <button class="btn btn-ghost" id="btn-download-customer-template">
+            📋 ${t('downloadTemplate', 'Download template')}
+          </button>
+        </div>
+        <div style="border:2px dashed var(--color-border); border-radius:8px; padding:20px; text-align:center;">
+          <input type="file" id="customer-csv-input" accept=".csv,.txt" style="display:none;" />
+          <button class="btn btn-primary" id="btn-select-csv">
+            📁 ${t('selectCSVFile', 'Select CSV file')}
+          </button>
+          <p id="csv-filename" style="margin-top:8px; font-size:12px; color:var(--color-text-muted);"></p>
+        </div>
+        <div id="import-preview" style="margin-top:12px; display:none;">
+          <h4 style="font-size:14px; margin-bottom:8px;">${t('importPreview', 'Import Preview')}</h4>
+          <div id="preview-content" style="max-height:200px; overflow-y:auto; border:1px solid var(--color-border); border-radius:8px; padding:8px; font-size:12px;"></div>
+          <p id="preview-count" style="margin-top:8px; font-size:13px; font-weight:600;"></p>
+        </div>
+      </div>
+    `;
+
+    let parsedData = null;
+
+    App.UI.Modal.open(t('importCSV', 'Import CSV') + ' - ' + App.I18n.t('pages.customers.title', 'Customers'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: t('importCSV', 'Import'),
+        variant: 'primary',
+        onClick: () => {
+          if (!parsedData || parsedData.length === 0) {
+            App.UI.Toast.show(t('noFileSelected', 'No file selected'));
+            return false;
+          }
+
+          const customers = App.Data.customers || App.Data.Customers || [];
+          let imported = 0;
+          let skipped = 0;
+
+          parsedData.forEach(row => {
+            // Check for duplicates by company name
+            const exists = customers.find(c =>
+              c.company && row.company &&
+              c.company.toLowerCase().trim() === row.company.toLowerCase().trim()
+            );
+
+            if (exists) {
+              skipped++;
+              return;
+            }
+
+            const newCustomer = {
+              id: App.Utils.generateId('c'),
+              customerNumber: App.Services.NumberSequence.nextCustomerNumber(),
+              company: row.company || '',
+              segment: row.segment || null,
+              vatNumber: row.vatNumber || row.vat || null,
+              paymentTerms: row.paymentTerms || null,
+              contacts: row.contact ? [row.contact] : [],
+              phones: row.phone ? [row.phone] : [],
+              emails: row.email ? [row.email] : [],
+              addresses: [{
+                id: App.Utils.generateId('a'),
+                label: 'Main',
+                role: 'main',
+                street: row.street || '',
+                number: row.number || '',
+                city: row.city || '',
+                zip: row.zip || row.postalCode || '',
+                country: row.country || ''
+              }],
+              notes: row.notes || null,
+              name: row.contact || '',
+              email: row.email || '',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+
+            customers.push(newCustomer);
+            imported++;
+          });
+
+          App.DB.save();
+
+          let message = `${t('importSuccess', 'Import successful')}: ${imported} ${t('rowsImported', 'rows imported')}`;
+          if (skipped > 0) {
+            message += `, ${skipped} ${t('duplicatesSkipped', 'duplicates skipped')}`;
+          }
+          App.UI.Toast.show(message);
+          App.Core.Router.navigate('customers');
+        }
+      }
+    ]);
+
+    // Wire up file selection
+    setTimeout(() => {
+      const fileInput = document.getElementById('customer-csv-input');
+      const selectBtn = document.getElementById('btn-select-csv');
+      const filenameEl = document.getElementById('csv-filename');
+      const previewEl = document.getElementById('import-preview');
+      const previewContent = document.getElementById('preview-content');
+      const previewCount = document.getElementById('preview-count');
+      const templateBtn = document.getElementById('btn-download-customer-template');
+
+      // Download template
+      templateBtn?.addEventListener('click', () => {
+        const headers = ['company', 'contact', 'email', 'phone', 'street', 'city', 'zip', 'country', 'segment', 'vatNumber', 'paymentTerms', 'notes'];
+        const sampleRow = ['Example Company GmbH', 'John Doe', 'john@example.com', '+49 123 456789', 'Main Street', 'Berlin', '10115', 'Germany', 'Standard', 'DE123456789', 'Net 30', 'Sample customer'];
+        App.Utils.exportCSV(headers, [sampleRow], 'customers_template.csv');
+      });
+
+      selectBtn?.addEventListener('click', () => fileInput?.click());
+
+      fileInput?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        filenameEl.textContent = file.name;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const content = evt.target.result;
+          const result = App.Utils.parseCSV(content);
+
+          if (result.error) {
+            App.UI.Toast.show(t('invalidCSV', 'Invalid CSV file') + ': ' + result.error);
+            return;
+          }
+
+          // Map CSV fields to customer fields
+          const fieldMappings = {
+            company: ['company', 'firma', 'firmenname', 'name', 'kunde'],
+            contact: ['contact', 'kontakt', 'ansprechpartner', 'person'],
+            email: ['email', 'e-mail', 'mail'],
+            phone: ['phone', 'telefon', 'tel', 'telephone'],
+            street: ['street', 'strasse', 'straße', 'address', 'adresse'],
+            city: ['city', 'stadt', 'ort'],
+            zip: ['zip', 'plz', 'postalcode', 'postal'],
+            country: ['country', 'land'],
+            segment: ['segment', 'kategorie', 'category'],
+            vatNumber: ['vatnumber', 'vat', 'ust', 'ustid', 'uidnummer'],
+            paymentTerms: ['paymentterms', 'zahlungsbedingungen', 'payment'],
+            notes: ['notes', 'notizen', 'bemerkungen', 'comment']
+          };
+
+          const mapping = App.Utils.mapCSVFields(result.headers, fieldMappings);
+
+          // Check for required field
+          const hasCompany = Object.values(mapping).includes('company');
+          if (!hasCompany) {
+            App.UI.Toast.show(t('mappingError', 'Required fields not found') + ': company');
+            return;
+          }
+
+          // Transform data using mapping
+          parsedData = result.data.map(row => {
+            const mapped = {};
+            Object.entries(row).forEach(([key, value]) => {
+              const field = mapping[key] || key.toLowerCase();
+              mapped[field] = value;
+            });
+            return mapped;
+          }).filter(row => row.company);
+
+          // Show preview
+          if (parsedData.length > 0) {
+            previewEl.style.display = 'block';
+            const previewRows = parsedData.slice(0, 5).map(row =>
+              `<div style="padding:4px 0; border-bottom:1px solid var(--color-border);">
+                <strong>${esc(row.company || '')}</strong>
+                ${row.contact ? ` - ${esc(row.contact)}` : ''}
+                ${row.email ? ` (${esc(row.email)})` : ''}
+              </div>`
+            ).join('');
+            previewContent.innerHTML = previewRows;
+            previewCount.textContent = `${parsedData.length} ${t('foundRows', 'rows found')}`;
+          }
+        };
+        reader.readAsText(file);
+      });
+    }, 50);
   }
 };

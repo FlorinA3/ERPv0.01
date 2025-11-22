@@ -186,6 +186,22 @@ window.App = window.App || {
           noDataToExport: 'Keine Daten zum Exportieren',
           exportSuccess: 'Export erfolgreich',
           rows: 'Zeilen',
+          // CSV Import
+          importCSV: 'CSV importieren',
+          selectCSVFile: 'CSV-Datei auswählen',
+          importPreview: 'Import-Vorschau',
+          foundRows: 'Zeilen gefunden',
+          importSuccess: 'Import erfolgreich',
+          importError: 'Import-Fehler',
+          rowsImported: 'Zeilen importiert',
+          duplicatesSkipped: 'Duplikate übersprungen',
+          csvFormatHelp: 'CSV-Format: Erste Zeile = Spaltenüberschriften',
+          requiredFields: 'Pflichtfelder',
+          optionalFields: 'Optionale Felder',
+          downloadTemplate: 'Vorlage herunterladen',
+          noFileSelected: 'Keine Datei ausgewählt',
+          invalidCSV: 'Ungültige CSV-Datei',
+          mappingError: 'Pflichtfelder nicht gefunden',
           viewPrint: 'Anzeigen/Drucken',
           recordPayment: 'Zahlung erfassen',
           paymentHistory: 'Zahlungshistorie',
@@ -993,6 +1009,22 @@ window.App = window.App || {
           noDataToExport: 'No data to export',
           exportSuccess: 'Export successful',
           rows: 'rows',
+          // CSV Import
+          importCSV: 'Import CSV',
+          selectCSVFile: 'Select CSV file',
+          importPreview: 'Import Preview',
+          foundRows: 'rows found',
+          importSuccess: 'Import successful',
+          importError: 'Import error',
+          rowsImported: 'rows imported',
+          duplicatesSkipped: 'duplicates skipped',
+          csvFormatHelp: 'CSV format: First row = column headers',
+          requiredFields: 'Required fields',
+          optionalFields: 'Optional fields',
+          downloadTemplate: 'Download template',
+          noFileSelected: 'No file selected',
+          invalidCSV: 'Invalid CSV file',
+          mappingError: 'Required fields not found',
           viewPrint: 'View/Print',
           recordPayment: 'Record Payment',
           paymentHistory: 'Payment History',
@@ -1752,6 +1784,22 @@ window.App = window.App || {
           noDataToExport: 'Nu există date de exportat',
           exportSuccess: 'Export reușit',
           rows: 'rânduri',
+          // CSV Import
+          importCSV: 'Importă CSV',
+          selectCSVFile: 'Selectează fișier CSV',
+          importPreview: 'Previzualizare import',
+          foundRows: 'rânduri găsite',
+          importSuccess: 'Import reușit',
+          importError: 'Eroare import',
+          rowsImported: 'rânduri importate',
+          duplicatesSkipped: 'duplicate omise',
+          csvFormatHelp: 'Format CSV: Prima linie = anteturi coloane',
+          requiredFields: 'Câmpuri obligatorii',
+          optionalFields: 'Câmpuri opționale',
+          downloadTemplate: 'Descarcă șablon',
+          noFileSelected: 'Niciun fișier selectat',
+          invalidCSV: 'Fișier CSV invalid',
+          mappingError: 'Câmpuri obligatorii negăsite',
           viewPrint: 'Vizualizează/Printează',
           recordPayment: 'Înregistrează plată',
           paymentHistory: 'Istoric plăți',
@@ -2456,6 +2504,92 @@ App.Utils.exportCSV = function (headers, rows, filename, options = {}) {
 };
 
 /**
+ * CSV Import Utility
+ * - Parses CSV content with proper handling of quotes and commas
+ * - Supports both comma and semicolon delimiters (European formats)
+ * - Returns array of objects with headers as keys
+ */
+App.Utils.parseCSV = function (content, options = {}) {
+  const delimiter = options.delimiter || (content.includes(';') && !content.includes(',') ? ';' : ',');
+  const lines = content.split(/\r?\n/).filter(line => line.trim());
+
+  if (lines.length < 2) {
+    return { error: 'CSV must have at least a header row and one data row', data: [] };
+  }
+
+  // Parse a single line handling quoted values
+  const parseLine = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const headers = parseLine(lines[0]).map(h => h.replace(/^["']|["']$/g, '').trim());
+  const data = [];
+  const errors = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseLine(lines[i]);
+    if (values.length !== headers.length) {
+      errors.push(`Row ${i + 1}: Expected ${headers.length} columns, got ${values.length}`);
+      continue;
+    }
+
+    const row = {};
+    headers.forEach((header, idx) => {
+      let value = values[idx].replace(/^["']|["']$/g, '').trim();
+      // Convert numeric strings to numbers
+      if (value && !isNaN(value) && value !== '') {
+        value = parseFloat(value);
+      }
+      row[header] = value;
+    });
+    data.push(row);
+  }
+
+  return { headers, data, errors };
+};
+
+/**
+ * CSV Field Mapping Helper
+ * Maps CSV columns to entity fields with flexible matching
+ */
+App.Utils.mapCSVFields = function (csvHeaders, fieldMappings) {
+  const mapping = {};
+
+  Object.entries(fieldMappings).forEach(([field, aliases]) => {
+    const allNames = [field, ...aliases].map(n => n.toLowerCase().trim());
+    const match = csvHeaders.find(h => allNames.includes(h.toLowerCase().trim()));
+    if (match) {
+      mapping[match] = field;
+    }
+  });
+
+  return mapping;
+};
+
+/**
  * Number Sequence Service - Generates sequential document numbers
  * Includes year change detection and guardrails
  */
@@ -2979,6 +3113,11 @@ App.Services.Auth = {
     // Start activity tracking for auto-lock
     this._startActivityTracking();
 
+    // Start session tracking for multi-user concurrency
+    if (App.Services.SessionManager) {
+      App.Services.SessionManager.startSession(this.currentUser.id, this.currentUser.name);
+    }
+
     App.Core.Router.navigate('dashboard');
     App.UI.Toast.show('Welcome back, ' + (this.currentUser?.name || 'User'));
   },
@@ -3036,6 +3175,11 @@ App.Services.Auth = {
   },
 
   logout() {
+    // End session tracking
+    if (App.Services.SessionManager) {
+      App.Services.SessionManager.endSession();
+    }
+
     this.currentUser = null;
     this.isLocked = false;
     if (this.lockTimer) {
@@ -3073,6 +3217,171 @@ App.Services.Auth = {
    */
   isAdmin() {
     return this.currentUser?.role === 'admin';
+  }
+};
+
+/**
+ * Session Manager Service - Handles multi-user concurrency
+ * Tracks active sessions and warns about potential conflicts
+ */
+App.Services.SessionManager = {
+  sessionId: null,
+  heartbeatInterval: null,
+  SESSION_TIMEOUT_MS: 2 * 60 * 1000, // 2 minutes without heartbeat = stale session
+  HEARTBEAT_INTERVAL_MS: 30 * 1000, // Update session every 30 seconds
+
+  /**
+   * Initialize session management
+   */
+  init() {
+    // Generate unique session ID
+    this.sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  },
+
+  /**
+   * Start session tracking after login
+   */
+  startSession(userId, userName) {
+    if (!App.Data.activeSessions) App.Data.activeSessions = [];
+
+    // Check for existing active sessions
+    const otherSessions = this.getActiveSessions().filter(s => s.sessionId !== this.sessionId);
+
+    // Register this session
+    this.registerSession(userId, userName);
+
+    // Start heartbeat
+    this.startHeartbeat(userId, userName);
+
+    // Warn if other sessions detected
+    if (otherSessions.length > 0) {
+      const sessionInfo = otherSessions.map(s =>
+        `${s.userName} (${new Date(s.lastActivity).toLocaleTimeString()})`
+      ).join(', ');
+
+      setTimeout(() => {
+        App.UI.Toast.show(
+          `Warning: Other active sessions detected: ${sessionInfo}. Changes may conflict.`,
+          'warning',
+          8000
+        );
+      }, 1000);
+    }
+
+    return otherSessions;
+  },
+
+  /**
+   * Register or update session
+   */
+  registerSession(userId, userName) {
+    if (!App.Data.activeSessions) App.Data.activeSessions = [];
+
+    const existingIdx = App.Data.activeSessions.findIndex(s => s.sessionId === this.sessionId);
+    const sessionData = {
+      sessionId: this.sessionId,
+      userId,
+      userName,
+      startTime: existingIdx >= 0 ? App.Data.activeSessions[existingIdx].startTime : new Date().toISOString(),
+      lastActivity: new Date().toISOString(),
+      browser: navigator.userAgent.slice(0, 50)
+    };
+
+    if (existingIdx >= 0) {
+      App.Data.activeSessions[existingIdx] = sessionData;
+    } else {
+      App.Data.activeSessions.push(sessionData);
+    }
+
+    // Clean up stale sessions
+    this.cleanupStaleSessions();
+
+    App.DB.save();
+  },
+
+  /**
+   * Start heartbeat to maintain session presence
+   */
+  startHeartbeat(userId, userName) {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+    }
+
+    this.heartbeatInterval = setInterval(() => {
+      if (App.Services.Auth.currentUser) {
+        this.registerSession(userId, userName);
+      }
+    }, this.HEARTBEAT_INTERVAL_MS);
+  },
+
+  /**
+   * Stop session tracking
+   */
+  endSession() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+
+    if (App.Data.activeSessions) {
+      App.Data.activeSessions = App.Data.activeSessions.filter(s => s.sessionId !== this.sessionId);
+      App.DB.save();
+    }
+  },
+
+  /**
+   * Get active sessions (not stale)
+   */
+  getActiveSessions() {
+    const sessions = App.Data.activeSessions || [];
+    const cutoff = Date.now() - this.SESSION_TIMEOUT_MS;
+
+    return sessions.filter(s => new Date(s.lastActivity).getTime() > cutoff);
+  },
+
+  /**
+   * Clean up stale sessions
+   */
+  cleanupStaleSessions() {
+    if (!App.Data.activeSessions) return;
+
+    const cutoff = Date.now() - this.SESSION_TIMEOUT_MS;
+    const before = App.Data.activeSessions.length;
+    App.Data.activeSessions = App.Data.activeSessions.filter(s =>
+      new Date(s.lastActivity).getTime() > cutoff
+    );
+    const removed = before - App.Data.activeSessions.length;
+
+    if (removed > 0) {
+      console.log(`Cleaned up ${removed} stale sessions`);
+    }
+  },
+
+  /**
+   * Check for concurrent sessions and show warning if needed
+   */
+  checkConcurrentSessions() {
+    const otherSessions = this.getActiveSessions().filter(s => s.sessionId !== this.sessionId);
+
+    if (otherSessions.length > 0) {
+      return {
+        hasConcurrent: true,
+        sessions: otherSessions
+      };
+    }
+
+    return { hasConcurrent: false, sessions: [] };
+  },
+
+  /**
+   * Get session info for display
+   */
+  getSessionInfo() {
+    return {
+      currentSessionId: this.sessionId,
+      activeSessions: this.getActiveSessions(),
+      totalSessions: this.getActiveSessions().length
+    };
   }
 };
 
@@ -3188,6 +3497,68 @@ App.Services.ActivityLog = {
 
     App.DB.save();
     return before - after;
+  },
+
+  /**
+   * Get retention configuration
+   */
+  getRetentionConfig() {
+    const config = App.Data.config || App.Data.Config || {};
+    return {
+      retentionDays: config.logRetentionDays ?? 90,
+      autoCleanup: config.logAutoCleanup ?? true,
+      maxEntries: config.logMaxEntries ?? 1000
+    };
+  },
+
+  /**
+   * Set retention configuration
+   */
+  setRetentionConfig(options = {}) {
+    const config = App.Data.config || App.Data.Config || {};
+    if (options.retentionDays !== undefined) config.logRetentionDays = options.retentionDays;
+    if (options.autoCleanup !== undefined) config.logAutoCleanup = options.autoCleanup;
+    if (options.maxEntries !== undefined) config.logMaxEntries = options.maxEntries;
+    App.DB.save();
+    return this.getRetentionConfig();
+  },
+
+  /**
+   * Auto-cleanup based on retention policy
+   * Called on app initialization
+   */
+  autoCleanup() {
+    const config = this.getRetentionConfig();
+    if (!config.autoCleanup) return 0;
+
+    const deleted = this.cleanup(config.retentionDays);
+    if (deleted > 0) {
+      console.log(`Activity log auto-cleanup: ${deleted} entries removed (retention: ${config.retentionDays} days)`);
+    }
+    return deleted;
+  },
+
+  /**
+   * Get log statistics
+   */
+  getStats() {
+    const log = App.Data.activityLog || [];
+    const config = this.getRetentionConfig();
+
+    // Find oldest entry
+    const oldestEntry = log.length > 0 ? log[log.length - 1] : null;
+    const oldestDate = oldestEntry ? new Date(oldestEntry.timestamp) : null;
+
+    // Calculate size estimate (rough)
+    const sizeEstimate = JSON.stringify(log).length;
+
+    return {
+      totalEntries: log.length,
+      maxEntries: config.maxEntries,
+      retentionDays: config.retentionDays,
+      oldestEntryDate: oldestDate?.toISOString() || null,
+      sizeEstimateKB: Math.round(sizeEstimate / 1024)
+    };
   }
 };
 
@@ -3905,7 +4276,8 @@ App.Services.Keyboard = {
 
       // Quick actions (Ctrl + key)
       'ctrl+n': { action: () => this._createNew(), description: 'Create new (context-aware)' },
-      'ctrl+f': { action: () => this._focusSearch(), description: 'Focus search' },
+      'ctrl+k': { action: () => this._focusGlobalSearch(), description: 'Global search' },
+      'ctrl+f': { action: () => this._focusSearch(), description: 'Focus page search' },
       'ctrl+e': { action: () => this._exportCurrent(), description: 'Export current view' },
 
       // Utility shortcuts
@@ -4002,13 +4374,22 @@ App.Services.Keyboard = {
     }
   },
 
+  _focusGlobalSearch() {
+    const globalSearch = document.getElementById('global-search');
+    if (globalSearch) {
+      globalSearch.focus();
+      globalSearch.select();
+    }
+  },
+
   _focusSearch() {
-    const searchInput = document.querySelector('.search-input, input[type="search"], #search');
-    if (searchInput) {
-      searchInput.focus();
-      searchInput.select();
+    // First try page-specific search, then fall back to global
+    const pageSearch = document.querySelector('#customer-search, #product-search, #order-search, #component-search');
+    if (pageSearch) {
+      pageSearch.focus();
+      pageSearch.select();
     } else {
-      App.UI.Toast.show('No search field on this page');
+      this._focusGlobalSearch();
     }
   },
 
@@ -4047,7 +4428,7 @@ App.Services.Keyboard = {
   showHelp() {
     const categories = {
       'Navigation': ['alt+d', 'alt+o', 'alt+i', 'alt+c', 'alt+p', 'alt+r', 'alt+s', 'alt+m', 'alt+b', 'alt+u'],
-      'Actions': ['ctrl+n', 'ctrl+f', 'ctrl+e', 'ctrl+l'],
+      'Actions': ['ctrl+n', 'ctrl+k', 'ctrl+f', 'ctrl+e', 'ctrl+l'],
       'Utility': ['escape', 'f1', 'alt+t']
     };
 
@@ -4100,7 +4481,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     App.UI.Modal.init();
     App.Services.Keyboard.init();
     App.Services.Automation.loadConfig();
+
+    // Initialize session manager for multi-user support
+    if (App.Services.SessionManager) {
+      App.Services.SessionManager.init();
+    }
+
+    // Auto-cleanup old activity log entries based on retention policy
+    if (App.Services.ActivityLog?.autoCleanup) {
+      App.Services.ActivityLog.autoCleanup();
+    }
+
     App.Services.Auth.initLoginScreen();
+
+    // End session when user closes/navigates away from page
+    window.addEventListener('beforeunload', () => {
+      if (App.Services.SessionManager) {
+        App.Services.SessionManager.endSession();
+      }
+    });
 
     // Offline/Online status detection
     window.addEventListener('offline', () => {

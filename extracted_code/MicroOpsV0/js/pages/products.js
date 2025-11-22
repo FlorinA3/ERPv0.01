@@ -10,6 +10,7 @@ App.UI.Views.Products = {
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.products.title','Products')}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
             <input type="text" id="product-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
+            <button class="btn btn-ghost" id="btn-import-products" title="${t('importCSV', 'Import CSV')}">📥 ${t('importCSV', 'Import')}</button>
             <button class="btn btn-primary" id="btn-add-product">+ ${App.I18n.t('common.add','Add')}</button>
           </div>
         </div>
@@ -51,6 +52,7 @@ App.UI.Views.Products = {
     `;
 
     document.getElementById('btn-add-product').onclick = () => this.openEditModal();
+    document.getElementById('btn-import-products')?.addEventListener('click', () => this.openImportModal());
 
     root.querySelectorAll('.btn-edit-product').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -343,5 +345,191 @@ App.UI.Views.Products = {
         }
       }
     ]);
+  },
+
+  openImportModal() {
+    const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+
+    const body = `
+      <div>
+        <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:12px;">
+          ${t('csvFormatHelp', 'CSV format: First row = column headers')}
+        </p>
+        <div style="margin-bottom:12px;">
+          <strong>${t('requiredFields', 'Required fields')}:</strong> articleNumber, nameDE<br>
+          <strong>${t('optionalFields', 'Optional fields')}:</strong> nameEN, type, purchasePrice, dealerPrice, endCustomerPrice, stock, minStock, unit
+        </div>
+        <div style="margin-bottom:12px;">
+          <button class="btn btn-ghost" id="btn-download-product-template">
+            📋 ${t('downloadTemplate', 'Download template')}
+          </button>
+        </div>
+        <div style="border:2px dashed var(--color-border); border-radius:8px; padding:20px; text-align:center;">
+          <input type="file" id="product-csv-input" accept=".csv,.txt" style="display:none;" />
+          <button class="btn btn-primary" id="btn-select-product-csv">
+            📁 ${t('selectCSVFile', 'Select CSV file')}
+          </button>
+          <p id="product-csv-filename" style="margin-top:8px; font-size:12px; color:var(--color-text-muted);"></p>
+        </div>
+        <div id="product-import-preview" style="margin-top:12px; display:none;">
+          <h4 style="font-size:14px; margin-bottom:8px;">${t('importPreview', 'Import Preview')}</h4>
+          <div id="product-preview-content" style="max-height:200px; overflow-y:auto; border:1px solid var(--color-border); border-radius:8px; padding:8px; font-size:12px;"></div>
+          <p id="product-preview-count" style="margin-top:8px; font-size:13px; font-weight:600;"></p>
+        </div>
+      </div>
+    `;
+
+    let parsedData = null;
+
+    App.UI.Modal.open(t('importCSV', 'Import CSV') + ' - ' + App.I18n.t('pages.products.title', 'Products'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: t('importCSV', 'Import'),
+        variant: 'primary',
+        onClick: () => {
+          if (!parsedData || parsedData.length === 0) {
+            App.UI.Toast.show(t('noFileSelected', 'No file selected'));
+            return false;
+          }
+
+          const products = App.Data.products || App.Data.Products || [];
+          let imported = 0;
+          let skipped = 0;
+
+          parsedData.forEach(row => {
+            // Check for duplicates by article number
+            const exists = products.find(p =>
+              p.internalArticleNumber && row.articleNumber &&
+              p.internalArticleNumber.toLowerCase().trim() === String(row.articleNumber).toLowerCase().trim()
+            );
+
+            if (exists) {
+              skipped++;
+              return;
+            }
+
+            const newProduct = {
+              id: App.Utils.generateId('p'),
+              internalArticleNumber: String(row.articleNumber || '').trim(),
+              sku: String(row.articleNumber || '').trim(),
+              nameDE: row.nameDE || row.name || '',
+              nameEN: row.nameEN || '',
+              type: row.type || 'Consumable',
+              avgPurchasePrice: parseFloat(row.purchasePrice) || 0,
+              dealerPrice: parseFloat(row.dealerPrice) || 0,
+              endCustomerPrice: parseFloat(row.endCustomerPrice) || 0,
+              stock: parseInt(row.stock, 10) || 0,
+              minStock: parseInt(row.minStock, 10) || 0,
+              unit: row.unit || 'Stk',
+              bom: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+
+            products.push(newProduct);
+            imported++;
+          });
+
+          App.DB.save();
+
+          let message = `${t('importSuccess', 'Import successful')}: ${imported} ${t('rowsImported', 'rows imported')}`;
+          if (skipped > 0) {
+            message += `, ${skipped} ${t('duplicatesSkipped', 'duplicates skipped')}`;
+          }
+          App.UI.Toast.show(message);
+          App.Core.Router.navigate('products');
+        }
+      }
+    ]);
+
+    // Wire up file selection
+    setTimeout(() => {
+      const fileInput = document.getElementById('product-csv-input');
+      const selectBtn = document.getElementById('btn-select-product-csv');
+      const filenameEl = document.getElementById('product-csv-filename');
+      const previewEl = document.getElementById('product-import-preview');
+      const previewContent = document.getElementById('product-preview-content');
+      const previewCount = document.getElementById('product-preview-count');
+      const templateBtn = document.getElementById('btn-download-product-template');
+
+      // Download template
+      templateBtn?.addEventListener('click', () => {
+        const headers = ['articleNumber', 'nameDE', 'nameEN', 'type', 'purchasePrice', 'dealerPrice', 'endCustomerPrice', 'stock', 'minStock', 'unit'];
+        const sampleRow = ['ART-001', 'Beispielprodukt', 'Sample Product', 'Consumable', '10.00', '15.00', '20.00', '100', '10', 'Stk'];
+        App.Utils.exportCSV(headers, [sampleRow], 'products_template.csv');
+      });
+
+      selectBtn?.addEventListener('click', () => fileInput?.click());
+
+      fileInput?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        filenameEl.textContent = file.name;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const content = evt.target.result;
+          const result = App.Utils.parseCSV(content);
+
+          if (result.error) {
+            App.UI.Toast.show(t('invalidCSV', 'Invalid CSV file') + ': ' + result.error);
+            return;
+          }
+
+          // Map CSV fields to product fields
+          const fieldMappings = {
+            articleNumber: ['articlenumber', 'artnr', 'artno', 'art.nr.', 'artikelnummer', 'sku', 'number'],
+            nameDE: ['namede', 'name_de', 'name (de)', 'bezeichnung', 'name', 'product'],
+            nameEN: ['nameen', 'name_en', 'name (en)', 'description'],
+            type: ['type', 'typ', 'category', 'kategorie'],
+            purchasePrice: ['purchaseprice', 'einkaufspreis', 'ekp', 'cost', 'purchase'],
+            dealerPrice: ['dealerprice', 'händlerpreis', 'dealer', 'wholesale'],
+            endCustomerPrice: ['endcustomerprice', 'endkundenpreis', 'retail', 'vkp', 'price'],
+            stock: ['stock', 'bestand', 'lager', 'quantity', 'menge'],
+            minStock: ['minstock', 'mindestbestand', 'reorder', 'min'],
+            unit: ['unit', 'einheit', 'uom']
+          };
+
+          const mapping = App.Utils.mapCSVFields(result.headers, fieldMappings);
+
+          // Check for required fields
+          const hasArticle = Object.values(mapping).includes('articleNumber');
+          const hasName = Object.values(mapping).includes('nameDE');
+          if (!hasArticle || !hasName) {
+            const missing = [];
+            if (!hasArticle) missing.push('articleNumber');
+            if (!hasName) missing.push('nameDE');
+            App.UI.Toast.show(t('mappingError', 'Required fields not found') + ': ' + missing.join(', '));
+            return;
+          }
+
+          // Transform data using mapping
+          parsedData = result.data.map(row => {
+            const mapped = {};
+            Object.entries(row).forEach(([key, value]) => {
+              const field = mapping[key] || key.toLowerCase();
+              mapped[field] = value;
+            });
+            return mapped;
+          }).filter(row => row.articleNumber && row.nameDE);
+
+          // Show preview
+          if (parsedData.length > 0) {
+            previewEl.style.display = 'block';
+            const previewRows = parsedData.slice(0, 5).map(row =>
+              `<div style="padding:4px 0; border-bottom:1px solid var(--color-border);">
+                <strong>${esc(String(row.articleNumber || ''))}</strong> - ${esc(row.nameDE || '')}
+                ${row.dealerPrice ? ` (${App.Utils.formatCurrency(row.dealerPrice)})` : ''}
+              </div>`
+            ).join('');
+            previewContent.innerHTML = previewRows;
+            previewCount.textContent = `${parsedData.length} ${t('foundRows', 'rows found')}`;
+          }
+        };
+        reader.readAsText(file);
+      });
+    }, 50);
   }
 };

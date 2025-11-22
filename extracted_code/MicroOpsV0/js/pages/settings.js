@@ -234,10 +234,30 @@ App.UI.Views.Settings = {
             </div>
           </div>
 
-          <h4 style="font-size:14px; font-weight:600; margin:16px 0 12px;">Data Maintenance</h4>
-          <div style="display:flex; gap:8px;">
-            <button class="btn btn-ghost" id="btn-cleanup-log">Clean Old Logs</button>
+          <h4 style="font-size:14px; font-weight:600; margin:16px 0 12px;">Activity Log Settings</h4>
+          <div class="grid" style="gap:8px;">
+            <div>
+              <label class="field-label">Retention Period (days)</label>
+              <select id="set-log-retention" class="input">
+                <option value="30" ${(cfg.logRetentionDays || 90) === 30 ? 'selected' : ''}>30 days</option>
+                <option value="60" ${(cfg.logRetentionDays || 90) === 60 ? 'selected' : ''}>60 days</option>
+                <option value="90" ${(cfg.logRetentionDays || 90) === 90 ? 'selected' : ''}>90 days</option>
+                <option value="180" ${(cfg.logRetentionDays || 90) === 180 ? 'selected' : ''}>180 days</option>
+                <option value="365" ${(cfg.logRetentionDays || 90) === 365 ? 'selected' : ''}>1 year</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="set-log-autocleanup" ${cfg.logAutoCleanup !== false ? 'checked' : ''} />
+                <span>Auto-cleanup on startup</span>
+              </label>
+            </div>
           </div>
+          <div style="display:flex; gap:8px; margin-top:12px;">
+            <button class="btn btn-ghost" id="btn-cleanup-log">Clean Old Logs Now</button>
+            <button class="btn btn-ghost" id="btn-save-log-settings">Save Log Settings</button>
+          </div>
+          <div id="log-stats" style="margin-top:12px; font-size:11px; color:var(--color-text-muted);"></div>
         </div>
       </div>
     `;
@@ -402,14 +422,42 @@ App.UI.Views.Settings = {
       };
     }
 
+    // Log retention settings
+    const saveLogSettingsBtn = document.getElementById('btn-save-log-settings');
+    if (saveLogSettingsBtn) {
+      saveLogSettingsBtn.onclick = () => {
+        const retentionDays = parseInt(document.getElementById('set-log-retention')?.value) || 90;
+        const autoCleanup = document.getElementById('set-log-autocleanup')?.checked ?? true;
+
+        App.Services.ActivityLog.setRetentionConfig({
+          retentionDays,
+          autoCleanup
+        });
+
+        App.UI.Toast.show('Log retention settings saved');
+      };
+    }
+
     // Log cleanup
     const cleanupBtn = document.getElementById('btn-cleanup-log');
     if (cleanupBtn) {
       cleanupBtn.onclick = () => {
-        const removed = App.Services.ActivityLog?.cleanup(30) || 0;
-        App.UI.Toast.show(`Cleaned up ${removed} old log entries`);
+        const retentionDays = parseInt(document.getElementById('set-log-retention')?.value) || 90;
+        const removed = App.Services.ActivityLog?.cleanup(retentionDays) || 0;
+        App.UI.Toast.show(`Cleaned up ${removed} old log entries (older than ${retentionDays} days)`);
         this.render(root);
       };
+    }
+
+    // Display log stats
+    const logStatsEl = document.getElementById('log-stats');
+    if (logStatsEl && App.Services.ActivityLog?.getStats) {
+      const stats = App.Services.ActivityLog.getStats();
+      logStatsEl.innerHTML = `
+        Entries: ${stats.totalEntries} |
+        Size: ~${stats.sizeEstimateKB} KB |
+        Oldest: ${stats.oldestEntryDate ? new Date(stats.oldestEntryDate).toLocaleDateString() : 'N/A'}
+      `;
     }
 
     // Email Template Event Handlers

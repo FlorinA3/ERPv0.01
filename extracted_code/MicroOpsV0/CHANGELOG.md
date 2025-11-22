@@ -9,6 +9,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] - 2025-11-22
 
+### Phase 40: CSV Import, Global Search & Keyboard Shortcuts
+
+#### Added
+- **CSV Import Utility** (`App.Utils.parseCSV`): Parses CSV content with proper handling of quotes, commas, and European semicolon delimiters
+- **Field Mapping Utility** (`App.Utils.mapCSVFields`): Flexible field mapping supporting German/English column names (e.g., "Firma" maps to "company")
+- **Customers CSV Import**:
+  - Import button in Customers page header
+  - File picker with preview of first 5 rows
+  - Downloadable CSV template
+  - Duplicate detection by company name
+  - Maps: company, contact, email, phone, street, city, zip, country, segment, vatNumber, paymentTerms, notes
+- **Products CSV Import**:
+  - Import button in Products page header
+  - File picker with preview of first 5 rows
+  - Downloadable CSV template
+  - Duplicate detection by article number
+  - Maps: articleNumber, nameDE, nameEN, type, purchasePrice, dealerPrice, endCustomerPrice, stock, minStock, unit
+- **Import Translations**: Full DE/EN/RO support for all import-related messages
+
+#### Enhanced Global Search
+- Added search for Purchase Orders, Production Orders, Batches/LOTs, and Carriers
+- Updated search placeholder to show Ctrl+K shortcut
+- Added type labels for new search categories
+- Grouped search results by category for better organization
+
+#### Enhanced Keyboard Shortcuts
+- **Ctrl+K**: Focus global search (new)
+- **Ctrl+F**: Focus page-specific search (improved to check page search first)
+- Added `_focusGlobalSearch()` utility function
+- Updated help dialog (F1) to include new shortcut
+
+#### Audit Log Retention Policy
+- **Retention Configuration**: Configurable retention period (30, 60, 90, 180, 365 days)
+- **Auto-cleanup**: Option to automatically clean old logs on app startup
+- **Settings UI**: Added log retention settings in System tab
+  - Retention period dropdown
+  - Auto-cleanup toggle
+  - Manual cleanup button
+  - Log statistics display (entries, size, oldest date)
+- **New ActivityLog methods**:
+  - `getRetentionConfig()`: Get current retention settings
+  - `setRetentionConfig()`: Save retention settings
+  - `autoCleanup()`: Run cleanup based on policy
+  - `getStats()`: Get log statistics
+
+#### Multi-User Concurrency Handling
+- **Session Manager Service** (`App.Services.SessionManager`):
+  - Tracks active sessions with unique session IDs
+  - Heartbeat mechanism (30s interval) to maintain session presence
+  - Automatic stale session cleanup (2-minute timeout)
+  - Concurrent session detection and warnings
+- **Features**:
+  - Warning toast when other active sessions detected at login
+  - Automatic session end on logout and page close
+  - Session info tracking (user, start time, last activity, browser)
+  - Prevents data conflicts when multiple users access shared folder
+
+---
+
 ### Phase 39: GA Compliance - Translation Pattern Standardization
 
 #### Changed

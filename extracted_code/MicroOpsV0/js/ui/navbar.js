@@ -41,7 +41,7 @@ App.UI.Navbar = {
         </div>
         <div class="navbar-center">
           <div class="search-container" style="position:relative;">
-            <input type="text" id="global-search" class="input search-input" placeholder="Search... (Ctrl+F)" style="width:280px; padding-left:32px;" />
+            <input type="text" id="global-search" class="input search-input" placeholder="Search... (Ctrl+K)" style="width:280px; padding-left:32px;" />
             <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--color-text-muted);">🔍</span>
             <div id="search-results" class="search-results hidden" style="position:absolute; top:100%; left:0; right:0; background:var(--color-surface); border:1px solid var(--color-border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); max-height:400px; overflow-y:auto; z-index:1000;"></div>
           </div>
@@ -275,6 +275,73 @@ App.UI.Navbar = {
       });
     });
 
+    // Search purchase orders
+    const purchaseOrders = App.Data.purchaseOrders || [];
+    const matchedPOs = purchaseOrders.filter(po =>
+      (po.poNumber || '').toLowerCase().includes(query)
+    ).slice(0, limit);
+
+    matchedPOs.forEach(po => {
+      const supplier = suppliers.find(s => s.id === po.supplierId);
+      results.push({
+        type: 'purchaseOrder',
+        icon: '📥',
+        title: po.poNumber,
+        subtitle: `${supplier?.name || 'Unknown'} • ${po.status || 'Draft'}`,
+        action: () => App.Core.Router.navigate('purchaseOrders')
+      });
+    });
+
+    // Search production orders
+    const productionOrders = App.Data.productionOrders || [];
+    const matchedProdOrders = productionOrders.filter(po =>
+      (po.poNumber || '').toLowerCase().includes(query)
+    ).slice(0, limit);
+
+    matchedProdOrders.forEach(po => {
+      const prod = products.find(p => p.id === po.productId);
+      results.push({
+        type: 'productionOrder',
+        icon: '⚙️',
+        title: po.poNumber,
+        subtitle: `${prod?.nameDE || prod?.nameEN || 'Unknown'} • ${po.status || 'Planned'}`,
+        action: () => App.Core.Router.navigate('production')
+      });
+    });
+
+    // Search batches/LOTs
+    const batches = App.Data.batches || [];
+    const matchedBatches = batches.filter(b =>
+      (b.lotNumber || '').toLowerCase().includes(query)
+    ).slice(0, limit);
+
+    matchedBatches.forEach(b => {
+      results.push({
+        type: 'batch',
+        icon: '🏷️',
+        title: b.lotNumber,
+        subtitle: `${b.itemType === 'component' ? 'Component' : 'Product'} • Qty: ${b.quantity || 0}`,
+        action: () => App.Core.Router.navigate('batches')
+      });
+    });
+
+    // Search carriers
+    const carriers = App.Data.carriers || [];
+    const matchedCarriers = carriers.filter(c =>
+      (c.name || '').toLowerCase().includes(query) ||
+      (c.trackingUrl || '').toLowerCase().includes(query)
+    ).slice(0, limit);
+
+    matchedCarriers.forEach(c => {
+      results.push({
+        type: 'carrier',
+        icon: '🚚',
+        title: c.name,
+        subtitle: c.phone || c.email || '',
+        action: () => App.Core.Router.navigate('carriers')
+      });
+    });
+
     return results;
   },
 
@@ -302,7 +369,11 @@ App.UI.Navbar = {
       component: 'Components',
       order: 'Orders',
       document: 'Documents',
-      supplier: 'Suppliers'
+      supplier: 'Suppliers',
+      purchaseOrder: 'Purchase Orders',
+      productionOrder: 'Production Orders',
+      batch: 'Batches/LOTs',
+      carrier: 'Carriers'
     };
 
     let html = '';
