@@ -371,42 +371,194 @@ App.Utils.formatDate = function (iso) {
 
 App.Services.Auth = {
   currentUser: null,
+  lastActivity: Date.now(),
+  lockTimer: null,
+  isLocked: false,
+
+  // Role-based route permissions
+  rolePermissions: {
+    admin: ['dashboard', 'customers', 'products', 'components', 'suppliers', 'carriers', 'pricing', 'inventory', 'movements', 'orders', 'production', 'documents', 'reports', 'tasks', 'settings'],
+    sales: ['dashboard', 'customers', 'products', 'pricing', 'orders', 'documents', 'reports', 'tasks'],
+    warehouse: ['dashboard', 'inventory', 'movements', 'components', 'suppliers', 'carriers', 'production', 'tasks'],
+    production: ['dashboard', 'production', 'components', 'inventory', 'movements', 'tasks']
+  },
+
   initLoginScreen() {
     const userSelect = document.getElementById('login-user');
     const pinInput = document.getElementById('login-pin');
     const btn = document.getElementById('login-btn');
     const err = document.getElementById('login-error');
-    const users = App.Data.users || App.Data.Users || [];
+    const users = (App.Data.users || App.Data.Users || []).filter(u => u.active !== false);
+
+    if (users.length === 0) {
+      userSelect.innerHTML = '<option value="">No users available</option>';
+      return;
+    }
+
     userSelect.innerHTML = users
       .map(u => `<option value="${u.id}">${u.name} (${u.role})</option>`)
       .join('');
-    btn.onclick = () => {
-      const userId = userSelect.value;
-      const user = (App.Data.users || App.Data.Users || []).find(u => u.id === userId);
-      const pin = pinInput.value.trim();
-      if (!user || pin !== user.pin) {
-        err.classList.remove('hidden');
-        return;
-      }
-      err.classList.add('hidden');
-      this.currentUser = user;
-      this._enterApp();
+
+    // Check for remembered user
+    const rememberedUserId = localStorage.getItem('microops_last_user');
+    if (rememberedUserId) {
+      userSelect.value = rememberedUserId;
+    }
+
+    btn.onclick = () => this._attemptLogin();
+    pinInput.onkeydown = (e) => {
+      if (e.key === 'Enter') this._attemptLogin();
     };
   },
+
+  _attemptLogin() {
+    const userSelect = document.getElementById('login-user');
+    const pinInput = document.getElementById('login-pin');
+    const err = document.getElementById('login-error');
+    const rememberCheckbox = document.getElementById('login-remember');
+
+    const userId = userSelect.value;
+    const user = (App.Data.users || App.Data.Users || []).find(u => u.id === userId);
+    const pin = pinInput.value.trim();
+
+    if (!user || pin !== user.pin || user.active === false) {
+      err.classList.remove('hidden');
+      pinInput.classList.add('shake');
+      setTimeout(() => pinInput.classList.remove('shake'), 500);
+      return;
+    }
+
+    err.classList.add('hidden');
+    this.currentUser = user;
+
+    // Remember user if checkbox is checked
+    if (rememberCheckbox && rememberCheckbox.checked) {
+      localStorage.setItem('microops_last_user', userId);
+    } else {
+      localStorage.removeItem('microops_last_user');
+    }
+
+    this._enterApp();
+  },
+
   _enterApp() {
     const login = document.getElementById('login-screen');
     const shell = document.getElementById('app-shell');
+    const lockScreen = document.getElementById('lock-screen');
+
     login.classList.add('hidden');
     shell.classList.remove('hidden');
+    if (lockScreen) lockScreen.classList.add('hidden');
+    this.isLocked = false;
+
+    // Apply user preferences
+    if (this.currentUser) {
+      const theme = this.currentUser.preferredTheme || App.Data.config?.theme || 'dark';
+      const lang = this.currentUser.preferredLang || App.Data.config?.lang || 'en';
+      document.documentElement.setAttribute('data-theme', theme);
+      App.I18n.currentLang = lang;
+    }
+
     if (App.UI.Navbar && App.UI.Navbar.render) App.UI.Navbar.render();
     if (App.UI.Sidebar && App.UI.Sidebar.init) App.UI.Sidebar.init();
+
+    // Start activity tracking for auto-lock
+    this._startActivityTracking();
+
     App.Core.Router.navigate('dashboard');
     App.UI.Toast.show('Welcome back, ' + (this.currentUser?.name || 'User'));
   },
+
+  _startActivityTracking() {
+    this.lastActivity = Date.now();
+
+    // Clear existing timer
+    if (this.lockTimer) {
+      clearInterval(this.lockTimer);
+    }
+
+    // Track user activity
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+    activityEvents.forEach(event => {
+      document.addEventListener(event, () => {
+        this.lastActivity = Date.now();
+      }, { passive: true });
+    });
+
+    // Check for inactivity every minute
+    this.lockTimer = setInterval(() => {
+      const autoLockMinutes = App.Data.config?.autoLockMinutes || 15;
+      const inactiveMinutes = (Date.now() - this.lastActivity) / 60000;
+
+      if (inactiveMinutes >= autoLockMinutes && this.currentUser && !this.isLocked) {
+        this.lock();
+      }
+    }, 60000);
+  },
+
+  lock() {
+    this.isLocked = true;
+    const lockScreen = document.getElementById('lock-screen');
+    if (lockScreen) {
+      const lockUser = document.getElementById('lock-user-name');
+      const lockPin = document.getElementById('lock-pin');
+      if (lockUser) lockUser.textContent = this.currentUser?.name || 'User';
+      if (lockPin) lockPin.value = '';
+      lockScreen.classList.remove('hidden');
+    }
+  },
+
+  unlock(pin) {
+    if (!this.currentUser) return false;
+
+    if (pin === this.currentUser.pin) {
+      this.isLocked = false;
+      this.lastActivity = Date.now();
+      const lockScreen = document.getElementById('lock-screen');
+      if (lockScreen) lockScreen.classList.add('hidden');
+      return true;
+    }
+    return false;
+  },
+
   logout() {
     this.currentUser = null;
+    this.isLocked = false;
+    if (this.lockTimer) {
+      clearInterval(this.lockTimer);
+      this.lockTimer = null;
+    }
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('app-shell').classList.add('hidden');
+    const lockScreen = document.getElementById('lock-screen');
+    if (lockScreen) lockScreen.classList.add('hidden');
+    document.getElementById('login-pin').value = '';
+  },
+
+  /**
+   * Check if current user can access a route
+   */
+  canAccess(route) {
+    if (!this.currentUser) return false;
+    const role = this.currentUser.role || 'admin';
+    const permissions = this.rolePermissions[role] || [];
+    return permissions.includes(route);
+  },
+
+  /**
+   * Get allowed routes for current user
+   */
+  getAllowedRoutes() {
+    if (!this.currentUser) return [];
+    const role = this.currentUser.role || 'admin';
+    return this.rolePermissions[role] || [];
+  },
+
+  /**
+   * Check if current user is admin
+   */
+  isAdmin() {
+    return this.currentUser?.role === 'admin';
   }
 };
 

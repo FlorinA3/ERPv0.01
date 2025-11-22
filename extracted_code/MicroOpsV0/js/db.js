@@ -1,13 +1,13 @@
 App.DB = {
-  // Bump the storage key again (V3) to avoid loading stale data from previous versions
-  storageKey: 'MicroOps_DB_V3',
+  // Bump the storage key to V4 for complete blueprint implementation
+  storageKey: 'MicroOps_DB_V4',
 
   async init() {
     const fromStorage = this._loadFromStorage();
     if (fromStorage) {
       // Normalise loaded data according to spec
       App.Data = this.normalizeData(fromStorage);
-      return;
+      return { isFirstRun: false };
     }
 
     try {
@@ -17,7 +17,7 @@ App.DB = {
         // Normalise fetched data according to spec
         App.Data = this.normalizeData(json);
         this.save();
-        return;
+        return { isFirstRun: false };
       }
     } catch (e) {
       console.warn('Could not fetch microops_data.json, using seed data.', e);
@@ -25,6 +25,94 @@ App.DB = {
 
     this._seed();
     this.save();
+    return { isFirstRun: true };
+  },
+
+  /**
+   * Check if this is first run (no data)
+   */
+  isFirstRun() {
+    return !localStorage.getItem(this.storageKey);
+  },
+
+  /**
+   * Clear all data and return to first-run state
+   */
+  reset() {
+    localStorage.removeItem(this.storageKey);
+    App.Data = null;
+  },
+
+  /**
+   * Export full database as downloadable JSON backup
+   */
+  exportBackup() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `microops_backup_${timestamp}.json`;
+    const data = {
+      _backupMeta: {
+        version: 'V4',
+        exportedAt: new Date().toISOString(),
+        appVersion: '0.1.0'
+      },
+      ...App.Data
+    };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(
+      new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    );
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    return filename;
+  },
+
+  /**
+   * Import database from JSON file
+   * @param {File} file - The JSON file to import
+   * @returns {Promise<{success: boolean, message: string, stats?: object}>}
+   */
+  async importBackup(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          // Remove backup metadata before import
+          delete data._backupMeta;
+
+          // Validate structure
+          const required = ['config', 'users'];
+          for (const key of required) {
+            if (!data[key] && !data[key.charAt(0).toUpperCase() + key.slice(1)]) {
+              resolve({ success: false, message: `Invalid backup: missing ${key}` });
+              return;
+            }
+          }
+
+          // Normalize and set data
+          App.Data = this.normalizeData(data);
+          this.save();
+
+          // Return stats
+          const stats = {
+            users: (App.Data.users || []).length,
+            customers: (App.Data.customers || []).length,
+            products: (App.Data.products || []).length,
+            orders: (App.Data.orders || []).length,
+            documents: (App.Data.documents || []).length
+          };
+
+          resolve({ success: true, message: 'Backup restored successfully', stats });
+        } catch (err) {
+          resolve({ success: false, message: `Import failed: ${err.message}` });
+        }
+      };
+      reader.onerror = () => {
+        resolve({ success: false, message: 'Failed to read file' });
+      };
+      reader.readAsText(file);
+    });
   },
 
   /**
@@ -39,12 +127,39 @@ App.DB = {
   normalizeData(data) {
     if (!data || typeof data !== 'object') return data;
     const normalised = {};
-    // Config
-    normalised.config = data.config || data.Config || {
-      currency: 'EUR',
-      companyName: 'MicroOps',
-      theme: 'dark',
-      lang: 'en'
+
+    // Config - Complete blueprint schema
+    const existingConfig = data.config || data.Config || {};
+    normalised.config = {
+      // Company
+      companyName: existingConfig.companyName || 'MicroOps',
+      street: existingConfig.street || '',
+      zip: existingConfig.zip || '',
+      city: existingConfig.city || '',
+      country: existingConfig.country || 'AT',
+      vatNumber: existingConfig.vatNumber || '',
+      commercialRegisterNumber: existingConfig.commercialRegisterNumber || '',
+      iban: existingConfig.iban || '',
+      bic: existingConfig.bic || '',
+      bankName: existingConfig.bankName || '',
+      currency: existingConfig.currency || 'EUR',
+      // Defaults
+      defaultVatRate: existingConfig.defaultVatRate ?? 0.2,
+      defaultPaymentTerms: existingConfig.defaultPaymentTerms || '14 Tage netto',
+      defaultDeliveryTerms: existingConfig.defaultDeliveryTerms || 'FCA',
+      // UI
+      lang: existingConfig.lang || 'en',
+      theme: existingConfig.theme || 'dark',
+      // Environment
+      isDemo: existingConfig.isDemo ?? false,
+      autoLockMinutes: existingConfig.autoLockMinutes ?? 15,
+      // Numbering sequences
+      numberSequences: existingConfig.numberSequences || {
+        lastOrderNumber: existingConfig.lastOrderNumber || 75,
+        lastDeliveryNumber: existingConfig.lastDeliveryNumber || 58,
+        lastInvoiceNumber: existingConfig.lastInvoiceNumber || 68,
+        lastProductionOrderNumber: existingConfig.lastProductionOrderNumber || 1
+      }
     };
     // Collections: use lower case names, fallback to legacy
     normalised.users            = data.users || data.Users || [];
@@ -110,16 +225,41 @@ App.DB = {
     // features can be exercised without having to import data manually.
     const seed = {
       config: {
+        // Company
+        companyName: 'DF-Pure GmbH',
+        street: 'Industriestrasse 15',
+        zip: '6020',
+        city: 'Innsbruck',
+        country: 'AT',
+        vatNumber: 'ATU12345678',
+        commercialRegisterNumber: 'FN 123456a',
+        iban: 'AT61 1904 3002 3457 3201',
+        bic: 'BKAUATWW',
+        bankName: 'Bank Austria',
         currency: 'EUR',
-        companyName: 'MicroOps Global',
+        // Defaults
+        defaultVatRate: 0.2,
+        defaultPaymentTerms: '14 Tage netto',
+        defaultDeliveryTerms: 'FCA',
+        // UI
+        lang: 'en',
         theme: 'dark',
-        lang: 'en'
+        // Environment
+        isDemo: true,
+        autoLockMinutes: 15,
+        // Numbering sequences
+        numberSequences: {
+          lastOrderNumber: 75,
+          lastDeliveryNumber: 58,
+          lastInvoiceNumber: 68,
+          lastProductionOrderNumber: 1
+        }
       },
       users: [
-        { id: 'u1', name: 'Admin User', role: 'admin', pin: '0000' },
-        { id: 'u2', name: 'Sales User', role: 'sales', pin: '1111' },
-        { id: 'u3', name: 'Warehouse Mgr', role: 'warehouse', pin: '2222' },
-        { id: 'u4', name: 'Production Lead', role: 'production', pin: '3333' }
+        { id: 'u1', name: 'Admin User', role: 'admin', pin: '0000', preferredLang: 'en', preferredTheme: 'dark', active: true, createdAt: '2025-01-01T00:00:00.000Z' },
+        { id: 'u2', name: 'Sales User', role: 'sales', pin: '1111', preferredLang: 'de', preferredTheme: 'light', active: true, createdAt: '2025-01-01T00:00:00.000Z' },
+        { id: 'u3', name: 'Warehouse Mgr', role: 'warehouse', pin: '2222', preferredLang: 'en', preferredTheme: 'dark', active: true, createdAt: '2025-01-01T00:00:00.000Z' },
+        { id: 'u4', name: 'Production Lead', role: 'production', pin: '3333', preferredLang: 'de', preferredTheme: 'dark', active: true, createdAt: '2025-01-01T00:00:00.000Z' }
       ],
       customers: [
         {

@@ -25,10 +25,45 @@
             </select>
 
             <label class="field-label" for="login-pin">PIN</label>
-            <input id="login-pin" class="input" type="password" maxlength="4" placeholder="****" />
+            <input id="login-pin" class="input" type="password" maxlength="4" placeholder="****" autocomplete="off" />
+
+            <label class="checkbox-label" style="margin-top: 12px; display: flex; align-items: center; gap: 8px; font-size: 13px;">
+                <input type="checkbox" id="login-remember" />
+                <span>Remember me</span>
+            </label>
 
             <button id="login-btn" class="btn btn-primary mt-16">Login</button>
-            <p id="login-error" class="login-error hidden">Invalid PIN. Try again.</p>
+            <p id="login-error" class="login-error hidden">Invalid credentials. Please try again.</p>
+            <p class="login-help" style="margin-top: 12px; font-size: 11px; color: var(--color-text-muted); text-align: center;">
+                Forgot your PIN? Contact your administrator.
+            </p>
+        </div>
+    </div>
+
+    <!-- LOCK SCREEN (Session Lock Overlay) -->
+    <div id="lock-screen" class="lock-screen hidden">
+        <div class="lock-card">
+            <div class="lock-icon">🔒</div>
+            <h2 class="lock-title">Session Locked</h2>
+            <p class="lock-user">Logged in as: <strong id="lock-user-name">User</strong></p>
+
+            <label class="field-label" for="lock-pin">Enter PIN to unlock</label>
+            <input id="lock-pin" class="input" type="password" maxlength="4" placeholder="****" autocomplete="off" />
+
+            <button id="lock-unlock-btn" class="btn btn-primary mt-16" onclick="
+                const pin = document.getElementById('lock-pin').value;
+                if (App.Services.Auth.unlock(pin)) {
+                    App.UI.Toast.show('Session unlocked');
+                } else {
+                    document.getElementById('lock-pin').classList.add('shake');
+                    setTimeout(() => document.getElementById('lock-pin').classList.remove('shake'), 500);
+                    App.UI.Toast.show('Invalid PIN');
+                }
+            ">Unlock</button>
+
+            <button class="btn btn-ghost" style="margin-top: 8px;" onclick="App.Services.Auth.logout()">
+                Logout
+            </button>
         </div>
     </div>
 
