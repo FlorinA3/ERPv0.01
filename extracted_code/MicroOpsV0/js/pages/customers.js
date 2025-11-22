@@ -6,7 +6,10 @@ App.UI.Views.Customers = {
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.customers.title','Customers')}</h3>
-          <button class="btn btn-primary" id="btn-add-customer">+ ${App.I18n.t('common.add','Add')}</button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="customer-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
+            <button class="btn btn-primary" id="btn-add-customer">+ ${App.I18n.t('common.add','Add')}</button>
+          </div>
         </div>
         <table class="table">
           <thead>
@@ -35,8 +38,8 @@ App.UI.Views.Customers = {
                   <td>${phone}</td>
                   <td>${addr.country || '-'}</td>
                   <td style="text-align:right;">
-                    <button class="btn btn-ghost btn-edit-customer" data-id="${c.id}" title="Edit">✏️</button>
-                    <button class="btn btn-ghost btn-del-customer" data-id="${c.id}" title="Delete">🗑️</button>
+                    <button class="btn btn-ghost btn-edit-customer" data-id="${c.id}" title="Edit" aria-label="Edit customer">✏️</button>
+                    <button class="btn btn-ghost btn-del-customer" data-id="${c.id}" title="Delete" aria-label="Delete customer">🗑️</button>
                   </td>
                 </tr>
               `;
@@ -59,6 +62,19 @@ App.UI.Views.Customers = {
         this.deleteCustomer(btn.getAttribute('data-id'));
       });
     });
+
+    // Search functionality
+    const searchInput = document.getElementById('customer-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const rows = root.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = query === '' || text.includes(query) ? '' : 'none';
+        });
+      });
+    }
   },
 
   openEditModal(id) {
@@ -219,6 +235,15 @@ App.UI.Views.Customers = {
           const emailVals = Array.from(document.querySelectorAll('#cust-emails-container .cust-email-input'))
             .map(i => i.value.trim())
             .filter(v => v);
+
+          // Validate email format
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          for (const email of emailVals) {
+            if (!emailRegex.test(email)) {
+              App.UI.Toast.show(`Invalid email format: ${email}`);
+              return false;
+            }
+          }
 
           const addrEls = document.querySelectorAll('#cust-addresses-container .cust-address-row');
           const addrVals = Array.from(addrEls).map((row, idx) => {

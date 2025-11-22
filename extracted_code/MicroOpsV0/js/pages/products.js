@@ -6,7 +6,10 @@ App.UI.Views.Products = {
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.products.title','Products')}</h3>
-          <button class="btn btn-primary" id="btn-add-product">+ ${App.I18n.t('common.add','Add')}</button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="product-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
+            <button class="btn btn-primary" id="btn-add-product">+ ${App.I18n.t('common.add','Add')}</button>
+          </div>
         </div>
         <table class="table">
           <thead>
@@ -33,9 +36,9 @@ App.UI.Views.Products = {
                 <td style="text-align:right; ${stockClass}">${p.type === 'Service' ? '-' : (p.stock ?? 0)}</td>
                 <td style="text-align:center;">${bomCount > 0 ? `<span class="tag tag-info">${bomCount}</span>` : '-'}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-edit-product" data-id="${p.id}" title="Edit">✏️</button>
-                  <button class="btn btn-ghost btn-bom-product" data-id="${p.id}" title="Edit BOM">🔧</button>
-                  <button class="btn btn-ghost btn-del-product" data-id="${p.id}" title="Delete">🗑️</button>
+                  <button class="btn btn-ghost btn-edit-product" data-id="${p.id}" title="Edit" aria-label="Edit product">✏️</button>
+                  <button class="btn btn-ghost btn-bom-product" data-id="${p.id}" title="Edit BOM" aria-label="Edit bill of materials">🔧</button>
+                  <button class="btn btn-ghost btn-del-product" data-id="${p.id}" title="Delete" aria-label="Delete product">🗑️</button>
                 </td>
               </tr>`;
             }).join('') || `<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">No products</td></tr>`}
@@ -63,6 +66,19 @@ App.UI.Views.Products = {
         this.deleteProduct(btn.getAttribute('data-id'));
       });
     });
+
+    // Search functionality
+    const searchInput = document.getElementById('product-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const rows = root.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = query === '' || text.includes(query) ? '' : 'none';
+        });
+      });
+    }
   },
 
   openEditModal(id) {

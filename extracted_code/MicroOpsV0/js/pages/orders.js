@@ -34,6 +34,7 @@ App.UI.Views.Orders = {
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.orders.title','Orders')}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="order-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
             <button class="btn btn-ghost" id="ord-export-excel">${App.I18n.t('orders.exportCsv','Export CSV')}</button>
             <button class="btn btn-primary" id="btn-add-order">+ ${App.I18n.t('orders.create','Create Order')}</button>
           </div>
@@ -72,7 +73,7 @@ App.UI.Views.Orders = {
           </thead>
           <tbody>
             ${orders.length > 0 ? orders.map(o => {
-              const cust = App.Data.customers.find(c => c.id === o.custId);
+              const cust = (App.Data.customers || []).find(c => c.id === o.custId);
               const carrier = o.carrierId ? carriers.find(c => c.id === o.carrierId) : null;
               return `
                 <tr>
@@ -83,10 +84,10 @@ App.UI.Views.Orders = {
                   <td>${App.Utils.formatDate(o.date)}</td>
                   <td style="text-align:right;">${App.Utils.formatCurrency(o.totalGross || o.subtotalNet || 0)}</td>
                   <td style="text-align:center;">
-                    <button class="btn btn-ghost btn-view-order" data-id="${o.id}" title="View Details">👁️</button>
-                    <button class="btn btn-ghost btn-status-order" data-id="${o.id}" title="Change Status">🔄</button>
-                    <button class="btn btn-ghost btn-gen-delivery" data-id="${o.id}" title="Delivery Note">📦</button>
-                    <button class="btn btn-ghost btn-gen-invoice" data-id="${o.id}" title="Invoice">🧾</button>
+                    <button class="btn btn-ghost btn-view-order" data-id="${o.id}" title="View Details" aria-label="View order details">👁️</button>
+                    <button class="btn btn-ghost btn-status-order" data-id="${o.id}" title="Change Status" aria-label="Change order status">🔄</button>
+                    <button class="btn btn-ghost btn-gen-delivery" data-id="${o.id}" title="Delivery Note" aria-label="Generate delivery note">📦</button>
+                    <button class="btn btn-ghost btn-gen-invoice" data-id="${o.id}" title="Invoice" aria-label="Generate invoice">🧾</button>
                   </td>
                 </tr>
               `;
@@ -133,7 +134,7 @@ App.UI.Views.Orders = {
         if (App.UI.Views.Documents && App.UI.Views.Documents.generateFromOrder) {
           App.UI.Views.Documents.generateFromOrder(id, 'delivery');
         } else {
-          alert("Documents module not ready");
+          App.UI.Toast.show('Documents module not ready');
         }
       });
     });
@@ -154,6 +155,19 @@ App.UI.Views.Orders = {
     root.querySelectorAll('.btn-status-order').forEach(btn => {
       btn.addEventListener('click', () => this.changeStatus(btn.getAttribute('data-id')));
     });
+
+    // Search functionality
+    const searchInput = document.getElementById('order-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const rows = root.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = query === '' || text.includes(query) ? '' : 'none';
+        });
+      });
+    }
   },
 
   viewOrder(id) {
