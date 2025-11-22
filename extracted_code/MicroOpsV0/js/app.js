@@ -941,6 +941,121 @@ App.Services.Auth = {
 };
 
 /**
+ * Activity Log Service - Tracks all user actions for auditing
+ */
+App.Services.ActivityLog = {
+  /**
+   * Log an activity
+   * @param {string} action - Action type (create, update, delete, view, export, login, etc.)
+   * @param {string} entity - Entity type (order, customer, product, etc.)
+   * @param {string} entityId - ID of the affected entity
+   * @param {object} details - Additional details about the action
+   */
+  log(action, entity, entityId = null, details = {}) {
+    if (!App.Data.activityLog) App.Data.activityLog = [];
+
+    const entry = {
+      id: App.Utils.generateId('log'),
+      timestamp: new Date().toISOString(),
+      userId: App.Services.Auth.currentUser?.id || null,
+      userName: App.Services.Auth.currentUser?.name || 'System',
+      action,
+      entity,
+      entityId,
+      details,
+      route: App.Core.Router?.currentRoute || null
+    };
+
+    App.Data.activityLog.unshift(entry);
+
+    // Keep only last 1000 entries
+    if (App.Data.activityLog.length > 1000) {
+      App.Data.activityLog = App.Data.activityLog.slice(0, 1000);
+    }
+
+    App.DB.save();
+    return entry;
+  },
+
+  /**
+   * Get activity log entries with optional filters
+   */
+  getEntries(filters = {}) {
+    const log = App.Data.activityLog || [];
+    let entries = [...log];
+
+    if (filters.action) {
+      entries = entries.filter(e => e.action === filters.action);
+    }
+    if (filters.entity) {
+      entries = entries.filter(e => e.entity === filters.entity);
+    }
+    if (filters.userId) {
+      entries = entries.filter(e => e.userId === filters.userId);
+    }
+    if (filters.fromDate) {
+      const from = new Date(filters.fromDate);
+      entries = entries.filter(e => new Date(e.timestamp) >= from);
+    }
+    if (filters.toDate) {
+      const to = new Date(filters.toDate);
+      entries = entries.filter(e => new Date(e.timestamp) <= to);
+    }
+
+    return entries.slice(0, filters.limit || 100);
+  },
+
+  /**
+   * Get recent activities for dashboard
+   */
+  getRecent(limit = 10) {
+    return (App.Data.activityLog || []).slice(0, limit);
+  },
+
+  /**
+   * Get activity summary for today
+   */
+  getTodaySummary() {
+    const today = new Date().toDateString();
+    const todayEntries = (App.Data.activityLog || []).filter(e =>
+      new Date(e.timestamp).toDateString() === today
+    );
+
+    return {
+      total: todayEntries.length,
+      byAction: this._groupBy(todayEntries, 'action'),
+      byEntity: this._groupBy(todayEntries, 'entity'),
+      byUser: this._groupBy(todayEntries, 'userName')
+    };
+  },
+
+  _groupBy(entries, key) {
+    return entries.reduce((acc, e) => {
+      const val = e[key] || 'unknown';
+      acc[val] = (acc[val] || 0) + 1;
+      return acc;
+    }, {});
+  },
+
+  /**
+   * Clear old entries (keep last N days)
+   */
+  cleanup(daysToKeep = 30) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - daysToKeep);
+
+    const before = (App.Data.activityLog || []).length;
+    App.Data.activityLog = (App.Data.activityLog || []).filter(e =>
+      new Date(e.timestamp) >= cutoff
+    );
+    const after = App.Data.activityLog.length;
+
+    App.DB.save();
+    return before - after;
+  }
+};
+
+/**
  * Keyboard Shortcuts Service
  */
 App.Services.Keyboard = {
