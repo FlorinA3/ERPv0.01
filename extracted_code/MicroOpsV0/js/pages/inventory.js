@@ -8,14 +8,16 @@ App.UI.Views.Inventory = {
     const components = App.Data.components || [];
 
     const productItems = products.filter(p => p.type !== 'Service');
-    const categories = ['Finished', 'Device', 'Consumable', 'Part'];
+    const categories = ['Finished', 'Device', 'Consumable', 'Part', 'Components'];
     const categoryLabels = {
       'Finished': t('finished', 'Finished'),
       'Device': t('device', 'Device'),
       'Consumable': t('consumable', 'Consumable'),
-      'Part': t('part', 'Part')
+      'Part': t('part', 'Part'),
+      'Components': t('components', 'Components')
     };
     const active = this.activeTab;
+    const isComponentsTab = active === 'Components';
 
     const needsReorder = [
       ...productItems.filter(p => (p.stock || 0) <= (p.reorderPoint || p.minStock || 0) && p.stock > 0),
@@ -44,36 +46,92 @@ App.UI.Views.Inventory = {
       return pType === active.toLowerCase();
     });
 
-    const rowsHtml = filtered.length > 0 ? filtered.map(p => {
-      const stock = p.stock || 0;
-      const minStock = p.minStock || 0;
-      let stockClass = '';
-      let stockBadge = '';
+    // Generate table content based on whether we're showing products or components
+    let tableHeaderHtml, rowsHtml;
 
-      if (stock <= 0) {
-        stockClass = 'color:var(--color-danger); font-weight:500;';
-        stockBadge = `<span class="tag tag-danger" style="margin-left:4px;">${t('out', 'Out')}</span>`;
-      } else if (stock <= minStock) {
-        stockClass = 'color:var(--color-warning); font-weight:500;';
-        stockBadge = `<span class="tag tag-warning" style="margin-left:4px;">${t('low', 'Low')}</span>`;
-      }
-
-      return `
+    if (isComponentsTab) {
+      tableHeaderHtml = `
         <tr>
-          <td><strong>${esc(p.internalArticleNumber || p.sku || '-')}</strong></td>
-          <td>${esc(p.nameDE || p.nameEN || '-')}</td>
-          <td style="text-align:center; ${stockClass}">${stock}${stockBadge}</td>
-          <td style="text-align:center;">${minStock}</td>
-          <td style="text-align:right;">${App.Utils.formatCurrency(p.dealerPrice || p.purchasePrice || 0)}</td>
-          <td style="text-align:right;">
-            <button class="btn btn-ghost btn-edit-product" data-id="${p.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${App.I18n.t('common.edit', 'Edit')}">✏️</button>
-            <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="${App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="${App.I18n.t('common.receiveStock', 'Receive Stock')}">⬆️</button>
-            <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="${App.I18n.t('common.adjustStock', 'Adjust Stock')}">🔄</button>
-            <button class="btn btn-ghost btn-delete-product" data-id="${p.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="${App.I18n.t('common.delete', 'Delete')}">🗑️</button>
-          </td>
+          <th>${t('componentNo', 'Component No')}</th>
+          <th>${t('description', 'Description')}</th>
+          <th style="text-align:center;">${t('stock', 'Stock')}</th>
+          <th style="text-align:center;">${t('min', 'Min')}</th>
+          <th style="text-align:right;">${t('price', 'Price')}</th>
+          <th style="text-align:right;">${t('actions', 'Actions')}</th>
         </tr>
       `;
-    }).join('') : `<tr><td colspan="6" style="text-align:center; padding:12px; color:var(--color-text-muted);">${t('noItemsInCategory', 'No items in this category')}</td></tr>`;
+      rowsHtml = components.length > 0 ? components.map(c => {
+        const stock = c.stock || 0;
+        const minStock = c.safetyStock || 0;
+        let stockClass = '';
+        let stockBadge = '';
+
+        if (stock <= 0) {
+          stockClass = 'color:var(--color-danger); font-weight:500;';
+          stockBadge = `<span class="tag tag-danger" style="margin-left:4px;">${t('out', 'Out')}</span>`;
+        } else if (stock <= minStock) {
+          stockClass = 'color:var(--color-warning); font-weight:500;';
+          stockBadge = `<span class="tag tag-warning" style="margin-left:4px;">${t('low', 'Low')}</span>`;
+        }
+
+        return `
+          <tr>
+            <td><strong>${esc(c.componentNumber || '-')}</strong></td>
+            <td>${esc(c.description || '-')}</td>
+            <td style="text-align:center; ${stockClass}">${stock}${stockBadge}</td>
+            <td style="text-align:center;">${minStock}</td>
+            <td style="text-align:right;">${App.Utils.formatCurrency(c.purchasePrice || 0)}</td>
+            <td style="text-align:right;">
+              <button class="btn btn-ghost btn-edit-component" data-id="${c.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${App.I18n.t('common.edit', 'Edit')}">✏️</button>
+              <button class="btn btn-ghost btn-receive-component" data-id="${c.id}" title="${App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="${App.I18n.t('common.receiveStock', 'Receive Stock')}">⬆️</button>
+              <button class="btn btn-ghost btn-adjust-component" data-id="${c.id}" title="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="${App.I18n.t('common.adjustStock', 'Adjust Stock')}">🔄</button>
+              <button class="btn btn-ghost btn-delete-component" data-id="${c.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="${App.I18n.t('common.delete', 'Delete')}">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('') : `<tr><td colspan="6" style="text-align:center; padding:12px; color:var(--color-text-muted);">${t('noComponents', 'No components')}</td></tr>`;
+    } else {
+      tableHeaderHtml = `
+        <tr>
+          <th>${t('sku', 'SKU')}</th>
+          <th>${t('product', 'Product')}</th>
+          <th style="text-align:center;">${t('stock', 'Stock')}</th>
+          <th style="text-align:center;">${t('min', 'Min')}</th>
+          <th style="text-align:right;">${t('price', 'Price')}</th>
+          <th style="text-align:right;">${t('actions', 'Actions')}</th>
+        </tr>
+      `;
+      rowsHtml = filtered.length > 0 ? filtered.map(p => {
+        const stock = p.stock || 0;
+        const minStock = p.minStock || 0;
+        let stockClass = '';
+        let stockBadge = '';
+
+        if (stock <= 0) {
+          stockClass = 'color:var(--color-danger); font-weight:500;';
+          stockBadge = `<span class="tag tag-danger" style="margin-left:4px;">${t('out', 'Out')}</span>`;
+        } else if (stock <= minStock) {
+          stockClass = 'color:var(--color-warning); font-weight:500;';
+          stockBadge = `<span class="tag tag-warning" style="margin-left:4px;">${t('low', 'Low')}</span>`;
+        }
+
+        return `
+          <tr>
+            <td><strong>${esc(p.internalArticleNumber || p.sku || '-')}</strong></td>
+            <td>${esc(p.nameDE || p.nameEN || '-')}</td>
+            <td style="text-align:center; ${stockClass}">${stock}${stockBadge}</td>
+            <td style="text-align:center;">${minStock}</td>
+            <td style="text-align:right;">${App.Utils.formatCurrency(p.dealerPrice || p.purchasePrice || 0)}</td>
+            <td style="text-align:right;">
+              <button class="btn btn-ghost btn-edit-product" data-id="${p.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${App.I18n.t('common.edit', 'Edit')}">✏️</button>
+              <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="${App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="${App.I18n.t('common.receiveStock', 'Receive Stock')}">⬆️</button>
+              <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="${App.I18n.t('common.adjustStock', 'Adjust Stock')}">🔄</button>
+              <button class="btn btn-ghost btn-delete-product" data-id="${p.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="${App.I18n.t('common.delete', 'Delete')}">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('') : `<tr><td colspan="6" style="text-align:center; padding:12px; color:var(--color-text-muted);">${t('noItemsInCategory', 'No items in this category')}</td></tr>`;
+    }
 
     root.innerHTML = `
       <div class="card-soft" style="margin-bottom:16px;">
@@ -154,14 +212,7 @@ App.UI.Views.Inventory = {
         </div>
         <table class="table">
           <thead>
-            <tr>
-              <th>${t('sku', 'SKU')}</th>
-              <th>${t('product', 'Product')}</th>
-              <th style="text-align:center;">${t('stock', 'Stock')}</th>
-              <th style="text-align:center;">${t('min', 'Min')}</th>
-              <th style="text-align:right;">${t('price', 'Price')}</th>
-              <th style="text-align:right;">${t('actions', 'Actions')}</th>
-            </tr>
+            ${tableHeaderHtml}
           </thead>
           <tbody>
             ${rowsHtml}
@@ -195,6 +246,23 @@ App.UI.Views.Inventory = {
     // Delete product buttons
     root.querySelectorAll('.btn-delete-product').forEach(btn => {
       btn.addEventListener('click', () => this.deleteProduct(btn.getAttribute('data-id')));
+    });
+
+    // Component buttons
+    root.querySelectorAll('.btn-edit-component').forEach(btn => {
+      btn.addEventListener('click', () => this.editComponent(btn.getAttribute('data-id')));
+    });
+
+    root.querySelectorAll('.btn-receive-component').forEach(btn => {
+      btn.addEventListener('click', () => this.receiveComponentStock(btn.getAttribute('data-id')));
+    });
+
+    root.querySelectorAll('.btn-adjust-component').forEach(btn => {
+      btn.addEventListener('click', () => this.adjustComponentStock(btn.getAttribute('data-id')));
+    });
+
+    root.querySelectorAll('.btn-delete-component').forEach(btn => {
+      btn.addEventListener('click', () => this.deleteComponent(btn.getAttribute('data-id')));
     });
 
     // Create PO buttons for replenishment
@@ -596,5 +664,242 @@ App.UI.Views.Inventory = {
 
     // Use secure CSV utility with injection protection and BOM
     App.Utils.exportCSV(headers, rows, 'inventory.csv');
+  },
+
+  // Component CRUD methods
+  editComponent(id) {
+    const t = (key, fallback) => App.I18n.t(`inventory.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+    const components = App.Data.components || [];
+    const item = components.find(c => c.id === id);
+    if (!item) return;
+
+    const suppliers = App.Data.suppliers || [];
+    const supplierOptions = suppliers.map(s =>
+      `<option value="${s.id}" ${item.supplierId === s.id ? 'selected' : ''}>${esc(s.name)}</option>`
+    ).join('');
+
+    const body = `
+      <div class="grid" style="gap:12px;">
+        <div class="grid grid-2" style="gap:12px;">
+          <div>
+            <label class="field-label">${App.I18n.t('common.componentNumber', 'Component No')}</label>
+            <input id="edit-comp-number" class="input" value="${esc(item.componentNumber || '')}" />
+          </div>
+          <div>
+            <label class="field-label">${App.I18n.t('common.unit', 'Unit')}</label>
+            <select id="edit-comp-unit" class="input">
+              <option value="pcs" ${item.unit === 'pcs' ? 'selected' : ''}>pcs</option>
+              <option value="kg" ${item.unit === 'kg' ? 'selected' : ''}>kg</option>
+              <option value="L" ${item.unit === 'L' ? 'selected' : ''}>L</option>
+              <option value="m" ${item.unit === 'm' ? 'selected' : ''}>m</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">${App.I18n.t('common.description', 'Description')}</label>
+          <input id="edit-comp-desc" class="input" value="${esc(item.description || '')}" />
+        </div>
+        <div class="grid grid-3" style="gap:12px;">
+          <div>
+            <label class="field-label">${t('safetyStock', 'Safety Stock')}</label>
+            <input id="edit-comp-safety" type="number" class="input" value="${item.safetyStock || 0}" min="0" />
+          </div>
+          <div>
+            <label class="field-label">${App.I18n.t('common.purchasePrice', 'Purchase Price')}</label>
+            <input id="edit-comp-price" type="number" step="0.01" class="input" value="${item.purchasePrice || 0}" />
+          </div>
+          <div>
+            <label class="field-label">${App.I18n.t('common.supplier', 'Supplier')}</label>
+            <select id="edit-comp-supplier" class="input">
+              <option value="">-</option>
+              ${supplierOptions}
+            </select>
+          </div>
+        </div>
+      </div>
+    `;
+
+    App.UI.Modal.open(App.I18n.t('common.editComponent', 'Edit Component'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('common.save', 'Save'),
+        variant: 'primary',
+        onClick: () => {
+          item.componentNumber = document.getElementById('edit-comp-number').value.trim();
+          item.unit = document.getElementById('edit-comp-unit').value;
+          item.description = document.getElementById('edit-comp-desc').value.trim();
+          item.safetyStock = parseInt(document.getElementById('edit-comp-safety').value) || 0;
+          item.purchasePrice = parseFloat(document.getElementById('edit-comp-price').value) || 0;
+          item.supplierId = document.getElementById('edit-comp-supplier').value || null;
+          item.updatedAt = new Date().toISOString();
+
+          App.DB.save();
+
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('update', 'component', item.id, {
+              name: item.description || item.componentNumber
+            });
+          }
+
+          App.UI.Toast.show(App.I18n.t('common.componentUpdated', 'Component updated'));
+          App.Core.Router.navigate('inventory');
+        }
+      }
+    ]);
+  },
+
+  receiveComponentStock(id) {
+    const t = (key, fallback) => App.I18n.t(`inventory.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+    const components = App.Data.components || [];
+    const item = components.find(c => c.id === id);
+    if (!item) return;
+
+    const body = `
+      <div>
+        <p style="margin-bottom:12px;">
+          <strong>${esc(item.componentNumber)}</strong> - ${esc(item.description || '')}<br/>
+          ${t('currentStock', 'Current Stock')}: <strong>${item.stock || 0}</strong>
+        </p>
+        <label class="field-label" for="receive-comp-qty">${t('quantityToAdd', 'Quantity to Add')}</label>
+        <input id="receive-comp-qty" type="number" class="input" min="1" value="10" />
+        <label class="field-label" for="receive-comp-ref" style="margin-top:8px;">${t('reference', 'Reference')}</label>
+        <input id="receive-comp-ref" class="input" placeholder="e.g., PO-2025-0001" />
+      </div>
+    `;
+
+    App.UI.Modal.open(App.I18n.t('common.receiveStock', 'Receive Stock'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: t('receive', 'Receive'),
+        variant: 'primary',
+        onClick: () => {
+          const qty = parseInt(document.getElementById('receive-comp-qty').value) || 0;
+          const ref = document.getElementById('receive-comp-ref').value.trim();
+          if (qty <= 0) {
+            App.UI.Toast.show(t('enterValidQty', 'Enter a valid quantity'));
+            return false;
+          }
+
+          item.stock = (item.stock || 0) + qty;
+
+          const movements = App.Data.movements || [];
+          movements.push({
+            id: App.Utils.generateId('mv'),
+            date: new Date().toISOString(),
+            type: 'receipt',
+            direction: 'in',
+            componentId: id,
+            quantity: qty,
+            reference: ref || 'Manual receipt',
+            notes: `Received ${qty} units`
+          });
+
+          App.DB.save();
+          App.UI.Toast.show(`${t('received', 'Received')} ${qty} ${t('units', 'units')}`);
+          App.Core.Router.navigate('inventory');
+        }
+      }
+    ]);
+  },
+
+  adjustComponentStock(id) {
+    const t = (key, fallback) => App.I18n.t(`inventory.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+    const components = App.Data.components || [];
+    const item = components.find(c => c.id === id);
+    if (!item) return;
+
+    const body = `
+      <div>
+        <p style="margin-bottom:12px;">
+          <strong>${esc(item.componentNumber)}</strong> - ${esc(item.description || '')}<br/>
+          ${t('currentStock', 'Current Stock')}: <strong>${item.stock || 0}</strong>
+        </p>
+        <label class="field-label" for="adjust-comp-qty">${t('newStockLevel', 'New Stock Level')}</label>
+        <input id="adjust-comp-qty" type="number" class="input" min="0" value="${item.stock || 0}" />
+        <label class="field-label" for="adjust-comp-reason" style="margin-top:8px;">${t('reason', 'Reason')}</label>
+        <select id="adjust-comp-reason" class="input">
+          <option value="count">${t('reasonCount', 'Physical Count')}</option>
+          <option value="damage">${t('reasonDamage', 'Damaged/Expired')}</option>
+          <option value="correction">${t('reasonCorrection', 'Correction')}</option>
+          <option value="other">${t('reasonOther', 'Other')}</option>
+        </select>
+      </div>
+    `;
+
+    App.UI.Modal.open(App.I18n.t('common.adjustStock', 'Adjust Stock'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: t('adjust', 'Adjust'),
+        variant: 'primary',
+        onClick: () => {
+          const newQty = parseInt(document.getElementById('adjust-comp-qty').value) || 0;
+          const reason = document.getElementById('adjust-comp-reason').value;
+          const diff = newQty - (item.stock || 0);
+
+          item.stock = newQty;
+
+          const movements = App.Data.movements || [];
+          movements.push({
+            id: App.Utils.generateId('mv'),
+            date: new Date().toISOString(),
+            type: 'adjustment',
+            direction: diff >= 0 ? 'in' : 'out',
+            componentId: id,
+            quantity: Math.abs(diff),
+            reference: reason,
+            notes: `Adjusted from ${item.stock - diff} to ${newQty}`
+          });
+
+          App.DB.save();
+          App.UI.Toast.show(App.I18n.t('common.stockAdjusted', 'Stock adjusted'));
+          App.Core.Router.navigate('inventory');
+        }
+      }
+    ]);
+  },
+
+  deleteComponent(id) {
+    const esc = App.Utils.escapeHtml;
+    const components = App.Data.components || [];
+    const item = components.find(c => c.id === id);
+    if (!item) return;
+
+    // Check if used in any BOMs
+    const products = App.Data.products || [];
+    const usedIn = products.filter(p => (p.bom || []).some(b => b.componentId === id));
+    if (usedIn.length > 0) {
+      App.UI.Toast.show(`Cannot delete: Used in ${usedIn.length} product BOMs`);
+      return;
+    }
+
+    const body = `
+      <p>${App.I18n.t('common.confirmDeleteComponent', 'Are you sure you want to delete this component?')}</p>
+      <p style="margin-top:8px;"><strong>${esc(item.componentNumber)}</strong> - ${esc(item.description || '')}</p>
+      <p style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">${App.I18n.t('common.actionCannotBeUndone', 'This action cannot be undone.')}</p>
+    `;
+
+    App.UI.Modal.open(App.I18n.t('common.deleteComponent', 'Delete Component'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('common.delete', 'Delete'),
+        variant: 'primary',
+        onClick: () => {
+          App.Data.components = components.filter(c => c.id !== id);
+          App.DB.save();
+
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('delete', 'component', id, {
+              name: item.description || item.componentNumber
+            });
+          }
+
+          App.UI.Toast.show(App.I18n.t('common.componentDeleted', 'Component deleted'));
+          App.Core.Router.navigate('inventory');
+        }
+      }
+    ]);
   }
 };
