@@ -20,6 +20,38 @@ window.App = window.App || {
     Sidebar: {},
     Modal: {},
     Toast: {},
+    Loading: {
+      _overlay: null,
+      show(message = 'Loading...') {
+        if (this._overlay) return;
+        this._overlay = document.createElement('div');
+        this._overlay.id = 'loading-overlay';
+        this._overlay.innerHTML = `
+          <div style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:10000;">
+            <div style="background:var(--color-bg-elevated, #fff); padding:24px 32px; border-radius:12px; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+              <div style="width:32px; height:32px; border:3px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 12px; animation:spin 1s linear infinite;"></div>
+              <div style="color:var(--color-text); font-size:14px;">${message}</div>
+            </div>
+          </div>
+          <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+        `;
+        document.body.appendChild(this._overlay);
+      },
+      hide() {
+        if (this._overlay) {
+          this._overlay.remove();
+          this._overlay = null;
+        }
+      },
+      async wrap(promise, message = 'Loading...') {
+        this.show(message);
+        try {
+          return await promise;
+        } finally {
+          this.hide();
+        }
+      }
+    },
     // Central Icon Registry (SVGs) for professional look
     Icons: {
       dashboard: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>',
@@ -2688,6 +2720,68 @@ App.Utils.exportCSV = function (headers, rows, filename, options = {}) {
 };
 
 /**
+ * Array-based CSV Export (simple version)
+ * Takes array of arrays [[header1, header2], [val1, val2], ...]
+ */
+App.Utils.exportToCSV = function (data) {
+  const sanitizeCell = (value) => {
+    let str = String(value ?? '');
+    str = str.replace(/"/g, '""');
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = "'" + str;
+    }
+    return `"${str}"`;
+  };
+
+  return data.map(row => row.map(cell => sanitizeCell(cell)).join(',')).join('\n');
+};
+
+/**
+ * JSON Export Utility
+ * - Exports data as formatted JSON with BOM
+ * - Useful for data interchange and backups
+ */
+App.Utils.exportJSON = function (data, filename, options = {}) {
+  if (!data || (Array.isArray(data) && data.length === 0)) {
+    App.UI.Toast.show(App.I18n.t('common.noDataToExport', 'No data to export'), 'warning');
+    return false;
+  }
+
+  const content = JSON.stringify(data, null, options.minify ? 0 : 2);
+  const blob = new Blob([content], { type: 'application/json;charset=utf-8;' });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename || 'export.json');
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  const count = Array.isArray(data) ? data.length : Object.keys(data).length;
+  App.UI.Toast.show(`${App.I18n.t('common.exportSuccess', 'Export successful')}: ${count} ${App.I18n.t('common.items', 'items')}`, 'success');
+  return true;
+};
+
+/**
+ * Universal Download Utility
+ * - Downloads any content as a file
+ */
+App.Utils.download = function (content, filename, mimeType = 'text/plain') {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+/**
  * CSV Import Utility
  * - Parses CSV content with proper handling of quotes and commas
  * - Supports both comma and semicolon delimiters (European formats)
@@ -4971,9 +5065,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Offline/Online status detection
     window.addEventListener('offline', () => {
       App.UI.Toast.show(App.I18n.t('common.offlineMode', 'Offline mode - data is saved locally'), 'warning', 5000);
+      const indicator = document.getElementById('offline-indicator');
+      if (indicator) indicator.style.display = 'flex';
     });
     window.addEventListener('online', () => {
       App.UI.Toast.show(App.I18n.t('common.backOnline', 'Back online'), 'success');
+      const indicator = document.getElementById('offline-indicator');
+      if (indicator) indicator.style.display = 'none';
     });
   } catch (e) {
     console.error(e);

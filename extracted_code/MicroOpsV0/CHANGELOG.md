@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2025-11-22
 
+### Phase 49: UX Improvements & Export Enhancements
+
+#### Added
+
+##### Offline Status Indicator (js/ui/navbar.js, js/app.js)
+- **Visual Indicator**: Persistent "⚠️ Offline" badge in navbar when browser is offline
+- **Auto-Toggle**: Shows/hides automatically on network status change
+- **Toast Notifications**: Alerts when going offline/online
+
+##### Loading State Utility (js/app.js)
+- **App.UI.Loading.show(message)**: Display loading overlay with spinner
+- **App.UI.Loading.hide()**: Remove loading overlay
+- **App.UI.Loading.wrap(promise, message)**: Auto-wrap async operations
+- **Visual Design**: Centered spinner with message, dark backdrop
+
+##### Global Print Styles (css/base.css)
+- **@media print**: Comprehensive print stylesheet
+- **Hidden Elements**: Navbar, sidebar, buttons, modals hidden when printing
+- **Table Optimization**: Page-break handling, repeated headers
+- **A4 Page Setup**: 15mm/20mm margins, proper sizing
+- **Utility Classes**: `.no-print`, `.print-only`
+
+##### Export Enhancements (js/app.js)
+- **App.Utils.exportToCSV(data)**: Array-based CSV export with sanitization
+- **App.Utils.exportJSON(data, filename)**: JSON export with pretty-print
+- **App.Utils.download(content, filename, mimeType)**: Universal download utility
+- **Formula Injection Protection**: Dangerous characters prefixed in CSV
+
+---
+
 ### Phase 48: In-App Help & Troubleshooting System
 
 #### Added

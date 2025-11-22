@@ -416,3 +416,107 @@ body.app-body {
 .mt-16 {
   margin-top: 16px;
 }
+
+/* ===================================
+   PRINT STYLES
+   Hide UI elements, optimize for A4
+   =================================== */
+@media print {
+  /* Hide non-essential elements */
+  .no-print,
+  #navbar-root,
+  #sidebar-root,
+  .sidebar,
+  .navbar,
+  .btn,
+  .toast-container,
+  .modal-overlay,
+  #loading-overlay,
+  #offline-indicator {
+    display: none !important;
+  }
+
+  /* Reset colors for print */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Main content fills page */
+  #main-content,
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Tables print-friendly */
+  table {
+    page-break-inside: auto;
+    border-collapse: collapse;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  th, td {
+    border: 1px solid #ddd !important;
+    padding: 6px 8px !important;
+    color: black !important;
+    background: white !important;
+  }
+
+  th {
+    background: #f5f5f5 !important;
+    font-weight: bold !important;
+  }
+
+  /* Cards print cleanly */
+  .card, .card-soft {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+  }
+
+  /* Links show URL */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* Page setup for A4 */
+  @page {
+    size: A4;
+    margin: 15mm 20mm;
+  }
+
+  /* Headers on each page */
+  .print-header {
+    position: running(header);
+  }
+
+  /* Footer on each page */
+  .print-footer {
+    position: running(footer);
+  }
+}
+
+/* Utility class for print-only content */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .print-only {
+    display: block !important;
+  }
+}

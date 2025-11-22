@@ -47,6 +47,9 @@ App.UI.Navbar = {
           </div>
         </div>
         <div class="navbar-right">
+          <div id="offline-indicator" style="display:${navigator.onLine ? 'none' : 'flex'}; align-items:center; gap:4px; padding:4px 8px; background:rgba(239,68,68,0.2); border-radius:4px; font-size:11px; color:var(--color-danger);">
+            <span>⚠️</span> Offline
+          </div>
           <div class="navbar-user">
             <div class="navbar-user-avatar">${(user && user.name ? user.name.charAt(0) : 'U').toUpperCase()}</div>
             <div class="navbar-user-name">${user ? user.name : 'Not logged in'}</div>
