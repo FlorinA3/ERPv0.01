@@ -1,6 +1,6 @@
 # MicroOps ERP - User Manual
 
-**Version 0.1.0** | Last Updated: 2025-11-22
+**Version 0.4.0** | Last Updated: 2025-11-22
 
 ---
 
@@ -19,8 +19,10 @@
    - [Production](#production)
 6. [Settings & Administration](#settings--administration)
 7. [Data Backup & Restore](#data-backup--restore)
-8. [Keyboard Shortcuts](#keyboard-shortcuts)
-9. [Troubleshooting](#troubleshooting)
+8. [Audit Trail](#audit-trail)
+9. [System Health & Monitoring](#system-health--monitoring)
+10. [Keyboard Shortcuts](#keyboard-shortcuts)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -30,11 +32,14 @@ MicroOps ERP is a lightweight, offline-first Enterprise Resource Planning system
 
 ### Key Features
 
-- **Offline-First**: Works without internet connection using browser localStorage
+- **Offline-First**: Works without internet using IndexedDB (100MB+) with localStorage fallback
 - **Multi-Language**: Supports English (EN), German (DE), and Romanian (RO)
 - **Role-Based Access**: Different permissions for Admin, Sales, Warehouse, and Production roles
-- **Session Security**: Auto-lock feature and PIN-based authentication
+- **Session Security**: Auto-lock, PIN authentication, rate limiting, and session timeout warnings
 - **Document Generation**: Create invoices and delivery notes with professional formatting
+- **Audit Trail**: Complete change tracking with field-level comparison and export
+- **Backup System**: Auto-backup on exit, 7 rolling backups, optional encryption
+- **System Health**: Built-in health monitoring and data integrity validation
 
 ---
 
@@ -56,11 +61,13 @@ MicroOps ERP is a lightweight, offline-first Enterprise Resource Planning system
 
 ### Data Storage
 
-All data is stored in your browser's localStorage under the key `MicroOps_DB_V4`. This means:
+Data is stored in your browser using IndexedDB (primary) with localStorage fallback:
+- **IndexedDB**: 100MB+ capacity, used for main data storage
+- **localStorage**: 5-10MB capacity, used as automatic fallback
 - Data persists across browser sessions
 - Data is specific to each browser/device
 - Clearing browser data will erase your ERP data
-- **Always create regular backups!**
+- **Auto-backup protects your data** on browser close (7 rolling backups kept)
 
 ---
 
@@ -72,6 +79,18 @@ All data is stored in your browser's localStorage under the key `MicroOps_DB_V4`
 2. Enter your 4-digit PIN
 3. Optionally check "Remember me" to stay logged in
 4. Click **Login**
+
+### Security Features
+
+**Rate Limiting**:
+- After 5 failed login attempts, the account is locked for 5 minutes
+- A countdown timer shows remaining lockout time
+- Failed attempts are logged to the audit trail
+
+**Session Management**:
+- Sessions automatically expire after 30 minutes of inactivity
+- A warning appears 5 minutes before timeout
+- Click "Extend Session" to stay logged in
 
 ### Session Lock
 
@@ -327,24 +346,51 @@ Configure your company details for document generation:
 
 ## Data Backup & Restore
 
-### Creating a Backup
+### Auto-Backup System
 
-Regular backups protect your data. To create a backup:
+MicroOps automatically creates backups to protect your data:
 
-1. Go to **Settings**
+- **Automatic Backup on Exit**: Saves when you close the browser tab
+- **7 Rolling Backups**: Keeps the last 7 backups, automatically removes older ones
+- **Integrity Verification**: Hash-based corruption detection
+
+### Managing Backups
+
+Access backup management in **Settings → Backups** tab:
+
+1. **View Backups**: See all available backups with dates and sizes
+2. **Restore Backup**: Click to restore from any backup
+3. **Delete Backup**: Remove individual backups you no longer need
+4. **Clear Old Backups**: Remove all but the most recent backup
+
+### Creating a Manual Backup
+
+1. Go to **Settings → Backups**
 2. Click **📥 Download Backup**
-3. A JSON file downloads: `microops_backup_2025-11-22T10-30-00.json`
-4. Store this file safely
+3. Optionally enter a password for encryption
+4. A JSON file downloads: `microops_backup_2025-11-22T10-30-00.json`
+5. Store this file safely
+
+### Encrypted Backups
+
+For sensitive data, use encrypted backups:
+
+1. When downloading, enter a password
+2. The backup file will be encrypted
+3. When restoring, you'll need the same password
+4. **Remember your password** - it cannot be recovered!
 
 ### Restoring a Backup
 
 To restore from a backup:
 
-1. Go to **Settings**
+1. Go to **Settings → Backups**
 2. Click **📤 Restore Backup**
 3. Select your backup JSON file
-4. The system will:
+4. If encrypted, enter the password
+5. The system will:
    - Validate the file
+   - Verify integrity hash
    - Restore all data
    - Refresh the application
 
@@ -352,10 +398,120 @@ To restore from a backup:
 
 ### Backup Best Practices
 
-- Create daily backups
+- Auto-backup keeps you protected automatically
+- Download encrypted manual backups for offsite storage
 - Store backups in multiple locations
 - Test restores periodically
-- Keep at least 7 days of backup history
+
+---
+
+## Audit Trail
+
+### Overview
+
+MicroOps maintains a complete audit trail of all data changes for compliance and troubleshooting.
+
+### What Gets Logged
+
+- **CREATE**: New records added (customers, orders, products, etc.)
+- **UPDATE**: Changes to existing records with old/new values
+- **DELETE**: Records removed from the system
+- **SECURITY**: Login attempts, account lockouts
+
+### Viewing the Audit Trail
+
+1. Go to **Settings → Audit Log**
+2. Use filters to find specific entries:
+   - **Date Range**: From/To dates
+   - **Action**: CREATE, UPDATE, DELETE
+   - **Entity Type**: customers, orders, products, etc.
+   - **User**: Filter by who made the change
+3. Click **Search** to apply filters
+
+### Audit Entry Details
+
+Each entry shows:
+- **Timestamp**: When the change occurred
+- **User**: Who made the change
+- **Action**: What type of change
+- **Entity**: What was changed
+- **Changes**: Field-by-field comparison (for updates)
+
+### Exporting Audit Data
+
+For compliance or reporting:
+
+1. Go to **Settings → Audit Log**
+2. Apply any desired filters
+3. Click **Export CSV**
+4. A CSV file downloads with all matching entries
+
+### Audit Trail Compliance
+
+The audit trail supports:
+- Austrian GoBD/GDPdU requirements
+- Complete change tracking with timestamps
+- Tamper detection via integrity checks
+- Long-term retention for legal compliance
+
+---
+
+## System Health & Monitoring
+
+### Overview
+
+Monitor system health and detect potential issues before they cause problems.
+
+### Running Health Checks
+
+1. Go to **Settings → System Health**
+2. Click **🔍 Run Health Check**
+3. View results for each area:
+   - **Storage**: Current usage vs capacity
+   - **Backups**: Age of most recent backup
+   - **Data Integrity**: Orphan records, invalid references
+   - **Audit Size**: Number of audit entries
+
+### Health Status Colors
+
+- 🟢 **Green (Healthy)**: Everything normal
+- 🟡 **Yellow (Warning)**: Attention recommended
+- 🔴 **Red (Critical)**: Immediate action needed
+
+### Storage Monitoring
+
+- **Warning**: Storage exceeds 80% capacity
+- **Critical**: Storage exceeds 95% capacity
+- **Action**: Export and archive old data, clear audit logs
+
+### Backup Age Monitoring
+
+- **Warning**: No backup in last 24 hours
+- **Critical**: No backup in last 72 hours
+- **Action**: Create a manual backup or check auto-backup settings
+
+### Data Integrity Checks
+
+Click **⚙️ Run Integrity Check** to detect:
+- Orders without valid customers
+- Documents without valid orders
+- Products with invalid BOM references
+- Negative stock levels
+
+### Quick Statistics
+
+View at-a-glance metrics:
+- Total records across all entities
+- Audit trail entries
+- Active user sessions
+
+### Error Recovery
+
+If the system encounters an error:
+1. A user-friendly error message appears
+2. All errors are logged to the audit trail
+3. Click **Reload Application** to recover
+4. Your data is automatically preserved
 
 ---
 
@@ -378,10 +534,16 @@ To restore from a backup:
 - Check user is marked as "Active"
 - Try clearing browser cache
 
+**Problem**: Account is locked
+- Wait for the lockout countdown to finish (5 minutes)
+- After lockout expires, retry with correct PIN
+- Contact admin if you've forgotten your PIN
+
 ### Data Not Saving
 
 **Problem**: Changes don't persist
-- Check browser localStorage is not full
+- Check storage capacity in Settings → System Health
+- IndexedDB may be full - export old data
 - Ensure cookies/local storage are enabled
 - Try a different browser
 
@@ -395,19 +557,37 @@ To restore from a backup:
 ### Performance Issues
 
 **Problem**: Application is slow
+- Run health check in Settings → System Health
+- Clear old audit entries if over 10,000
 - Reduce number of records displayed
-- Clear old/unused data
-- Create backup and start fresh if needed
+- Export old data and archive
+
+### Storage Issues
+
+**Problem**: Storage capacity warning
+- Export data you no longer need
+- Clear old audit trail entries
+- Download and remove old backups
+- Check Settings → System Health for details
+
+### Application Errors
+
+**Problem**: System shows error message
+- Click "Reload Application" to recover
+- Check Settings → Audit Log for error details
+- Your data is preserved automatically
+- Report persistent errors to admin
 
 ### Resetting the Application
 
 If you need to completely reset:
 
 1. Open browser Developer Tools (F12)
-2. Go to Application/Storage tab
-3. Clear localStorage
-4. Refresh the page
-5. System will reload with sample data
+2. Go to Application → IndexedDB
+3. Delete the MicroOps database
+4. Also clear localStorage
+5. Refresh the page
+6. System will reload with sample data
 
 ---
 
