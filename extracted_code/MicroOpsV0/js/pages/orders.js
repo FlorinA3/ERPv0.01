@@ -2,6 +2,8 @@ App.UI.Views.Orders = {
   statusFlow: ['draft', 'confirmed', 'processing', 'shipped', 'delivered', 'paid', 'cancelled'],
 
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`orders.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const orders = App.Data.orders || [];
     const carriers = App.Data.carriers || [];
     // Sort orders by date descending
