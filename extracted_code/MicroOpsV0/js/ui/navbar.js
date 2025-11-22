@@ -39,6 +39,13 @@ App.UI.Navbar = {
             <div class="navbar-brand-subtitle">System Overview & Analytics</div>
           </div>
         </div>
+        <div class="navbar-center">
+          <div class="search-container" style="position:relative;">
+            <input type="text" id="global-search" class="input search-input" placeholder="Search... (Ctrl+F)" style="width:280px; padding-left:32px;" />
+            <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--color-text-muted);">🔍</span>
+            <div id="search-results" class="search-results hidden" style="position:absolute; top:100%; left:0; right:0; background:var(--color-surface); border:1px solid var(--color-border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); max-height:400px; overflow-y:auto; z-index:1000;"></div>
+          </div>
+        </div>
         <div class="navbar-right">
           <div class="navbar-user">
             <div class="navbar-user-avatar">${(user && user.name ? user.name.charAt(0) : 'U').toUpperCase()}</div>
@@ -108,6 +115,229 @@ App.UI.Navbar = {
         App.DB.save();
         App.UI.Toast.show('Theme set to ' + info.label);
       };
+    });
+
+    // Global search functionality
+    const searchInput = root.querySelector('#global-search');
+    const searchResults = root.querySelector('#search-results');
+    let searchTimeout = null;
+
+    if (searchInput && searchResults) {
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const query = e.target.value.trim().toLowerCase();
+
+        if (query.length < 2) {
+          searchResults.classList.add('hidden');
+          return;
+        }
+
+        searchTimeout = setTimeout(() => {
+          const results = this.performSearch(query);
+          this.renderSearchResults(results, searchResults, query);
+        }, 200);
+      });
+
+      searchInput.addEventListener('focus', () => {
+        if (searchInput.value.trim().length >= 2) {
+          searchResults.classList.remove('hidden');
+        }
+      });
+
+      // Close search results when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+          searchResults.classList.add('hidden');
+        }
+      });
+
+      // Handle keyboard navigation
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          searchResults.classList.add('hidden');
+          searchInput.blur();
+        }
+      });
+    }
+  },
+
+  performSearch(query) {
+    const results = [];
+    const limit = 5; // Max results per category
+
+    // Search customers
+    const customers = App.Data.customers || [];
+    const matchedCustomers = customers.filter(c =>
+      (c.company || '').toLowerCase().includes(query) ||
+      (c.customerNumber || '').toLowerCase().includes(query) ||
+      (c.email || '').toLowerCase().includes(query) ||
+      (c.contact || '').toLowerCase().includes(query)
+    ).slice(0, limit);
+
+    matchedCustomers.forEach(c => {
+      results.push({
+        type: 'customer',
+        icon: '👤',
+        title: c.company || c.contact || 'Unknown',
+        subtitle: c.customerNumber || c.email || '',
+        action: () => {
+          App.Core.Router.navigate('customers');
+          // Could implement detail view here
+        }
+      });
+    });
+
+    // Search products
+    const products = App.Data.products || [];
+    const matchedProducts = products.filter(p =>
+      (p.nameDE || '').toLowerCase().includes(query) ||
+      (p.nameEN || '').toLowerCase().includes(query) ||
+      (p.internalArticleNumber || '').toLowerCase().includes(query) ||
+      (p.sku || '').toLowerCase().includes(query)
+    ).slice(0, limit);
+
+    matchedProducts.forEach(p => {
+      results.push({
+        type: 'product',
+        icon: '📦',
+        title: p.nameDE || p.nameEN || p.internalArticleNumber,
+        subtitle: `${p.internalArticleNumber || p.sku || ''} • Stock: ${p.stock || 0}`,
+        action: () => App.Core.Router.navigate('products')
+      });
+    });
+
+    // Search components
+    const components = App.Data.components || [];
+    const matchedComponents = components.filter(c =>
+      (c.description || '').toLowerCase().includes(query) ||
+      (c.componentNumber || '').toLowerCase().includes(query)
+    ).slice(0, limit);
+
+    matchedComponents.forEach(c => {
+      results.push({
+        type: 'component',
+        icon: '🔧',
+        title: c.description || c.componentNumber,
+        subtitle: `${c.componentNumber || ''} • Stock: ${c.stock || 0}`,
+        action: () => App.Core.Router.navigate('components')
+      });
+    });
+
+    // Search orders
+    const orders = App.Data.orders || [];
+    const matchedOrders = orders.filter(o =>
+      (o.orderId || '').toLowerCase().includes(query) ||
+      (o.id || '').toLowerCase().includes(query)
+    ).slice(0, limit);
+
+    matchedOrders.forEach(o => {
+      const cust = customers.find(c => c.id === o.custId);
+      results.push({
+        type: 'order',
+        icon: '📋',
+        title: o.orderId || o.id,
+        subtitle: `${cust?.company || 'Unknown'} • ${o.status || 'Open'}`,
+        action: () => App.Core.Router.navigate('orders')
+      });
+    });
+
+    // Search documents (invoices, delivery notes)
+    const documents = App.Data.documents || [];
+    const matchedDocs = documents.filter(d =>
+      (d.docNumber || '').toLowerCase().includes(query)
+    ).slice(0, limit);
+
+    matchedDocs.forEach(d => {
+      const cust = customers.find(c => c.id === d.customerId);
+      results.push({
+        type: 'document',
+        icon: d.type === 'invoice' ? '🧾' : '📦',
+        title: d.docNumber,
+        subtitle: `${d.type} • ${cust?.company || 'Unknown'}`,
+        action: () => App.Core.Router.navigate('documents')
+      });
+    });
+
+    // Search suppliers
+    const suppliers = App.Data.suppliers || [];
+    const matchedSuppliers = suppliers.filter(s =>
+      (s.name || '').toLowerCase().includes(query) ||
+      (s.email || '').toLowerCase().includes(query)
+    ).slice(0, limit);
+
+    matchedSuppliers.forEach(s => {
+      results.push({
+        type: 'supplier',
+        icon: '🏭',
+        title: s.name,
+        subtitle: s.email || s.phone || '',
+        action: () => App.Core.Router.navigate('suppliers')
+      });
+    });
+
+    return results;
+  },
+
+  renderSearchResults(results, container, query) {
+    if (results.length === 0) {
+      container.innerHTML = `
+        <div style="padding:16px; text-align:center; color:var(--color-text-muted);">
+          No results found for "${query}"
+        </div>
+      `;
+      container.classList.remove('hidden');
+      return;
+    }
+
+    // Group results by type
+    const grouped = {};
+    results.forEach(r => {
+      if (!grouped[r.type]) grouped[r.type] = [];
+      grouped[r.type].push(r);
+    });
+
+    const typeLabels = {
+      customer: 'Customers',
+      product: 'Products',
+      component: 'Components',
+      order: 'Orders',
+      document: 'Documents',
+      supplier: 'Suppliers'
+    };
+
+    let html = '';
+    for (const [type, items] of Object.entries(grouped)) {
+      html += `<div style="padding:8px 12px; font-size:11px; text-transform:uppercase; color:var(--color-text-muted); background:var(--color-bg); font-weight:600;">${typeLabels[type] || type}</div>`;
+      items.forEach(item => {
+        html += `
+          <div class="search-result-item" style="padding:10px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--color-border);">
+            <span style="font-size:16px;">${item.icon}</span>
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</div>
+              <div style="font-size:11px; color:var(--color-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.subtitle}</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    container.innerHTML = html;
+    container.classList.remove('hidden');
+
+    // Add click handlers
+    container.querySelectorAll('.search-result-item').forEach((el, i) => {
+      el.addEventListener('click', () => {
+        results[i].action();
+        container.classList.add('hidden');
+        document.getElementById('global-search').value = '';
+      });
+
+      el.addEventListener('mouseenter', () => {
+        el.style.background = 'var(--color-bg)';
+      });
+      el.addEventListener('mouseleave', () => {
+        el.style.background = 'transparent';
+      });
     });
   }
 };
