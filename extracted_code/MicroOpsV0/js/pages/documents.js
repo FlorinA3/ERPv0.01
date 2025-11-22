@@ -516,8 +516,9 @@ App.UI.Views.Documents = {
           </div>
         </div>
 
-        <div class="no-print" style="position:fixed; bottom:20px; right:20px;">
-          <button onclick="window.print()" style="padding:10px 20px; background:#333; color:#fff; border:none; cursor:pointer;">PRINT</button>
+        <div class="no-print" style="position:fixed; bottom:20px; right:20px; display:flex; gap:8px;">
+          <button onclick="window.print()" style="padding:10px 20px; background:#333; color:#fff; border:none; cursor:pointer; border-radius:4px;">🖨️ PRINT</button>
+          <button onclick="window.close()" style="padding:10px 20px; background:#eee; color:#333; border:none; cursor:pointer; border-radius:4px;">✕ CLOSE</button>
         </div>
       </body>
       </html>
@@ -526,5 +527,46 @@ App.UI.Views.Documents = {
     const win = window.open('', '_blank');
     win.document.write(html);
     win.document.close();
+
+    // Log activity
+    if (App.Services.ActivityLog) {
+      App.Services.ActivityLog.log('view', 'document', id, {
+        name: d.docNumber,
+        type: d.type,
+        action: 'print_preview'
+      });
+    }
+  },
+
+  // Generate quick invoice summary for email
+  generateEmailSummary(id) {
+    const d = App.Data.documents.find(x => x.id === id);
+    if (!d || d.type !== 'invoice') return null;
+
+    const cust = App.Data.customers.find(c => c.id === d.customerId);
+    const conf = App.Data.config || {};
+    const remaining = (d.grossTotal || 0) - (d.paidAmount || 0);
+
+    return `
+Invoice: ${d.docNumber}
+Date: ${d.date?.split('T')[0] || '-'}
+Due: ${d.dueDate?.split('T')[0] || '-'}
+
+Customer: ${cust?.company || '-'}
+${cust?.customerNumber ? 'Customer No: ' + cust.customerNumber : ''}
+
+Total: ${App.Utils.formatCurrency(d.grossTotal)}
+${d.paidAmount > 0 ? 'Paid: ' + App.Utils.formatCurrency(d.paidAmount) : ''}
+Balance Due: ${App.Utils.formatCurrency(remaining)}
+
+Payment Details:
+Bank: ${conf.bankName || '-'}
+IBAN: ${conf.iban || '-'}
+BIC: ${conf.bic || '-'}
+Reference: ${d.docNumber}
+
+Thank you for your business!
+${conf.companyName || 'MicroOps Global'}
+    `.trim();
   }
 };
