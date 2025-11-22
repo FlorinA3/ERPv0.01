@@ -1,0 +1,12 @@
+ 
+
+body.theme-default {
+  --color-primary: #3b82f6;
+}
+
+body.theme-scifi {
+  --color-primary: #22d3ee;
+  --color-bg: #020617;
+}
+
+

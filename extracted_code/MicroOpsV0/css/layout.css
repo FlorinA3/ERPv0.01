@@ -1,0 +1,219 @@
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+ 
+
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  width: 360px;
+  padding: 32px 28px;
+  border-radius: 24px;
+  
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.login-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #3b82f6, #22c55e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+
+.login-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.login-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.login-error {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #f97373;
+}
+
+/* Lock Screen */
+.lock-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.lock-card {
+  width: 320px;
+  padding: 32px 28px;
+  border-radius: 24px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.lock-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.lock-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.lock-user {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.lock-card .input {
+  text-align: center;
+  font-size: 18px;
+  letter-spacing: 8px;
+}
+
+/* Shake Animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.5s ease-in-out;
+  border-color: #f97373 !important;
+}
+
+ 
+
+.app-header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+  
+  background: linear-gradient(90deg, var(--color-primary-soft), transparent 80%);
+  backdrop-filter: blur(8px);
+}
+
+.app-main-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: calc(100vh - 64px);
+}
+
+.app-sidebar {
+  border-right: 1px solid var(--color-border);
+  
+  background: var(--color-bg-surface);
+}
+
+.app-main {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.page-content {
+  flex: 1;
+}
+
+ 
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 960px) {
+  .app-main-layout {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-main-layout {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+  .app-sidebar {
+    display: none;
+  }
+}
+
+/* Sidebar icon sizing / alignment for Lucide */
+.sidebar-item .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.sidebar-item .icon svg {
+  width: 18px;
+  height: 18px;
+}
+
