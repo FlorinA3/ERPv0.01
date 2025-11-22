@@ -4691,6 +4691,15 @@ App.Services.Keyboard = {
     helpHtml += '</div>';
 
     App.UI.Modal.open(App.I18n.t('common.keyboardShortcuts', 'Keyboard Shortcuts'), helpHtml, [
+      { text: 'Full Help', variant: 'primary', onClick: () => {
+        App.Core.Router.navigate('settings');
+        setTimeout(() => {
+          if (App.UI.Views.Settings) {
+            App.UI.Views.Settings.activeTab = 'help';
+            App.UI.Views.Settings.render(document.getElementById('main-content'));
+          }
+        }, 50);
+      }},
       { text: 'Close', variant: 'ghost', onClick: () => {} }
     ]);
   },

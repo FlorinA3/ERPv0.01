@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2025-11-22
 
+### Phase 48: In-App Help & Troubleshooting System
+
+#### Added
+
+##### Help Tab (js/pages/settings.js)
+- **System Information**: Version display, storage type indicator, production status badge
+- **Keyboard Shortcuts Reference**: Visual display of all available shortcuts with kbd styling
+- **Troubleshooting Guides**: Expandable accordion sections for common issues:
+  - Login issues (PIN problems, account lockouts)
+  - Data not saving (storage capacity, browser settings)
+  - Document generation failures (validation, prerequisites)
+  - Performance issues (health checks, cleanup)
+  - Storage capacity warnings (export, cleanup options)
+  - Application errors (recovery, audit log)
+- **Quick Tips**: Cards with key feature highlights (auto-backup, session timeout, audit trail, encryption)
+- **Application Reset Guide**: Step-by-step instructions with safety warnings
+
+##### Global Help Button (js/ui/navbar.js)
+- **Help Icon (❓)**: Added to navbar between theme selector and logout
+- **Quick Access**: One-click navigation to Help tab in Settings
+- **Tooltip**: "Help & Troubleshooting" on hover
+
+##### F1 Help Integration (js/app.js)
+- **Full Help Button**: Added to keyboard shortcuts modal
+- **Navigation**: Links directly to Help tab in Settings
+
+---
+
 ### Phase 47: Security Hardening & Health Monitoring
 
 #### Added
