@@ -8,11 +8,6 @@ App.UI.Views.Documents = {
       const paid = doc.paidAmount || 0;
       const total = doc.grossTotal || 0;
 
-      // Show if credit note
-      if (doc.isCreditNote) {
-        return '<span class="tag tag-info">Credit Note</span>';
-      }
-
       if (paid >= total) {
         return '<span class="tag tag-success">Paid</span>';
       }
@@ -56,6 +51,7 @@ App.UI.Views.Documents = {
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.documents.title','Documents')}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
             <input type="text" id="doc-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
+            <button class="btn btn-ghost" id="btn-export-docs" title="${App.I18n.t('documents.exportCsv', 'Export CSV')}">📥 ${App.I18n.t('common.export', 'Export')}</button>
             ${deletedCount > 0 ? `<button class="btn btn-ghost" id="btn-view-trash" title="${App.I18n.t('documents.viewTrash', 'View Trash')}">🗑️ ${App.I18n.t('documents.trash', 'Trash')} (${deletedCount})</button>` : ''}
             <button class="btn btn-ghost" id="btn-add-delivery">+ ${App.I18n.t('documents.createDelivery','Delivery Note')}</button>
             <button class="btn btn-primary" id="btn-add-invoice">+ ${App.I18n.t('documents.createInvoice','Invoice')}</button>
@@ -86,11 +82,10 @@ App.UI.Views.Documents = {
               const canPay = isInv && (d.paidAmount || 0) < (d.grossTotal || 0);
 
               return `
-                <tr ${d.isCreditNote ? 'style="opacity:0.85;"' : ''}>
-                  <td><span title="${d.type}${d.isCreditNote ? ' (Credit Note)' : ''}">${icon}</span></td>
+                <tr>
+                  <td><span title="${d.type}">${icon}</span></td>
                   <td>
                     <strong>${esc(d.docNumber || d.id)}</strong>
-                    ${d.linkedInvoiceId ? `<div style="font-size:10px; color:var(--color-text-muted);">→ ${esc((App.Data.documents.find(x => x.id === d.linkedInvoiceId) || {}).docNumber || '')}</div>` : ''}
                   </td>
                   <td>${cust ? esc(cust.company) : '-'}</td>
                   <td>${App.Utils.formatDate(d.date)}</td>
@@ -116,6 +111,7 @@ App.UI.Views.Documents = {
 
     document.getElementById('btn-add-invoice')?.addEventListener('click', () => this.openCreateModal('invoice'));
     document.getElementById('btn-add-delivery')?.addEventListener('click', () => this.openCreateModal('delivery'));
+    document.getElementById('btn-export-docs')?.addEventListener('click', () => this.exportDocuments());
 
     root.querySelectorAll('.btn-doc-view').forEach(btn => {
       btn.addEventListener('click', () => this.printDocument(btn.getAttribute('data-id')));
@@ -1291,5 +1287,65 @@ Reference: ${d.docNumber}
 Thank you for your business!
 ${conf.companyName || 'MicroOps Global'}
     `.trim();
+  },
+
+  /**
+   * Export documents to CSV
+   */
+  exportDocuments() {
+    const docs = (App.Data.documents || []).filter(d => !d.isDeleted);
+
+    if (docs.length === 0) {
+      App.UI.Toast.show(App.I18n.t('common.noDataToExport', 'No data to export'));
+      return;
+    }
+
+    // Build CSV with proper escaping and BOM for Excel
+    const headers = ['Type', 'Number', 'Date', 'Due Date', 'Customer', 'Customer No', 'Net Total', 'VAT', 'Gross Total', 'Paid', 'Balance', 'Status', 'Payment Terms'];
+
+    const rows = docs.map(d => {
+      const cust = App.Data.customers.find(c => c.id === d.customerId);
+      const paid = d.paidAmount || 0;
+      const balance = (d.grossTotal || 0) - paid;
+      const status = d.isFinalized ? 'Finalized' : 'Draft';
+
+      return [
+        d.type === 'invoice' ? 'Invoice' : 'Delivery Note',
+        d.docNumber || d.id,
+        (d.date || '').split('T')[0],
+        (d.dueDate || '').split('T')[0],
+        cust?.company || '',
+        cust?.internalId || '',
+        d.netTotal || 0,
+        (d.grossTotal || 0) - (d.netTotal || 0),
+        d.grossTotal || 0,
+        paid,
+        balance,
+        status,
+        d.paymentTerms || ''
+      ];
+    });
+
+    // Use the secure CSV export utility
+    const csvContent = App.Utils.exportToCSV([headers, ...rows]);
+
+    // Create download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `documents_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Log activity
+    if (App.Services.ActivityLog) {
+      App.Services.ActivityLog.log('export', 'document', null, {
+        action: 'csv_export',
+        count: docs.length
+      });
+    }
+
+    App.UI.Toast.show(`${App.I18n.t('common.exportSuccess', 'Export successful')} - ${docs.length} ${App.I18n.t('common.rows', 'rows')}`);
   }
 };
