@@ -1,5 +1,7 @@
 App.UI.Views.Batches = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`batches.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const batches = App.Data.batches || [];
     const products = App.Data.products || [];
     const components = App.Data.components || [];
@@ -7,42 +9,42 @@ App.UI.Views.Batches = {
     const getItemName = (batch) => {
       if (batch.productId) {
         const p = products.find(x => x.id === batch.productId);
-        return p ? (p.nameDE || p.nameEN || p.internalArticleNumber) : batch.productId;
+        return p ? esc(p.nameDE || p.nameEN || p.internalArticleNumber) : esc(batch.productId);
       }
       if (batch.componentId) {
         const c = components.find(x => x.id === batch.componentId);
-        return c ? (c.description || c.componentNumber) : batch.componentId;
+        return c ? esc(c.description || c.componentNumber) : esc(batch.componentId);
       }
       return '-';
     };
 
     const getStatusBadge = (batch) => {
       const now = new Date();
-      if (batch.qcStatus === 'rejected') return '<span class="tag tag-danger">Rejected</span>';
-      if (batch.qcStatus === 'quarantine') return '<span class="tag tag-warning">Quarantine</span>';
-      if (batch.expiryDate && new Date(batch.expiryDate) < now) return '<span class="tag tag-danger">Expired</span>';
+      if (batch.qcStatus === 'rejected') return `<span class="tag tag-danger">${t('statusRejected', 'Rejected')}</span>`;
+      if (batch.qcStatus === 'quarantine') return `<span class="tag tag-warning">${t('statusQuarantine', 'Quarantine')}</span>`;
+      if (batch.expiryDate && new Date(batch.expiryDate) < now) return `<span class="tag tag-danger">${t('statusExpired', 'Expired')}</span>`;
       if (batch.expiryDate) {
         const daysToExpiry = Math.ceil((new Date(batch.expiryDate) - now) / (1000*60*60*24));
-        if (daysToExpiry <= 30) return '<span class="tag tag-warning">Expiring</span>';
+        if (daysToExpiry <= 30) return `<span class="tag tag-warning">${t('statusExpiring', 'Expiring')}</span>`;
       }
-      if (batch.qcStatus === 'released') return '<span class="tag tag-success">Released</span>';
-      return '<span class="tag tag-muted">Pending QC</span>';
+      if (batch.qcStatus === 'released') return `<span class="tag tag-success">${t('statusReleased', 'Released')}</span>`;
+      return `<span class="tag tag-muted">${t('statusPending', 'Pending QC')}</span>`;
     };
 
     root.innerHTML = `
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="font-size:16px; font-weight:600;">Batch / LOT Management</h3>
-          <button class="btn btn-primary" id="btn-add-batch">+ Create Batch</button>
+          <h3 style="font-size:16px; font-weight:600;">${t('title', 'Batch / LOT Management')}</h3>
+          <button class="btn btn-primary" id="btn-add-batch">+ ${t('createBatch', 'Create Batch')}</button>
         </div>
         <table class="table">
           <thead>
             <tr>
-              <th>${App.I18n.t('common.lotNumber', 'LOT Number')}</th>
+              <th>${t('lotNumber', 'LOT Number')}</th>
               <th>${App.I18n.t('common.item', 'Item')}</th>
-              <th>${App.I18n.t('common.type', 'Type')}</th>
-              <th style="text-align:right;">${App.I18n.t('common.qty', 'Qty')}</th>
-              <th>${App.I18n.t('common.expiry', 'Expiry')}</th>
+              <th>${t('type', 'Type')}</th>
+              <th style="text-align:right;">${t('quantity', 'Qty')}</th>
+              <th>${t('expiryDate', 'Expiry')}</th>
               <th>${App.I18n.t('common.status', 'Status')}</th>
               <th>${App.I18n.t('common.created', 'Created')}</th>
               <th style="text-align:right;">${App.I18n.t('common.actions', 'Actions')}</th>
@@ -51,20 +53,20 @@ App.UI.Views.Batches = {
           <tbody>
             ${batches.length > 0 ? batches.map(b => `
               <tr>
-                <td><strong>${b.lotNumber}</strong></td>
+                <td><strong>${esc(b.lotNumber)}</strong></td>
                 <td>${getItemName(b)}</td>
-                <td>${b.productId ? 'Product' : 'Component'}</td>
+                <td>${b.productId ? t('product', 'Product') : t('component', 'Component')}</td>
                 <td style="text-align:right;">${b.quantity || 0}</td>
                 <td>${b.expiryDate || '-'}</td>
                 <td>${getStatusBadge(b)}</td>
                 <td>${b.createdAt ? b.createdAt.split('T')[0] : '-'}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-edit-batch" data-id="${b.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="Edit batch">✏️</button>
-                  <button class="btn btn-ghost btn-qc-batch" data-id="${b.id}" title="QC" aria-label="Quality control">🔬</button>
-                  <button class="btn btn-ghost btn-trace-batch" data-id="${b.id}" title="${App.I18n.t('common.trace', 'Trace')}" aria-label="Trace batch">🔍</button>
+                  <button class="btn btn-ghost btn-edit-batch" data-id="${b.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${t('editBatch', 'Edit Batch')}">✏️</button>
+                  <button class="btn btn-ghost btn-qc-batch" data-id="${b.id}" title="${App.I18n.t('common.qualityControl', 'Quality Control')}" aria-label="${App.I18n.t('common.qualityControl', 'Quality Control')}">🔬</button>
+                  <button class="btn btn-ghost btn-trace-batch" data-id="${b.id}" title="${App.I18n.t('common.trace', 'Trace')}" aria-label="${App.I18n.t('common.batchTraceability', 'Batch Traceability')}">🔍</button>
                 </td>
               </tr>
-            `).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--color-text-muted);">No batches</td></tr>'}
+            `).join('') : `<tr><td colspan="8" style="text-align:center;color:var(--color-text-muted);">${t('noBatches', 'No batches')}</td></tr>`}
           </tbody>
         </table>
       </div>
