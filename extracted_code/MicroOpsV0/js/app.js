@@ -40,9 +40,193 @@ window.App = window.App || {
     },
     getIcon(key) {
       return this.Icons[key] || '<span>•</span>';
+    },
+    showMessage(text, type = 'info', duration = 5000) {
+      const colors = {
+        success: 'var(--color-success, #4CAF50)',
+        error: 'var(--color-danger, #F44336)',
+        warning: 'var(--color-warning, #FF9800)',
+        info: 'var(--color-primary, #2196F3)'
+      };
+      const toast = document.createElement('div');
+      toast.className = `ui-toast ui-toast-${type}`;
+      toast.innerHTML = text;
+      toast.style.cssText = `
+        position: fixed; top: 20px; right: 20px; padding: 12px 20px;
+        background: ${colors[type] || colors.info}; color: white;
+        border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10001; font-weight: 500; max-width: 400px;
+        animation: slideIn 0.3s ease;
+      `;
+      document.body.appendChild(toast);
+      if (duration > 0) {
+        setTimeout(() => {
+          toast.style.animation = 'slideOut 0.3s ease';
+          setTimeout(() => toast.remove(), 300);
+        }, duration);
+      }
+      return toast;
+    },
+    showSuccess(text) {
+      return this.showMessage(text, 'success', 3000);
+    },
+    showError(text, duration = 8000) {
+      return this.showMessage(text, 'error', duration);
+    },
+    showWarning(text) {
+      return this.showMessage(text, 'warning', 5000);
+    },
+    updateErrorBanner() {
+      let banner = document.getElementById('appErrorBanner');
+      if (App.lastSaveError) {
+        if (!banner) {
+          banner = document.createElement('div');
+          banner.id = 'appErrorBanner';
+          document.body.insertBefore(banner, document.body.firstChild);
+        }
+        banner.innerHTML = `
+          <div style="background: var(--color-danger, #F44336); color: white; padding: 12px 20px; text-align: center; font-weight: bold;">
+            ${App.lastSaveError.message}
+            <button onclick="App.UI.dismissError()" style="margin-left: 20px; padding: 4px 12px; background: white; color: var(--color-danger, #F44336); border: none; cursor: pointer; border-radius: 4px;">
+              Dismiss
+            </button>
+          </div>
+        `;
+        banner.style.display = 'block';
+      } else if (banner) {
+        banner.style.display = 'none';
+      }
+    },
+    dismissError() {
+      App.lastSaveError = null;
+      this.updateErrorBanner();
     }
   },
   Utils: {},
+  SessionManager: {
+    lastActivity: Date.now(),
+    warningShown: false,
+    sessionStartTime: Date.now(),
+    timeoutMinutes: 30,
+    warningMinutes: 5,
+    checkInterval: null,
+
+    init() {
+      this.sessionStartTime = Date.now();
+      this.lastActivity = Date.now();
+
+      document.addEventListener('click', () => this.updateActivity(), true);
+      document.addEventListener('keydown', () => this.updateActivity(), true);
+      document.addEventListener('mousemove', this._throttle(() => this.updateActivity(), 10000), true);
+
+      this.checkInterval = setInterval(() => this.checkTimeout(), 10000);
+
+      if (App.currentUser && App.Audit) {
+        App.Audit.log('LOGIN', 'session', App.currentUser.id, null, {
+          user: App.currentUser.name,
+          timestamp: new Date().toISOString()
+        });
+      }
+    },
+
+    _throttle(fn, delay) {
+      let last = 0;
+      return function() {
+        const now = Date.now();
+        if (now - last >= delay) {
+          last = now;
+          fn();
+        }
+      };
+    },
+
+    updateActivity() {
+      this.lastActivity = Date.now();
+      if (this.warningShown) {
+        this.warningShown = false;
+        this.dismissWarning();
+      }
+    },
+
+    checkTimeout() {
+      if (!App.currentUser) return;
+
+      const idleMs = Date.now() - this.lastActivity;
+      const timeoutMs = this.timeoutMinutes * 60 * 1000;
+      const warningMs = this.warningMinutes * 60 * 1000;
+
+      if (idleMs > timeoutMs) {
+        if (App.Audit) {
+          App.Audit.log('LOGOUT', 'session', App.currentUser.id, null, {
+            reason: 'Session timeout',
+            idleMinutes: Math.round(idleMs / 60000)
+          });
+        }
+        this.forceLogout('Session expired for security. Please log in again.');
+        return;
+      }
+
+      if (idleMs > timeoutMs - warningMs && !this.warningShown) {
+        this.showWarning();
+        this.warningShown = true;
+      }
+    },
+
+    showWarning() {
+      const remaining = Math.ceil((this.timeoutMinutes * 60 * 1000 - (Date.now() - this.lastActivity)) / 60000);
+      let banner = document.getElementById('sessionWarningBanner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'sessionWarningBanner';
+        document.body.insertBefore(banner, document.body.firstChild);
+      }
+      banner.innerHTML = `
+        <div style="background: var(--color-warning, #FF9800); color: white; padding: 12px 20px; text-align: center; font-weight: bold;">
+          Session expires in ${remaining} min - Click anywhere to extend
+          <button onclick="App.SessionManager.manualLogout()" style="margin-left: 20px; padding: 4px 12px; background: white; color: var(--color-warning, #FF9800); border: none; cursor: pointer; border-radius: 4px;">
+            Logout Now
+          </button>
+        </div>
+      `;
+      banner.style.display = 'block';
+    },
+
+    dismissWarning() {
+      const banner = document.getElementById('sessionWarningBanner');
+      if (banner) banner.remove();
+    },
+
+    forceLogout(message) {
+      this.dismissWarning();
+      if (this.checkInterval) clearInterval(this.checkInterval);
+      App.currentUser = null;
+      if (App.Services && App.Services.Auth) {
+        App.Services.Auth.initLoginScreen();
+      }
+      if (App.UI) {
+        App.UI.showError(message, 0);
+      }
+    },
+
+    manualLogout() {
+      if (App.currentUser && App.Audit) {
+        App.Audit.log('LOGOUT', 'session', App.currentUser.id, null, {
+          reason: 'User logout',
+          sessionMinutes: Math.round((Date.now() - this.sessionStartTime) / 60000)
+        });
+      }
+      this.dismissWarning();
+      if (this.checkInterval) clearInterval(this.checkInterval);
+      App.currentUser = null;
+      if (App.Services && App.Services.Auth) {
+        App.Services.Auth.initLoginScreen();
+      }
+    },
+
+    getSessionDuration() {
+      return Math.round((Date.now() - this.sessionStartTime) / 60000);
+    }
+  },
   I18n: {
     translations: {
       de: {
@@ -4494,12 +4678,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     App.Services.Auth.initLoginScreen();
 
-    // End session when user closes/navigates away from page
-    window.addEventListener('beforeunload', () => {
+    // End session and auto-backup when user closes/navigates away from page
+    window.addEventListener('beforeunload', async () => {
       if (App.Services.SessionManager) {
         App.Services.SessionManager.endSession();
       }
+      if (App.DB && App.DB.autoBackupOnExit) {
+        await App.DB.autoBackupOnExit();
+      }
     });
+
+    // Initialize session timeout manager
+    if (App.SessionManager) {
+      App.SessionManager.init();
+    }
 
     // Offline/Online status detection
     window.addEventListener('offline', () => {
