@@ -379,12 +379,66 @@ App.Utils.formatDate = function (iso) {
 
 /**
  * Number Sequence Service - Generates sequential document numbers
+ * Includes year change detection and guardrails
  */
 App.Services.NumberSequence = {
+  /**
+   * Check and handle year change for sequences
+   * Returns true if year changed and sequences were reset
+   */
+  _checkYearChange() {
+    const config = App.Data.config || App.Data.Config || {};
+    const seq = config.numberSequences || {};
+    const currentYear = new Date().getFullYear();
+    const lastYear = seq.lastYear || currentYear;
+
+    if (currentYear !== lastYear) {
+      // Year has changed - check if auto-reset is enabled
+      const autoReset = config.autoResetSequencesOnYear !== false; // Default to true
+
+      if (autoReset) {
+        // Reset all sequences
+        seq.lastOrderNumber = 0;
+        seq.lastDeliveryNumber = 0;
+        seq.lastInvoiceNumber = 0;
+        seq.lastProductionOrderNumber = 0;
+        seq.lastPurchaseOrderNumber = 0;
+        seq.lastYear = currentYear;
+        config.numberSequences = seq;
+        App.DB.save();
+
+        // Notify user
+        if (App.UI?.Toast) {
+          App.UI.Toast.show(`Happy New Year! Sequences reset for ${currentYear}`);
+        }
+
+        // Log activity
+        if (App.Services.ActivityLog) {
+          App.Services.ActivityLog.log('update', 'config', null, {
+            action: 'year_change_reset',
+            oldYear: lastYear,
+            newYear: currentYear
+          });
+        }
+
+        return true;
+      }
+    }
+
+    // Update last year tracker
+    if (seq.lastYear !== currentYear) {
+      seq.lastYear = currentYear;
+      config.numberSequences = seq;
+    }
+
+    return false;
+  },
+
   /**
    * Get next order number (A2025-0076)
    */
   nextOrderNumber() {
+    this._checkYearChange();
     const config = App.Data.config || App.Data.Config || {};
     const seq = config.numberSequences || {};
     const year = new Date().getFullYear();
@@ -399,6 +453,7 @@ App.Services.NumberSequence = {
    * Get next delivery note number (L20250059)
    */
   nextDeliveryNumber() {
+    this._checkYearChange();
     const config = App.Data.config || App.Data.Config || {};
     const seq = config.numberSequences || {};
     const year = new Date().getFullYear();
@@ -413,6 +468,7 @@ App.Services.NumberSequence = {
    * Get next invoice number (R20250069)
    */
   nextInvoiceNumber() {
+    this._checkYearChange();
     const config = App.Data.config || App.Data.Config || {};
     const seq = config.numberSequences || {};
     const year = new Date().getFullYear();
@@ -427,6 +483,7 @@ App.Services.NumberSequence = {
    * Get next production order number (PO-2025-002)
    */
   nextProductionOrderNumber() {
+    this._checkYearChange();
     const config = App.Data.config || App.Data.Config || {};
     const seq = config.numberSequences || {};
     const year = new Date().getFullYear();
@@ -441,6 +498,7 @@ App.Services.NumberSequence = {
    * Get next customer number (K-2025-0001)
    */
   nextCustomerNumber() {
+    this._checkYearChange();
     const config = App.Data.config || App.Data.Config || {};
     const seq = config.numberSequences || {};
     const year = new Date().getFullYear();

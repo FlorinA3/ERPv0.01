@@ -539,6 +539,20 @@ App.UI.Views.Documents = {
     const total = subNet + vatAmt;
     const invoiceDate = new Date().toISOString();
 
+    // Auto-select language based on customer preference or country
+    let docLang = 'en';
+    if (cust.preferredLang) {
+      docLang = cust.preferredLang;
+    } else {
+      // Auto-detect based on country
+      const custCountry = (billAddr?.country || '').toLowerCase();
+      if (['germany', 'deutschland', 'austria', 'österreich', 'switzerland', 'schweiz', 'de', 'at', 'ch'].some(c => custCountry.includes(c))) {
+        docLang = 'de';
+      } else if (['romania', 'rumänien', 'ro'].some(c => custCountry.includes(c))) {
+        docLang = 'ro';
+      }
+    }
+
     const doc = {
       id: App.Utils.generateId('d'),
       type: type,
@@ -553,6 +567,7 @@ App.UI.Views.Documents = {
       ref: o.customerReference,
       paymentTerms: cust.paymentTerms,
       deliveryTerms: cust.deliveryTerms,
+      language: docLang, // Auto-selected document language
       items: items,
       netTotal: subNet,
       vatSummary: [{ rate: 0.2, base: subNet, amount: vatAmt }],
@@ -588,7 +603,74 @@ App.UI.Views.Documents = {
     const shipAddr = (cust.addresses || []).find(a => a.id === d.shippingAddressId) || billAddr;
 
     const isInv = d.type === 'invoice';
-    const title = isInv ? 'Rechnung / Invoice' : 'Lieferschein / Delivery Note';
+    const docLang = d.language || 'en';
+
+    // Language-specific labels
+    const labels = {
+      en: {
+        invoiceTitle: 'Invoice',
+        deliveryTitle: 'Delivery Note',
+        billingAddr: 'Billing Address',
+        shippingAddr: 'Shipping Address',
+        artNo: 'Art. No.',
+        description: 'Description',
+        qty: 'Qty',
+        unit: 'Unit',
+        price: 'Price',
+        total: 'Total',
+        net: 'Net',
+        vat: 'VAT',
+        terms: 'Terms',
+        delivery: 'Delivery',
+        bank: 'Bank',
+        due: 'Due',
+        paid: 'Paid',
+        balance: 'Balance Due'
+      },
+      de: {
+        invoiceTitle: 'Rechnung',
+        deliveryTitle: 'Lieferschein',
+        billingAddr: 'Rechnungsadresse',
+        shippingAddr: 'Lieferadresse',
+        artNo: 'Art. Nr.',
+        description: 'Beschreibung',
+        qty: 'Menge',
+        unit: 'Einheit',
+        price: 'Preis',
+        total: 'Gesamt',
+        net: 'Netto',
+        vat: 'MwSt',
+        terms: 'Zahlungsbed.',
+        delivery: 'Lieferung',
+        bank: 'Bank',
+        due: 'Fällig',
+        paid: 'Bezahlt',
+        balance: 'Offener Betrag'
+      },
+      ro: {
+        invoiceTitle: 'Factură',
+        deliveryTitle: 'Aviz de Livrare',
+        billingAddr: 'Adresa de Facturare',
+        shippingAddr: 'Adresa de Livrare',
+        artNo: 'Nr. Art.',
+        description: 'Descriere',
+        qty: 'Cant.',
+        unit: 'UM',
+        price: 'Preț',
+        total: 'Total',
+        net: 'Net',
+        vat: 'TVA',
+        terms: 'Termeni',
+        delivery: 'Livrare',
+        bank: 'Bancă',
+        due: 'Scadent',
+        paid: 'Plătit',
+        balance: 'De plată'
+      }
+    };
+
+    const l = labels[docLang] || labels.en;
+    const title = isInv ? l.invoiceTitle : l.deliveryTitle;
 
     const rows = d.items.map(i => `
       <tr>
@@ -606,11 +688,11 @@ App.UI.Views.Documents = {
       const remaining = (d.grossTotal || 0) - (d.paidAmount || 0);
       totalsHtml = `
         <div class="totals-block">
-          <div class="row"><span class="label">Netto / Net:</span> <span class="val">${App.Utils.formatCurrency(d.netTotal)}</span></div>
-          <div class="row"><span class="label">MwSt / VAT (20%):</span> <span class="val">${App.Utils.formatCurrency(d.grossTotal - d.netTotal)}</span></div>
-          <div class="row bold"><span class="label">Gesamt / Total:</span> <span class="val">${App.Utils.formatCurrency(d.grossTotal)}</span></div>
-          ${d.paidAmount > 0 ? `<div class="row" style="color:#16a34a;"><span class="label">Paid:</span> <span class="val">-${App.Utils.formatCurrency(d.paidAmount)}</span></div>` : ''}
-          ${remaining > 0 ? `<div class="row" style="color:#dc2626;"><span class="label">Balance Due:</span> <span class="val">${App.Utils.formatCurrency(remaining)}</span></div>` : ''}
+          <div class="row"><span class="label">${l.net}:</span> <span class="val">${App.Utils.formatCurrency(d.netTotal)}</span></div>
+          <div class="row"><span class="label">${l.vat} (20%):</span> <span class="val">${App.Utils.formatCurrency(d.grossTotal - d.netTotal)}</span></div>
+          <div class="row bold"><span class="label">${l.total}:</span> <span class="val">${App.Utils.formatCurrency(d.grossTotal)}</span></div>
+          ${d.paidAmount > 0 ? `<div class="row" style="color:#16a34a;"><span class="label">${l.paid}:</span> <span class="val">-${App.Utils.formatCurrency(d.paidAmount)}</span></div>` : ''}
+          ${remaining > 0 ? `<div class="row" style="color:#dc2626;"><span class="label">${l.balance}:</span> <span class="val">${App.Utils.formatCurrency(remaining)}</span></div>` : ''}
         </div>
       `;
     }
@@ -669,7 +751,7 @@ App.UI.Views.Documents = {
 
         <div class="addresses">
           <div class="addr-box">
-            <div class="addr-title">Billing Address</div>
+            <div class="addr-title">${l.billingAddr}</div>
             <strong>${cust.company}</strong><br/>
             ${billAddr.street || ''}<br/>
             ${billAddr.zip || ''} ${billAddr.city || ''}<br/>
@@ -677,7 +759,7 @@ App.UI.Views.Documents = {
             ${cust.vatNumber ? 'VAT: ' + cust.vatNumber : ''}
           </div>
           <div class="addr-box">
-            <div class="addr-title">Shipping Address</div>
+            <div class="addr-title">${l.shippingAddr}</div>
             <strong>${cust.company}</strong><br/>
             ${shipAddr.street || ''}<br/>
             ${shipAddr.zip || ''} ${shipAddr.city || ''}<br/>
@@ -688,12 +770,12 @@ App.UI.Views.Documents = {
         <table>
           <thead>
             <tr>
-              <th width="15%">Art. No.</th>
-              <th width="40%">Description</th>
-              <th width="10%" style="text-align:right">Qty</th>
-              <th width="10%">Unit</th>
-              ${isInv ? `<th width="12%" style="text-align:right">Price</th>` : ''}
-              ${isInv ? `<th width="13%" style="text-align:right">Total</th>` : ''}
+              <th width="15%">${l.artNo}</th>
+              <th width="40%">${l.description}</th>
+              <th width="10%" style="text-align:right">${l.qty}</th>
+              <th width="10%">${l.unit}</th>
+              ${isInv ? `<th width="12%" style="text-align:right">${l.price}</th>` : ''}
+              ${isInv ? `<th width="13%" style="text-align:right">${l.total}</th>` : ''}
             </tr>
           </thead>
           <tbody>
@@ -705,11 +787,11 @@ App.UI.Views.Documents = {
 
         <div class="footer">
           <div>
-            <strong>Terms:</strong> ${d.paymentTerms || '-'}<br/>
-            <strong>Delivery:</strong> ${d.deliveryTerms || '-'}
+            <strong>${l.terms}:</strong> ${d.paymentTerms || '-'}<br/>
+            <strong>${l.delivery}:</strong> ${d.deliveryTerms || '-'}
           </div>
           <div>
-            <strong>Bank:</strong> ${conf.bankName || '-'}<br/>
+            <strong>${l.bank}:</strong> ${conf.bankName || '-'}<br/>
             <strong>IBAN:</strong> ${conf.iban || '-'}
           </div>
           <div>
