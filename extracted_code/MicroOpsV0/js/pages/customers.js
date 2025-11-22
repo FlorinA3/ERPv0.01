@@ -1,71 +1,83 @@
 App.UI.Views.Customers = {
   render(root) {
-    const customers = App.Data.Customers || [];
-    const cards = customers.map(c => {
-      const addr = (c.addresses && c.addresses[0]) || {};
-      const contact = (c.contacts && c.contacts[0]) || c.name || '-';
-      const phone = (c.phones && c.phones[0]) || '';
-      return `
-        <div class="customer-card">
-          <div class="customer-avatar">${(c.company || 'C').charAt(0).toUpperCase()}</div>
-          <div class="customer-info">
-            <div class="customer-name">${c.company || '-'}</div>
-            <div class="customer-contact">${contact || ''}</div>
-            <div class="customer-meta">${addr.country || ''} ${phone ? ' \u260E ' + phone : ''}</div>
-          </div>
-          <div class="customer-actions">
-            <button class="btn btn-ghost btn-edit-customer" data-id="${c.id}">✏️</button>
-            <button class="btn btn-ghost btn-del-customer" data-id="${c.id}">🗑️</button>
-          </div>
-        </div>
-      `;
-    }).join('');
+    const customers = App.Data.customers || App.Data.Customers || [];
 
     root.innerHTML = `
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="font-size:16px; font-weight:600;">Customers</h3>
-          <button class="btn btn-primary" id="btn-add-customer">+ Add New</button>
+          <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.customers.title','Customers')}</h3>
+          <button class="btn btn-primary" id="btn-add-customer">+ ${App.I18n.t('common.add','Add')}</button>
         </div>
-        <div class="customer-list" style="display:flex; flex-direction:column; gap:12px;">
-          ${cards || `<div style="padding:16px; text-align:center; color:var(--color-text-muted);">No customers</div>`}
-        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Customer No</th>
+              <th>Company</th>
+              <th>Contact</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Country</th>
+              <th style="text-align:right;">${App.I18n.t('common.actions','Actions')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${customers.length > 0 ? customers.map(c => {
+              const addr = (c.addresses && c.addresses[0]) || {};
+              const contact = (c.contacts && c.contacts[0]) || c.name || '-';
+              const phone = (c.phones && c.phones[0]) || '-';
+              const email = (c.emails && c.emails[0]) || c.email || '-';
+              return `
+                <tr>
+                  <td><strong>${c.customerNumber || '-'}</strong></td>
+                  <td>${c.company || '-'}</td>
+                  <td>${contact}</td>
+                  <td>${email}</td>
+                  <td>${phone}</td>
+                  <td>${addr.country || '-'}</td>
+                  <td style="text-align:right;">
+                    <button class="btn btn-ghost btn-edit-customer" data-id="${c.id}" title="Edit">✏️</button>
+                    <button class="btn btn-ghost btn-del-customer" data-id="${c.id}" title="Delete">🗑️</button>
+                  </td>
+                </tr>
+              `;
+            }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);">No customers</td></tr>'}
+          </tbody>
+        </table>
       </div>
     `;
 
-    document.getElementById('btn-add-customer').onclick = () => this.openEditModal();
+    document.getElementById('btn-add-customer')?.addEventListener('click', () => this.openEditModal());
 
     root.querySelectorAll('.btn-edit-customer').forEach(btn => {
       btn.addEventListener('click', () => {
         this.openEditModal(btn.getAttribute('data-id'));
       });
     });
+
     root.querySelectorAll('.btn-del-customer').forEach(btn => {
       btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        this.deleteCustomer(id);
+        this.deleteCustomer(btn.getAttribute('data-id'));
       });
     });
   },
 
   openEditModal(id) {
+    const customers = App.Data.customers || App.Data.Customers || [];
     const isNew = !id;
     const c = isNew
-      ? { company: '', contacts: [''], phones: [''], emails: [''], addresses: [ { id: App.Utils.generateId('a'), label: 'Main', street: '', number: '', city: '', zip: '', country: '' } ] }
-      : (App.Data.Customers.find(x => x.id === id) || { company: '', contacts: [], phones: [], emails: [], addresses: [] });
+      ? { company: '', contacts: [''], phones: [''], emails: [''], addresses: [{ id: App.Utils.generateId('a'), label: 'Main', street: '', number: '', city: '', zip: '', country: '' }] }
+      : (customers.find(x => x.id === id) || { company: '', contacts: [], phones: [], emails: [], addresses: [] });
 
-    
     const contacts = c.contacts && c.contacts.length ? c.contacts : [''];
     const phones = c.phones && c.phones.length ? c.phones : [''];
     const emails = c.emails && c.emails.length ? c.emails : [''];
-    const addresses = c.addresses && c.addresses.length ? c.addresses : [ { id: App.Utils.generateId('a'), label: 'Main', street: '', number: '', city: '', zip: '', country: '' } ];
+    const addresses = c.addresses && c.addresses.length ? c.addresses : [{ id: App.Utils.generateId('a'), label: 'Main', street: '', number: '', city: '', zip: '', country: '' }];
 
-    
     const buildListInputs = (items, type) => {
       return items.map((val, idx) => `
         <div class="cust-${type}-row" data-index="${idx}" style="display:flex; align-items:center; margin-bottom:6px; gap:4px;">
           <input class="input cust-${type}-input" style="flex:1;" value="${val || ''}" />
-          <button class="btn btn-ghost cust-${type}-remove" title="Remove" style="padding:2px 6px;">✖️</button>
+          <button type="button" class="btn btn-ghost cust-${type}-remove" title="Remove" style="padding:2px 6px;">✖️</button>
         </div>
       `).join('');
     };
@@ -73,8 +85,20 @@ App.UI.Views.Customers = {
     const buildAddressInputs = (items) => {
       return items.map((addr, idx) => `
         <div class="cust-address-row" data-index="${idx}" style="border:1px solid var(--color-border); padding:8px; border-radius:8px; margin-bottom:8px;">
-          <label class="field-label">Label</label>
-          <input class="input cust-address-label" value="${addr.label || ''}" />
+          <div class="grid grid-2" style="gap:8px;">
+            <div>
+              <label class="field-label">Label</label>
+              <input class="input cust-address-label" value="${addr.label || ''}" />
+            </div>
+            <div>
+              <label class="field-label">Role</label>
+              <select class="input cust-address-role">
+                <option value="main" ${addr.role === 'main' ? 'selected' : ''}>Main</option>
+                <option value="billing" ${addr.role === 'billing' ? 'selected' : ''}>Billing</option>
+                <option value="shipping" ${addr.role === 'shipping' ? 'selected' : ''}>Shipping</option>
+              </select>
+            </div>
+          </div>
           <div style="display:flex; gap:4px; margin-top:4px;">
             <div style="flex:1;">
               <label class="field-label">Street</label>
@@ -97,46 +121,77 @@ App.UI.Views.Customers = {
           </div>
           <label class="field-label" style="margin-top:4px;">Country</label>
           <input class="input cust-address-country" value="${addr.country || ''}" />
-          <button class="btn btn-ghost cust-address-remove" title="Remove address" style="margin-top:6px;">Remove</button>
+          <button type="button" class="btn btn-ghost cust-address-remove" title="Remove address" style="margin-top:6px;">Remove</button>
         </div>
       `).join('');
     };
 
+    const segmentOptions = ['', 'Premium', 'Standard', 'Basic', 'Retail', 'Wholesale'].map(s =>
+      `<option value="${s}" ${c.segment === s ? 'selected' : ''}>${s || 'Select...'}</option>`
+    ).join('');
+
     const body = `
       <div>
-        <label class="field-label">Company</label>
-        <input id="cust-company" class="input" value="${c.company || ''}" />
+        ${!isNew && c.customerNumber ? `<p style="margin-bottom:12px; font-size:13px; color:var(--color-text-muted);">Customer No: <strong>${c.customerNumber}</strong></p>` : ''}
 
-        <div style="margin-top:8px;">
-          <label class="field-label">Contacts</label>
-          <div id="cust-contacts-container">
-            ${buildListInputs(contacts, 'contact')}
+        <div class="grid grid-2" style="gap:12px;">
+          <div>
+            <label class="field-label">Company*</label>
+            <input id="cust-company" class="input" value="${c.company || ''}" />
           </div>
-          <button class="btn btn-ghost" id="cust-add-contact" type="button" style="margin-top:4px;">+ Add Contact</button>
+          <div>
+            <label class="field-label">Segment</label>
+            <select id="cust-segment" class="input">${segmentOptions}</select>
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="gap:12px; margin-top:8px;">
+          <div>
+            <label class="field-label">VAT Number</label>
+            <input id="cust-vat" class="input" value="${c.vatNumber || ''}" placeholder="e.g., DE123456789" />
+          </div>
+          <div>
+            <label class="field-label">Payment Terms</label>
+            <select id="cust-payment-terms" class="input">
+              <option value="">Select...</option>
+              <option value="Net 7" ${c.paymentTerms === 'Net 7' ? 'selected' : ''}>Net 7</option>
+              <option value="Net 15" ${c.paymentTerms === 'Net 15' ? 'selected' : ''}>Net 15</option>
+              <option value="Net 30" ${c.paymentTerms === 'Net 30' ? 'selected' : ''}>Net 30</option>
+              <option value="Net 45" ${c.paymentTerms === 'Net 45' ? 'selected' : ''}>Net 45</option>
+              <option value="Net 60" ${c.paymentTerms === 'Net 60' ? 'selected' : ''}>Net 60</option>
+              <option value="COD" ${c.paymentTerms === 'COD' ? 'selected' : ''}>COD</option>
+              <option value="Prepaid" ${c.paymentTerms === 'Prepaid' ? 'selected' : ''}>Prepaid</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label class="field-label">Contacts</label>
+          <div id="cust-contacts-container">${buildListInputs(contacts, 'contact')}</div>
+          <button type="button" class="btn btn-ghost" id="cust-add-contact" style="margin-top:4px;">+ Add Contact</button>
         </div>
 
         <div style="margin-top:8px;">
           <label class="field-label">Phones</label>
-          <div id="cust-phones-container">
-            ${buildListInputs(phones, 'phone')}
-          </div>
-          <button class="btn btn-ghost" id="cust-add-phone" type="button" style="margin-top:4px;">+ Add Phone</button>
+          <div id="cust-phones-container">${buildListInputs(phones, 'phone')}</div>
+          <button type="button" class="btn btn-ghost" id="cust-add-phone" style="margin-top:4px;">+ Add Phone</button>
         </div>
 
         <div style="margin-top:8px;">
           <label class="field-label">Emails</label>
-          <div id="cust-emails-container">
-            ${buildListInputs(emails, 'email')}
-          </div>
-          <button class="btn btn-ghost" id="cust-add-email" type="button" style="margin-top:4px;">+ Add Email</button>
+          <div id="cust-emails-container">${buildListInputs(emails, 'email')}</div>
+          <button type="button" class="btn btn-ghost" id="cust-add-email" style="margin-top:4px;">+ Add Email</button>
         </div>
 
         <div style="margin-top:8px;">
           <label class="field-label">Addresses</label>
-          <div id="cust-addresses-container">
-            ${buildAddressInputs(addresses)}
-          </div>
-          <button class="btn btn-ghost" id="cust-add-address" type="button" style="margin-top:4px;">+ Add Address</button>
+          <div id="cust-addresses-container">${buildAddressInputs(addresses)}</div>
+          <button type="button" class="btn btn-ghost" id="cust-add-address" style="margin-top:4px;">+ Add Address</button>
+        </div>
+
+        <div style="margin-top:8px;">
+          <label class="field-label">Notes</label>
+          <textarea id="cust-notes" class="input" rows="2">${c.notes || ''}</textarea>
         </div>
       </div>
     `;
@@ -147,26 +202,30 @@ App.UI.Views.Customers = {
         text: 'Save',
         variant: 'primary',
         onClick: () => {
-          
           const company = document.getElementById('cust-company').value.trim();
-          
+          if (!company) {
+            App.UI.Toast.show('Company name is required');
+            return false;
+          }
+
           const contactVals = Array.from(document.querySelectorAll('#cust-contacts-container .cust-contact-input'))
             .map(i => i.value.trim())
             .filter(v => v);
-          
+
           const phoneVals = Array.from(document.querySelectorAll('#cust-phones-container .cust-phone-input'))
             .map(i => i.value.trim())
             .filter(v => v);
-          
+
           const emailVals = Array.from(document.querySelectorAll('#cust-emails-container .cust-email-input'))
             .map(i => i.value.trim())
             .filter(v => v);
-          
+
           const addrEls = document.querySelectorAll('#cust-addresses-container .cust-address-row');
           const addrVals = Array.from(addrEls).map((row, idx) => {
             return {
               id: addresses[idx] && addresses[idx].id ? addresses[idx].id : App.Utils.generateId('a'),
               label: row.querySelector('.cust-address-label').value.trim() || 'Main',
+              role: row.querySelector('.cust-address-role').value || 'main',
               street: row.querySelector('.cust-address-street').value.trim(),
               number: row.querySelector('.cust-address-number').value.trim(),
               city: row.querySelector('.cust-address-city').value.trim(),
@@ -174,23 +233,33 @@ App.UI.Views.Customers = {
               country: row.querySelector('.cust-address-country').value.trim()
             };
           });
+
           const n = {
             id: isNew ? App.Utils.generateId('c') : c.id,
+            customerNumber: isNew ? App.Services.NumberSequence.nextCustomerNumber() : c.customerNumber,
             company,
+            segment: document.getElementById('cust-segment').value || null,
+            vatNumber: document.getElementById('cust-vat').value.trim() || null,
+            paymentTerms: document.getElementById('cust-payment-terms').value || null,
             contacts: contactVals,
             phones: phoneVals,
             emails: emailVals,
-            addresses: addrVals
+            addresses: addrVals,
+            notes: document.getElementById('cust-notes').value.trim() || null,
+            name: contactVals[0] || '',
+            email: emailVals[0] || '',
+            createdAt: isNew ? new Date().toISOString() : c.createdAt,
+            updatedAt: new Date().toISOString()
           };
-          
-          n.name = contactVals[0] || '';
-          n.email = emailVals[0] || '';
+
+          const list = App.Data.customers || App.Data.Customers || [];
           if (isNew) {
-            App.Data.Customers.push(n);
+            list.push(n);
           } else {
-            const idx = App.Data.Customers.findIndex(x => x.id === n.id);
-            if (idx >= 0) App.Data.Customers[idx] = n;
+            const idx = list.findIndex(x => x.id === n.id);
+            if (idx >= 0) list[idx] = { ...list[idx], ...n };
           }
+
           App.DB.save();
           App.UI.Toast.show('Customer saved');
           App.Core.Router.navigate('customers');
@@ -198,75 +267,31 @@ App.UI.Views.Customers = {
       }
     ]);
 
-    
     setTimeout(() => {
-      
-      document.getElementById('cust-add-contact').onclick = () => {
-        const container = document.getElementById('cust-contacts-container');
-        const row = document.createElement('div');
-        row.className = 'cust-contact-row';
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.marginBottom = '6px';
-        row.style.gap = '4px';
-        row.innerHTML = `<input class="input cust-contact-input" style="flex:1;" value="" /><button class="btn btn-ghost cust-contact-remove" style="padding:2px 6px;">✖️</button>`;
-        container.appendChild(row);
-        row.querySelector('.cust-contact-remove').onclick = () => row.remove();
-      };
-      document.querySelectorAll('#cust-contacts-container .cust-contact-remove').forEach(btn => {
-        btn.onclick = () => {
-          btn.parentElement.remove();
-        };
-      });
-      
-      document.getElementById('cust-add-phone').onclick = () => {
-        const container = document.getElementById('cust-phones-container');
-        const row = document.createElement('div');
-        row.className = 'cust-phone-row';
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.marginBottom = '6px';
-        row.style.gap = '4px';
-        row.innerHTML = `<input class="input cust-phone-input" style="flex:1;" value="" /><button class="btn btn-ghost cust-phone-remove" style="padding:2px 6px;">✖️</button>`;
-        container.appendChild(row);
-        row.querySelector('.cust-phone-remove').onclick = () => row.remove();
-      };
-      document.querySelectorAll('#cust-phones-container .cust-phone-remove').forEach(btn => {
-        btn.onclick = () => {
-          btn.parentElement.remove();
-        };
-      });
-      
-      document.getElementById('cust-add-email').onclick = () => {
-        const container = document.getElementById('cust-emails-container');
-        const row = document.createElement('div');
-        row.className = 'cust-email-row';
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.marginBottom = '6px';
-        row.style.gap = '4px';
-        row.innerHTML = `<input class="input cust-email-input" style="flex:1;" value="" /><button class="btn btn-ghost cust-email-remove" style="padding:2px 6px;">✖️</button>`;
-        container.appendChild(row);
-        row.querySelector('.cust-email-remove').onclick = () => row.remove();
-      };
-      document.querySelectorAll('#cust-emails-container .cust-email-remove').forEach(btn => {
-        btn.onclick = () => {
-          btn.parentElement.remove();
-        };
-      });
-      
-      document.getElementById('cust-add-address').onclick = () => {
+      this.wireListHandlers('contact', 'cust-contacts-container', 'cust-add-contact');
+      this.wireListHandlers('phone', 'cust-phones-container', 'cust-add-phone');
+      this.wireListHandlers('email', 'cust-emails-container', 'cust-add-email');
+
+      document.getElementById('cust-add-address')?.addEventListener('click', () => {
         const container = document.getElementById('cust-addresses-container');
-        const idx = container.querySelectorAll('.cust-address-row').length;
         const div = document.createElement('div');
         div.className = 'cust-address-row';
-        div.style.border = '1px solid var(--color-border)';
-        div.style.padding = '8px';
-        div.style.borderRadius = '8px';
-        div.style.marginBottom = '8px';
+        div.style.cssText = 'border:1px solid var(--color-border); padding:8px; border-radius:8px; margin-bottom:8px;';
         div.innerHTML = `
-          <label class="field-label">Label</label>
-          <input class="input cust-address-label" value="" />
+          <div class="grid grid-2" style="gap:8px;">
+            <div>
+              <label class="field-label">Label</label>
+              <input class="input cust-address-label" value="" />
+            </div>
+            <div>
+              <label class="field-label">Role</label>
+              <select class="input cust-address-role">
+                <option value="main">Main</option>
+                <option value="billing">Billing</option>
+                <option value="shipping">Shipping</option>
+              </select>
+            </div>
+          </div>
           <div style="display:flex; gap:4px; margin-top:4px;">
             <div style="flex:1;">
               <label class="field-label">Street</label>
@@ -289,32 +314,69 @@ App.UI.Views.Customers = {
           </div>
           <label class="field-label" style="margin-top:4px;">Country</label>
           <input class="input cust-address-country" value="" />
-          <button class="btn btn-ghost cust-address-remove" title="Remove address" style="margin-top:6px;">Remove</button>
+          <button type="button" class="btn btn-ghost cust-address-remove" title="Remove address" style="margin-top:6px;">Remove</button>
         `;
         container.appendChild(div);
-        div.querySelector('.cust-address-remove').onclick = () => div.remove();
-      };
+        div.querySelector('.cust-address-remove').addEventListener('click', () => div.remove());
+      });
+
       document.querySelectorAll('#cust-addresses-container .cust-address-remove').forEach(btn => {
-        btn.onclick = () => {
-          btn.parentElement.remove();
-        };
+        btn.addEventListener('click', () => btn.closest('.cust-address-row').remove());
       });
     }, 0);
   },
 
+  wireListHandlers(type, containerId, addBtnId) {
+    const container = document.getElementById(containerId);
+    const addBtn = document.getElementById(addBtnId);
+
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        const row = document.createElement('div');
+        row.className = `cust-${type}-row`;
+        row.style.cssText = 'display:flex; align-items:center; margin-bottom:6px; gap:4px;';
+        row.innerHTML = `
+          <input class="input cust-${type}-input" style="flex:1;" value="" />
+          <button type="button" class="btn btn-ghost cust-${type}-remove" style="padding:2px 6px;">✖️</button>
+        `;
+        container.appendChild(row);
+        row.querySelector(`.cust-${type}-remove`).addEventListener('click', () => row.remove());
+      });
+    }
+
+    container?.querySelectorAll(`.cust-${type}-remove`).forEach(btn => {
+      btn.addEventListener('click', () => btn.parentElement.remove());
+    });
+  },
+
   deleteCustomer(id) {
-    const customer = App.Data.Customers.find(c => c.id === id);
+    const customers = App.Data.customers || App.Data.Customers || [];
+    const customer = customers.find(c => c.id === id);
     if (!customer) return;
-    App.UI.Modal.open('Delete Customer', `Are you sure you want to delete <strong>${customer.company}</strong>? This action cannot be undone.`, [
+
+    const orders = App.Data.orders || [];
+    const linkedOrders = orders.filter(o => o.custId === id);
+    if (linkedOrders.length > 0) {
+      App.UI.Toast.show(`Cannot delete: ${linkedOrders.length} orders linked to this customer`);
+      return;
+    }
+
+    App.UI.Modal.open('Delete Customer', `
+      <p>Are you sure you want to delete <strong>${customer.company}</strong>?</p>
+      ${customer.customerNumber ? `<p style="font-size:12px; color:var(--color-text-muted);">Customer No: ${customer.customerNumber}</p>` : ''}
+    `, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       {
         text: 'Delete',
         variant: 'primary',
         onClick: () => {
-          App.Data.Customers = App.Data.Customers.filter(c => c.id !== id);
-          App.DB.save();
-          App.UI.Toast.show('Customer deleted');
-          App.Core.Router.navigate('customers');
+          const idx = customers.findIndex(c => c.id === id);
+          if (idx >= 0) {
+            customers.splice(idx, 1);
+            App.DB.save();
+            App.UI.Toast.show('Customer deleted');
+            App.Core.Router.navigate('customers');
+          }
         }
       }
     ]);

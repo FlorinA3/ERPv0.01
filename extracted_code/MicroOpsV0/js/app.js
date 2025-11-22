@@ -438,6 +438,20 @@ App.Services.NumberSequence = {
   },
 
   /**
+   * Get next customer number (K-2025-0001)
+   */
+  nextCustomerNumber() {
+    const config = App.Data.config || App.Data.Config || {};
+    const seq = config.numberSequences || {};
+    const year = new Date().getFullYear();
+    const next = (seq.lastCustomerNumber || 0) + 1;
+    seq.lastCustomerNumber = next;
+    config.numberSequences = seq;
+    App.DB.save();
+    return `K-${year}-${String(next).padStart(4, '0')}`;
+  },
+
+  /**
    * Get current sequence numbers (for display in settings)
    */
   getCurrentNumbers() {
@@ -447,7 +461,8 @@ App.Services.NumberSequence = {
       lastOrderNumber: seq.lastOrderNumber || 0,
       lastDeliveryNumber: seq.lastDeliveryNumber || 0,
       lastInvoiceNumber: seq.lastInvoiceNumber || 0,
-      lastProductionOrderNumber: seq.lastProductionOrderNumber || 0
+      lastProductionOrderNumber: seq.lastProductionOrderNumber || 0,
+      lastCustomerNumber: seq.lastCustomerNumber || 0
     };
   }
 };

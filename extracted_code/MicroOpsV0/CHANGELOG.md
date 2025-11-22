@@ -310,13 +310,30 @@ This release establishes the core foundation for production-ready ERP functional
 
 ---
 
+## [0.6.1] - 2025-11-22
+
+### Sequential Customer Numbering - Complete
+
+#### Customer Number Generation (js/app.js)
+- **Auto-Generated Customer Numbers**: Format K-YYYY-XXXX (e.g., K-2025-0001)
+- **Sequence in NumberSequence Service**: Persistent counter in config.numberSequences
+- **getCurrentNumbers() Updated**: Includes lastCustomerNumber for settings display
+
+#### Enhanced Customers Page (js/pages/customers.js)
+- **Customer Number Display**: Shows customer number in list and edit modal
+- **Auto-Assign on Create**: New customers automatically get sequential number
+- **Table Layout**: Improved table view with all key fields
+- **Segment Field**: Premium, Standard, Basic, Retail, Wholesale
+- **Payment Terms**: Net 7/15/30/45/60, COD, Prepaid
+- **Address Roles**: Main, Billing, Shipping address types
+- **Delete Protection**: Cannot delete customers with linked orders
+- **Better Modal**: Two-column layout with organized sections
+
+---
+
 ## [Unreleased]
 
 ### Planned for Version 0.7.0
-
-#### Sequential Customer Numbering
-- [ ] Auto-generated customer numbers (K-YYYY-XXXX)
-- [ ] Customer number sequences in config
 
 #### Enhanced Order Wizard
 - [ ] Multi-step order creation flow
