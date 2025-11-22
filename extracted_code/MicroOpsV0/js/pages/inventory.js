@@ -2,11 +2,19 @@ App.UI.Views.Inventory = {
   activeTab: 'Finished',
 
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`inventory.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const products = App.Data.products || [];
     const components = App.Data.components || [];
 
     const productItems = products.filter(p => p.type !== 'Service');
     const categories = ['Finished', 'Device', 'Consumable', 'Part'];
+    const categoryLabels = {
+      'Finished': t('finished', 'Finished'),
+      'Device': t('device', 'Device'),
+      'Consumable': t('consumable', 'Consumable'),
+      'Part': t('part', 'Part')
+    };
     const active = this.activeTab;
 
     const needsReorder = [
@@ -27,13 +35,13 @@ App.UI.Views.Inventory = {
     const tabsHtml = categories
       .map(cat => {
         const isActive = cat === active;
-        return `<button class="inv-tab ${isActive ? 'inv-tab-active' : ''}" data-cat="${cat}">${cat}</button>`;
+        return `<button class="inv-tab ${isActive ? 'inv-tab-active' : ''}" data-cat="${cat}">${categoryLabels[cat] || cat}</button>`;
       })
       .join('');
 
     const filtered = productItems.filter(p => {
-      const t = (p.type || '').toLowerCase();
-      return t === active.toLowerCase();
+      const pType = (p.type || '').toLowerCase();
+      return pType === active.toLowerCase();
     });
 
     const rowsHtml = filtered.length > 0 ? filtered.map(p => {
@@ -44,65 +52,65 @@ App.UI.Views.Inventory = {
 
       if (stock <= 0) {
         stockClass = 'color:var(--color-danger); font-weight:500;';
-        stockBadge = '<span class="tag tag-danger" style="margin-left:4px;">Out</span>';
+        stockBadge = `<span class="tag tag-danger" style="margin-left:4px;">${t('out', 'Out')}</span>`;
       } else if (stock <= minStock) {
         stockClass = 'color:var(--color-warning); font-weight:500;';
-        stockBadge = '<span class="tag tag-warning" style="margin-left:4px;">Low</span>';
+        stockBadge = `<span class="tag tag-warning" style="margin-left:4px;">${t('low', 'Low')}</span>`;
       }
 
       return `
         <tr>
-          <td><strong>${p.internalArticleNumber || p.sku || '-'}</strong></td>
-          <td>${p.nameDE || p.nameEN || '-'}</td>
+          <td><strong>${esc(p.internalArticleNumber || p.sku || '-')}</strong></td>
+          <td>${esc(p.nameDE || p.nameEN || '-')}</td>
           <td style="text-align:center; ${stockClass}">${stock}${stockBadge}</td>
           <td style="text-align:center;">${minStock}</td>
           <td style="text-align:right;">${App.Utils.formatCurrency(p.dealerPrice || p.purchasePrice || 0)}</td>
           <td style="text-align:right;">
-            <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="${App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="Receive stock">⬆️</button>
-            <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="Adjust stock">🔄</button>
+            <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="${App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="${App.I18n.t('common.receiveStock', 'Receive Stock')}">⬆️</button>
+            <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="${App.I18n.t('common.adjustStock', 'Adjust Stock')}">🔄</button>
           </td>
         </tr>
       `;
-    }).join('') : `<tr><td colspan="6" style="text-align:center; padding:12px; color:var(--color-text-muted);">No items in this category</td></tr>`;
+    }).join('') : `<tr><td colspan="6" style="text-align:center; padding:12px; color:var(--color-text-muted);">${t('noItemsInCategory', 'No items in this category')}</td></tr>`;
 
     root.innerHTML = `
       <div class="card-soft" style="margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.inventory.title','Inventory')}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button class="btn btn-ghost" id="inv-export">Export CSV</button>
+            <button class="btn btn-ghost" id="inv-export">${t('exportCsv', 'Export CSV')}</button>
           </div>
         </div>
 
         <div class="grid grid-3" style="margin-bottom:16px;">
           <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Total Value</div>
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">${t('totalValue', 'Total Value')}</div>
             <div style="font-size:20px; font-weight:700; margin-top:4px;">${App.Utils.formatCurrency(totalValue)}</div>
           </div>
           <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Low Stock Items</div>
-            <div style="font-size:20px; font-weight:700; margin-top:4px; ${needsReorder.length > 0 ? 'color:#f59e0b;' : ''}">${needsReorder.length}</div>
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">${t('lowStockItems', 'Low Stock Items')}</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px; ${needsReorder.length > 0 ? 'color:var(--color-warning);' : ''}">${needsReorder.length}</div>
           </div>
           <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Out of Stock</div>
-            <div style="font-size:20px; font-weight:700; margin-top:4px; ${outOfStock.length > 0 ? 'color:#dc2626;' : ''}">${outOfStock.length}</div>
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">${t('outOfStock', 'Out of Stock')}</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px; ${outOfStock.length > 0 ? 'color:var(--color-danger);' : ''}">${outOfStock.length}</div>
           </div>
         </div>
       </div>
 
       ${needsReorder.length > 0 ? `
-        <div class="card-soft" style="margin-bottom:16px; border-left:3px solid #f59e0b;">
+        <div class="card-soft" style="margin-bottom:16px; border-left:3px solid var(--color-warning);">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h4 style="font-size:14px; font-weight:600; color:#f59e0b;">📦 Replenishment Suggestions</h4>
-            <button class="btn btn-ghost" id="btn-create-all-pos" style="font-size:12px;">Create All POs</button>
+            <h4 style="font-size:14px; font-weight:600; color:var(--color-warning);">📦 ${t('replenishmentSuggestions', 'Replenishment Suggestions')}</h4>
+            <button class="btn btn-ghost" id="btn-create-all-pos" style="font-size:12px;">${t('createAllPOs', 'Create All POs')}</button>
           </div>
           <table class="table" style="font-size:13px;">
             <thead>
               <tr>
                 <th>${App.I18n.t('common.item', 'Item')}</th>
-                <th style="text-align:right;">${App.I18n.t('common.stock', 'Stock')}</th>
-                <th style="text-align:right;">Min</th>
-                <th style="text-align:right;">${App.I18n.t('inventory.suggestedQty', 'Suggested Qty')}</th>
+                <th style="text-align:right;">${t('stock', 'Stock')}</th>
+                <th style="text-align:right;">${t('min', 'Min')}</th>
+                <th style="text-align:right;">${t('suggestedQty', 'Suggested Qty')}</th>
                 <th>${App.I18n.t('common.supplier', 'Supplier')}</th>
                 <th style="text-align:right;">${App.I18n.t('common.action', 'Action')}</th>
               </tr>
@@ -119,15 +127,15 @@ App.UI.Views.Inventory = {
                 const hasSupplierId = !!item.supplierId;
                 return `
                   <tr>
-                    <td><strong>${sku}</strong> - ${name}</td>
-                    <td style="text-align:right; color:#f59e0b;">${item.stock || 0}</td>
+                    <td><strong>${esc(sku)}</strong> - ${esc(name)}</td>
+                    <td style="text-align:right; color:var(--color-warning);">${item.stock || 0}</td>
                     <td style="text-align:right;">${minStock}</td>
                     <td style="text-align:right; font-weight:500;">${Math.ceil(reorderQty)}</td>
-                    <td>${supplier}</td>
+                    <td>${esc(supplier)}</td>
                     <td style="text-align:right;">
                       ${hasSupplierId ?
-                        `<button class="btn btn-ghost btn-create-po" data-id="${item.id}" data-qty="${Math.ceil(reorderQty)}" data-supplier="${item.supplierId}" data-type="${isProduct ? 'product' : 'component'}" title="Create Purchase Order">📋</button>` :
-                        `<span style="font-size:11px; color:var(--color-text-muted);">No supplier</span>`
+                        `<button class="btn btn-ghost btn-create-po" data-id="${item.id}" data-qty="${Math.ceil(reorderQty)}" data-supplier="${item.supplierId}" data-type="${isProduct ? 'product' : 'component'}" title="${t('createPO', 'Create Purchase Order')}" aria-label="${t('createPO', 'Create Purchase Order')}">📋</button>` :
+                        `<span style="font-size:11px; color:var(--color-text-muted);">${t('noSupplier', 'No supplier')}</span>`
                       }
                     </td>
                   </tr>
@@ -145,12 +153,12 @@ App.UI.Views.Inventory = {
         <table class="table">
           <thead>
             <tr>
-              <th>SKU</th>
-              <th>Product</th>
-              <th style="text-align:center;">Stock</th>
-              <th style="text-align:center;">Min</th>
-              <th style="text-align:right;">Price</th>
-              <th style="text-align:right;">Actions</th>
+              <th>${t('sku', 'SKU')}</th>
+              <th>${t('product', 'Product')}</th>
+              <th style="text-align:center;">${t('stock', 'Stock')}</th>
+              <th style="text-align:center;">${t('min', 'Min')}</th>
+              <th style="text-align:right;">${t('price', 'Price')}</th>
+              <th style="text-align:right;">${t('actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -323,6 +331,8 @@ App.UI.Views.Inventory = {
   },
 
   receiveStock(id) {
+    const t = (key, fallback) => App.I18n.t(`inventory.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const products = App.Data.products || [];
     const item = products.find(p => p.id === id);
     if (!item) return;
@@ -330,26 +340,26 @@ App.UI.Views.Inventory = {
     const body = `
       <div>
         <p style="margin-bottom:12px;">
-          <strong>${item.internalArticleNumber || item.sku}</strong> - ${item.nameDE || item.nameEN}<br/>
-          Current Stock: <strong>${item.stock || 0}</strong>
+          <strong>${esc(item.internalArticleNumber || item.sku)}</strong> - ${esc(item.nameDE || item.nameEN)}<br/>
+          ${t('currentStock', 'Current Stock')}: <strong>${item.stock || 0}</strong>
         </p>
-        <label class="field-label">Quantity to Add</label>
-        <input id="receive-qty" type="number" class="input" min="1" value="10" />
-        <label class="field-label" style="margin-top:8px;">Reference (PO Number)</label>
+        <label class="field-label" for="receive-qty">${t('quantityToAdd', 'Quantity to Add')}</label>
+        <input id="receive-qty" type="number" class="input" min="1" value="10" aria-required="true" />
+        <label class="field-label" for="receive-ref" style="margin-top:8px;">${t('reference', 'Reference (PO Number)')}</label>
         <input id="receive-ref" class="input" placeholder="e.g., PO-2025-0001" />
       </div>
     `;
 
     App.UI.Modal.open(App.I18n.t('common.receiveStock', 'Receive Stock'), body, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Receive',
+        text: t('receive', 'Receive'),
         variant: 'primary',
         onClick: () => {
           const qty = parseInt(document.getElementById('receive-qty').value) || 0;
           const ref = document.getElementById('receive-ref').value.trim();
           if (qty <= 0) {
-            App.UI.Toast.show('Enter a valid quantity');
+            App.UI.Toast.show(t('enterValidQty', 'Enter a valid quantity'));
             return false;
           }
 
@@ -364,11 +374,11 @@ App.UI.Views.Inventory = {
             productId: id,
             quantity: qty,
             reference: ref || 'Manual receipt',
-            notes: `Received ${qty} units`
+            notes: `${t('received', 'Received')} ${qty} ${t('units', 'units')}`
           });
 
           App.DB.save();
-          App.UI.Toast.show(`Received ${qty} units`);
+          App.UI.Toast.show(`${t('received', 'Received')} ${qty} ${t('units', 'units')}`);
           App.Core.Router.navigate('inventory');
         }
       }
@@ -376,6 +386,8 @@ App.UI.Views.Inventory = {
   },
 
   adjustStock(id) {
+    const t = (key, fallback) => App.I18n.t(`inventory.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const products = App.Data.products || [];
     const item = products.find(p => p.id === id);
     if (!item) return;
@@ -383,27 +395,27 @@ App.UI.Views.Inventory = {
     const body = `
       <div>
         <p style="margin-bottom:12px;">
-          <strong>${item.internalArticleNumber || item.sku}</strong> - ${item.nameDE || item.nameEN}<br/>
-          Current Stock: <strong>${item.stock || 0}</strong>
+          <strong>${esc(item.internalArticleNumber || item.sku)}</strong> - ${esc(item.nameDE || item.nameEN)}<br/>
+          ${t('currentStock', 'Current Stock')}: <strong>${item.stock || 0}</strong>
         </p>
-        <label class="field-label">New Stock Level</label>
-        <input id="adjust-qty" type="number" class="input" min="0" value="${item.stock || 0}" />
-        <label class="field-label" style="margin-top:8px;">Reason</label>
+        <label class="field-label" for="adjust-qty">${t('newStockLevel', 'New Stock Level')}</label>
+        <input id="adjust-qty" type="number" class="input" min="0" value="${item.stock || 0}" aria-required="true" />
+        <label class="field-label" for="adjust-reason" style="margin-top:8px;">${t('reason', 'Reason')}</label>
         <select id="adjust-reason" class="input">
-          <option value="count">Physical Count</option>
-          <option value="damage">Damaged/Expired</option>
-          <option value="correction">Correction</option>
-          <option value="other">Other</option>
+          <option value="count">${t('reasonCount', 'Physical Count')}</option>
+          <option value="damage">${t('reasonDamage', 'Damaged/Expired')}</option>
+          <option value="correction">${t('reasonCorrection', 'Correction')}</option>
+          <option value="other">${t('reasonOther', 'Other')}</option>
         </select>
-        <label class="field-label" style="margin-top:8px;">Notes</label>
+        <label class="field-label" for="adjust-notes" style="margin-top:8px;">${t('notes', 'Notes')}</label>
         <textarea id="adjust-notes" class="input" rows="2"></textarea>
       </div>
     `;
 
     App.UI.Modal.open(App.I18n.t('common.adjustStock', 'Adjust Stock'), body, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Adjust',
+        text: t('adjust', 'Adjust'),
         variant: 'primary',
         onClick: () => {
           const newQty = parseInt(document.getElementById('adjust-qty').value) || 0;
