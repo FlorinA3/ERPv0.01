@@ -42,7 +42,7 @@ App.UI.Views.Products = {
                   <button class="btn btn-ghost btn-del-product" data-id="${p.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete product">🗑️</button>
                 </td>
               </tr>`;
-            }).join('') || `<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">No products</td></tr>`}
+            }).join('') || `<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">${App.I18n.t('common.noProducts', 'No products')}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -83,6 +83,9 @@ App.UI.Views.Products = {
   },
 
   openEditModal(id) {
+    const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+
     const isNew = !id;
     const products = App.Data.products || App.Data.Products || [];
     const p = isNew
@@ -90,69 +93,69 @@ App.UI.Views.Products = {
       : products.find(x => x.id === id) || {};
 
     const types = ['Finished', 'Device', 'Consumable', 'Part', 'Service'];
-    const typeOptions = types.map(t => `<option value="${t}" ${p.type === t ? 'selected' : ''}>${t}</option>`).join('');
+    const typeOptions = types.map(typ => `<option value="${typ}" ${p.type === typ ? 'selected' : ''}>${typ}</option>`).join('');
 
     const body = `
       <div class="grid grid-2" style="gap:12px;">
         <div>
-          <label class="field-label">Article Number *</label>
-          <input id="prod-artno" class="input" value="${p.internalArticleNumber || ''}" />
+          <label class="field-label" for="prod-artno">${t('articleNumber', 'Article Number')}*</label>
+          <input id="prod-artno" class="input" value="${esc(p.internalArticleNumber || '')}" aria-required="true" />
         </div>
         <div>
-          <label class="field-label">Type</label>
+          <label class="field-label" for="prod-type">${t('type', 'Type')}</label>
           <select id="prod-type" class="input">${typeOptions}</select>
         </div>
       </div>
       <div class="grid grid-2" style="gap:12px; margin-top:8px;">
         <div>
-          <label class="field-label">Name (DE) *</label>
-          <input id="prod-namede" class="input" value="${p.nameDE || ''}" />
+          <label class="field-label" for="prod-namede">${t('nameDE', 'Name (DE)')}*</label>
+          <input id="prod-namede" class="input" value="${esc(p.nameDE || '')}" aria-required="true" />
         </div>
         <div>
-          <label class="field-label">Name (EN)</label>
-          <input id="prod-nameen" class="input" value="${p.nameEN || ''}" />
+          <label class="field-label" for="prod-nameen">${t('nameEN', 'Name (EN)')}</label>
+          <input id="prod-nameen" class="input" value="${esc(p.nameEN || '')}" />
         </div>
       </div>
       <div class="grid grid-3" style="gap:12px; margin-top:8px;">
         <div>
-          <label class="field-label">Purchase Price</label>
+          <label class="field-label" for="prod-purchase">${t('purchasePrice', 'Purchase Price')}</label>
           <input id="prod-purchase" class="input" type="number" step="0.01" value="${p.avgPurchasePrice || 0}" />
         </div>
         <div>
-          <label class="field-label">Dealer Price</label>
+          <label class="field-label" for="prod-dealer">${App.I18n.t('products.dealerPrice', 'Dealer Price')}</label>
           <input id="prod-dealer" class="input" type="number" step="0.01" value="${p.dealerPrice || 0}" />
         </div>
         <div>
-          <label class="field-label">End Customer</label>
+          <label class="field-label" for="prod-endcust">${t('endCustomerPrice', 'End Customer')}</label>
           <input id="prod-endcust" class="input" type="number" step="0.01" value="${p.endCustomerPrice || 0}" />
         </div>
       </div>
       <div class="grid grid-3" style="gap:12px; margin-top:8px;">
         <div>
-          <label class="field-label">Stock</label>
+          <label class="field-label" for="prod-stock">${t('stock', 'Stock')}</label>
           <input id="prod-stock" class="input" type="number" value="${p.stock || 0}" />
         </div>
         <div>
-          <label class="field-label">Min Stock</label>
+          <label class="field-label" for="prod-minstock">${t('minStock', 'Min Stock')}</label>
           <input id="prod-minstock" class="input" type="number" value="${p.minStock || 0}" />
         </div>
         <div>
-          <label class="field-label">Unit</label>
-          <input id="prod-unit" class="input" value="${p.unit || 'Stk'}" />
+          <label class="field-label" for="prod-unit">${t('unit', 'Unit')}</label>
+          <input id="prod-unit" class="input" value="${esc(p.unit || 'Stk')}" />
         </div>
       </div>
     `;
 
-    App.UI.Modal.open(isNew ? 'Add Product' : 'Edit Product', body, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+    App.UI.Modal.open(isNew ? t('addProduct', 'Add Product') : t('editProduct', 'Edit Product'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Save',
+        text: App.I18n.t('common.save', 'Save'),
         variant: 'primary',
         onClick: () => {
           const artNo = document.getElementById('prod-artno').value.trim();
           const nameDE = document.getElementById('prod-namede').value.trim();
           if (!artNo || !nameDE) {
-            App.UI.Toast.show('Article number and Name (DE) are required');
+            App.UI.Toast.show(t('productRequired', 'Article number and Name (DE) are required'));
             return false;
           }
 
@@ -187,6 +190,9 @@ App.UI.Views.Products = {
   },
 
   openBOMModal(id) {
+    const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+
     const products = App.Data.products || App.Data.Products || [];
     const p = products.find(x => x.id === id);
     if (!p) return;
@@ -195,35 +201,36 @@ App.UI.Views.Products = {
 
     const getBOMRowHTML = (compId = '', qty = 1) => {
       const opts = components.map(c =>
-        `<option value="${c.id}" ${c.id === compId ? 'selected' : ''}>${c.componentNumber} - ${c.description || ''}</option>`
+        `<option value="${c.id}" ${c.id === compId ? 'selected' : ''}>${esc(c.componentNumber)} - ${esc(c.description || '')}</option>`
       ).join('');
       return `
         <div class="bom-row" style="display:flex; gap:8px; margin-bottom:8px; align-items:center;">
-          <select class="input bom-comp" style="flex:2;">${opts}</select>
-          <input type="number" class="input bom-qty" style="width:100px;" value="${qty}" min="0.01" step="0.01" placeholder="Per Unit">
-          <button class="btn btn-ghost bom-remove">❌</button>
+          <select class="input bom-comp" style="flex:2;" aria-label="${t('component', 'Component')}">${opts}</select>
+          <input type="number" class="input bom-qty" style="width:100px;" value="${qty}" min="0.01" step="0.01" placeholder="${t('perUnit', 'Per Unit')}" aria-label="${t('perUnit', 'Per Unit')}">
+          <button class="btn btn-ghost bom-remove" aria-label="${t('delete', 'Delete')}">❌</button>
         </div>
       `;
     };
 
     const existingRows = (p.bom || []).map(b => getBOMRowHTML(b.componentId, b.quantityPerUnit)).join('');
+    const productName = esc(p.nameDE || p.nameEN || p.internalArticleNumber);
 
     const body = `
       <div>
         <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:12px;">
-          Define components needed to produce <strong>1 unit</strong> of ${p.nameDE || p.nameEN || p.internalArticleNumber}
+          ${t('defineComponents', 'Components for')} <strong>${t('oneUnitOf', '1 unit of')} ${productName}</strong>
         </p>
         <div id="bom-container" style="max-height:300px; overflow-y:auto; border:1px solid var(--color-border); padding:8px; border-radius:8px;">
-          ${existingRows || '<p style="text-align:center; color:var(--color-text-muted); font-size:12px;">No components defined</p>'}
+          ${existingRows || `<p style="text-align:center; color:var(--color-text-muted); font-size:12px;">${t('noComponentsDefined', 'No components defined')}</p>`}
         </div>
-        <button class="btn btn-ghost" id="btn-add-bom-row" style="margin-top:8px;">+ Add Component</button>
+        <button class="btn btn-ghost" id="btn-add-bom-row" style="margin-top:8px;">${t('addComponentRow', '+ Add Component')}</button>
       </div>
     `;
 
-    App.UI.Modal.open(`BOM - ${p.nameDE || p.internalArticleNumber}`, body, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+    App.UI.Modal.open(`${t('bomFor', 'BOM for')} ${productName}`, body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Save BOM',
+        text: t('saveBOM', 'Save BOM'),
         variant: 'primary',
         onClick: () => {
           const bom = [];
@@ -236,7 +243,7 @@ App.UI.Views.Products = {
           });
           p.bom = bom;
           App.DB.save();
-          App.UI.Toast.show(`BOM saved (${bom.length} components)`);
+          App.UI.Toast.show(`${t('bomSaved', 'BOM saved')} (${bom.length} ${t('components', 'components')})`);
           App.Core.Router.navigate('products');
         }
       }
@@ -251,7 +258,7 @@ App.UI.Views.Products = {
           btn.onclick = () => {
             btn.closest('.bom-row').remove();
             if (container.querySelectorAll('.bom-row').length === 0) {
-              container.innerHTML = '<p style="text-align:center; color:var(--color-text-muted); font-size:12px;">No components defined</p>';
+              container.innerHTML = `<p style="text-align:center; color:var(--color-text-muted); font-size:12px;">${App.I18n.t('common.noComponentsDefined', 'No components defined')}</p>`;
             }
           };
         });
@@ -270,6 +277,9 @@ App.UI.Views.Products = {
   },
 
   deleteProduct(id) {
+    const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+
     const products = App.Data.products || App.Data.Products || [];
     const p = products.find(x => x.id === id);
     if (!p) return;
@@ -287,30 +297,32 @@ App.UI.Views.Products = {
     const linkedDocs = documents.filter(d => (d.items || []).some(i => i.productId === id));
 
     if (linkedOrders.length > 0 || linkedPOs.length > 0 || linkedDocs.length > 0) {
-      App.UI.Modal.open(App.I18n.t('common.cannotDeleteProduct', 'Cannot Delete Product'), `
-        <div style="color:#dc2626;">
-          <p>This product has linked records that must be deleted first:</p>
+      App.UI.Modal.open(t('cannotDeleteProduct', 'Cannot Delete Product'), `
+        <div style="color:var(--color-danger);">
+          <p>${t('linkedProductRecords', 'This product has linked records:')}</p>
           <ul style="margin:8px 0; padding-left:20px; font-size:12px;">
-            ${linkedOrders.length > 0 ? `<li>${linkedOrders.length} order(s)</li>` : ''}
-            ${linkedPOs.length > 0 ? `<li>${linkedPOs.length} production order(s)</li>` : ''}
-            ${linkedDocs.length > 0 ? `<li>${linkedDocs.length} document(s)</li>` : ''}
+            ${linkedOrders.length > 0 ? `<li>${linkedOrders.length} ${t('ordersCount', 'order(s)')}</li>` : ''}
+            ${linkedPOs.length > 0 ? `<li>${linkedPOs.length} ${t('productionOrdersLinked', 'production order(s)')}</li>` : ''}
+            ${linkedDocs.length > 0 ? `<li>${linkedDocs.length} ${t('documentsCount', 'document(s)')}</li>` : ''}
           </ul>
-          <p style="font-size:12px; margin-top:8px;">Delete these records first, then try again.</p>
+          <p style="font-size:12px; margin-top:8px;">${t('deleteProductRecordsFirst', 'Delete these records first.')}</p>
         </div>
-      `, [{ text: 'Close', variant: 'ghost', onClick: () => {} }]);
+      `, [{ text: App.I18n.t('common.close', 'Close'), variant: 'ghost', onClick: () => {} }]);
       return;
     }
 
-    App.UI.Modal.open(App.I18n.t('common.deleteProduct', 'Delete Product'), `
-      <p>Are you sure you want to delete <strong>${p.nameDE || p.nameEN || p.internalArticleNumber}</strong>?</p>
+    const productName = esc(p.nameDE || p.nameEN || p.internalArticleNumber);
+
+    App.UI.Modal.open(t('deleteProduct', 'Delete Product'), `
+      <p>${t('confirmDeleteProduct', 'Are you sure you want to delete')} <strong>${productName}</strong>?</p>
       <div style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">
-        <p>Art. No: ${p.internalArticleNumber || '-'}</p>
-        <p>Stock: ${p.stock || 0} ${p.unit || 'Stk'}</p>
+        <p>${t('artNo', 'Art. No')}: ${esc(p.internalArticleNumber || '-')}</p>
+        <p>${t('stock', 'Stock')}: ${p.stock || 0} ${esc(p.unit || 'Stk')}</p>
       </div>
     `, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Delete',
+        text: App.I18n.t('common.delete', 'Delete'),
         variant: 'primary',
         onClick: () => {
           App.Data.products = products.filter(x => x.id !== id);
@@ -324,7 +336,7 @@ App.UI.Views.Products = {
             });
           }
 
-          App.UI.Toast.show(App.I18n.t('common.productDeleted', 'Product deleted'));
+          App.UI.Toast.show(t('productDeleted', 'Product deleted'));
           App.Core.Router.navigate('products');
         }
       }

@@ -340,7 +340,34 @@ window.App = window.App || {
           validAmountRequired: 'Bitte gültigen Betrag eingeben',
           amountExceedsBalance: 'Betrag übersteigt Restbetrag',
           addAtLeastOneItem: 'Mindestens einen Artikel hinzufügen',
-          automationSettingsSaved: 'Automatisierungseinstellungen gespeichert'
+          automationSettingsSaved: 'Automatisierungseinstellungen gespeichert',
+          // Product form
+          addProduct: 'Produkt hinzufügen',
+          editProduct: 'Produkt bearbeiten',
+          articleNumber: 'Artikelnummer',
+          nameDE: 'Name (DE)',
+          nameEN: 'Name (EN)',
+          purchasePrice: 'Einkaufspreis',
+          endCustomerPrice: 'Endkundenpreis',
+          minStock: 'Mindestbestand',
+          noProducts: 'Keine Produkte',
+          productRequired: 'Artikelnummer und Name (DE) sind erforderlich',
+          // BOM
+          bomFor: 'Stückliste für',
+          defineComponents: 'Komponenten für',
+          oneUnitOf: '1 Einheit von',
+          noComponentsDefined: 'Keine Komponenten definiert',
+          addComponentRow: '+ Komponente hinzufügen',
+          saveBOM: 'Stückliste speichern',
+          bomSaved: 'Stückliste gespeichert',
+          components: 'Komponenten',
+          perUnit: 'Pro Einheit',
+          // Delete product warnings
+          cannotDeleteProduct: 'Produkt kann nicht gelöscht werden',
+          linkedProductRecords: 'Dieses Produkt hat verknüpfte Datensätze:',
+          deleteProductRecordsFirst: 'Löschen Sie diese Datensätze zuerst.',
+          productionOrdersLinked: 'Produktionsauftrag/-aufträge',
+          confirmDeleteProduct: 'Möchten Sie wirklich löschen'
         },
         pricing: {
           name: 'Name',
@@ -754,7 +781,34 @@ window.App = window.App || {
           validAmountRequired: 'Please enter a valid amount',
           amountExceedsBalance: 'Amount exceeds remaining balance',
           addAtLeastOneItem: 'Add at least one item to the order',
-          automationSettingsSaved: 'Automation settings saved'
+          automationSettingsSaved: 'Automation settings saved',
+          // Product form
+          addProduct: 'Add Product',
+          editProduct: 'Edit Product',
+          articleNumber: 'Article Number',
+          nameDE: 'Name (DE)',
+          nameEN: 'Name (EN)',
+          purchasePrice: 'Purchase Price',
+          endCustomerPrice: 'End Customer',
+          minStock: 'Min Stock',
+          noProducts: 'No products',
+          productRequired: 'Article number and Name (DE) are required',
+          // BOM
+          bomFor: 'BOM for',
+          defineComponents: 'Components for',
+          oneUnitOf: '1 unit of',
+          noComponentsDefined: 'No components defined',
+          addComponentRow: '+ Add Component',
+          saveBOM: 'Save BOM',
+          bomSaved: 'BOM saved',
+          components: 'components',
+          perUnit: 'Per Unit',
+          // Delete product warnings
+          cannotDeleteProduct: 'Cannot Delete Product',
+          linkedProductRecords: 'This product has linked records:',
+          deleteProductRecordsFirst: 'Delete these records first.',
+          productionOrdersLinked: 'production order(s)',
+          confirmDeleteProduct: 'Are you sure you want to delete'
         },
         pricing: {
           name: 'Name',
@@ -1120,7 +1174,34 @@ window.App = window.App || {
           validAmountRequired: 'Vă rugăm introduceți o sumă validă',
           amountExceedsBalance: 'Suma depășește soldul rămas',
           addAtLeastOneItem: 'Adăugați cel puțin un articol la comandă',
-          automationSettingsSaved: 'Setări automatizare salvate'
+          automationSettingsSaved: 'Setări automatizare salvate',
+          // Product form
+          addProduct: 'Adaugă Produs',
+          editProduct: 'Editează Produs',
+          articleNumber: 'Număr Articol',
+          nameDE: 'Nume (DE)',
+          nameEN: 'Nume (EN)',
+          purchasePrice: 'Preț Achiziție',
+          endCustomerPrice: 'Client Final',
+          minStock: 'Stoc Minim',
+          noProducts: 'Niciun produs',
+          productRequired: 'Numărul articolului și Numele (DE) sunt obligatorii',
+          // BOM
+          bomFor: 'BOM pentru',
+          defineComponents: 'Componente pentru',
+          oneUnitOf: '1 unitate de',
+          noComponentsDefined: 'Nicio componentă definită',
+          addComponentRow: '+ Adaugă Componentă',
+          saveBOM: 'Salvează BOM',
+          bomSaved: 'BOM salvat',
+          components: 'componente',
+          perUnit: 'Per Unitate',
+          // Delete product warnings
+          cannotDeleteProduct: 'Nu se poate șterge produsul',
+          linkedProductRecords: 'Acest produs are înregistrări legate:',
+          deleteProductRecordsFirst: 'Ștergeți mai întâi aceste înregistrări.',
+          productionOrdersLinked: 'ordin(e) de producție',
+          confirmDeleteProduct: 'Sigur doriți să ștergeți'
         },
         pricing: {
           name: 'Nume',
