@@ -99,12 +99,12 @@ App.UI.Views.Inventory = {
           <table class="table" style="font-size:13px;">
             <thead>
               <tr>
-                <th>Item</th>
-                <th style="text-align:right;">Stock</th>
+                <th>${App.I18n.t('common.item', 'Item')}</th>
+                <th style="text-align:right;">${App.I18n.t('common.stock', 'Stock')}</th>
                 <th style="text-align:right;">Min</th>
-                <th style="text-align:right;">Suggested Qty</th>
-                <th>Supplier</th>
-                <th style="text-align:right;">Action</th>
+                <th style="text-align:right;">${App.I18n.t('inventory.suggestedQty', 'Suggested Qty')}</th>
+                <th>${App.I18n.t('common.supplier', 'Supplier')}</th>
+                <th style="text-align:right;">${App.I18n.t('common.action', 'Action')}</th>
               </tr>
             </thead>
             <tbody>

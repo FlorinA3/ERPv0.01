@@ -62,13 +62,13 @@ App.UI.Views.Orders = {
         <table class="table">
           <thead>
             <tr>
-              <th>Order</th>
-              <th>Customer</th>
-              <th>Status</th>
-              <th>Carrier</th>
-              <th>Date</th>
-              <th style="text-align:right;">Total</th>
-              <th style="text-align:center;">Actions</th>
+              <th>${App.I18n.t('common.order', 'Order')}</th>
+              <th>${App.I18n.t('common.customer', 'Customer')}</th>
+              <th>${App.I18n.t('common.status', 'Status')}</th>
+              <th>${App.I18n.t('common.carrier', 'Carrier')}</th>
+              <th>${App.I18n.t('common.date', 'Date')}</th>
+              <th style="text-align:right;">${App.I18n.t('common.total', 'Total')}</th>
+              <th style="text-align:center;">${App.I18n.t('common.actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody>

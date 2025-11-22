@@ -14,13 +14,13 @@ App.UI.Views.Customers = {
         <table class="table">
           <thead>
             <tr>
-              <th>Customer No</th>
-              <th>Company</th>
-              <th>Contact</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Country</th>
-              <th style="text-align:right;">${App.I18n.t('common.actions','Actions')}</th>
+              <th>${App.I18n.t('common.customerNo', 'Customer No')}</th>
+              <th>${App.I18n.t('common.company', 'Company')}</th>
+              <th>${App.I18n.t('common.contact', 'Contact')}</th>
+              <th>${App.I18n.t('common.email', 'Email')}</th>
+              <th>${App.I18n.t('common.phone', 'Phone')}</th>
+              <th>${App.I18n.t('common.country', 'Country')}</th>
+              <th style="text-align:right;">${App.I18n.t('common.actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody>

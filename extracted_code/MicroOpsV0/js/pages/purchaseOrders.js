@@ -29,13 +29,13 @@ App.UI.Views.PurchaseOrders = {
         <table class="table">
           <thead>
             <tr>
-              <th>PO Number</th>
-              <th>Supplier</th>
-              <th>Status</th>
-              <th>Date</th>
-              <th>Expected</th>
-              <th style="text-align:right;">Total</th>
-              <th style="text-align:right;">Actions</th>
+              <th>${App.I18n.t('common.poNumber', 'PO Number')}</th>
+              <th>${App.I18n.t('common.supplier', 'Supplier')}</th>
+              <th>${App.I18n.t('common.status', 'Status')}</th>
+              <th>${App.I18n.t('common.date', 'Date')}</th>
+              <th>${App.I18n.t('purchaseOrders.expected', 'Expected')}</th>
+              <th style="text-align:right;">${App.I18n.t('common.total', 'Total')}</th>
+              <th style="text-align:right;">${App.I18n.t('common.actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody>

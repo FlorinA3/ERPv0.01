@@ -38,14 +38,14 @@ App.UI.Views.Batches = {
         <table class="table">
           <thead>
             <tr>
-              <th>LOT Number</th>
-              <th>Item</th>
-              <th>Type</th>
-              <th style="text-align:right;">Quantity</th>
-              <th>Expiry</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th style="text-align:right;">Actions</th>
+              <th>${App.I18n.t('common.lotNumber', 'LOT Number')}</th>
+              <th>${App.I18n.t('common.item', 'Item')}</th>
+              <th>${App.I18n.t('common.type', 'Type')}</th>
+              <th style="text-align:right;">${App.I18n.t('common.qty', 'Qty')}</th>
+              <th>${App.I18n.t('common.expiry', 'Expiry')}</th>
+              <th>${App.I18n.t('common.status', 'Status')}</th>
+              <th>${App.I18n.t('common.created', 'Created')}</th>
+              <th style="text-align:right;">${App.I18n.t('common.actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody>

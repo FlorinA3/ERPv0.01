@@ -172,7 +172,7 @@ App.UI.Views.Settings = {
           <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Number Sequences</h4>
           <table class="table" style="font-size:13px;">
             <thead>
-              <tr><th>Document Type</th><th>Last Number</th></tr>
+              <tr><th>${App.I18n.t('common.documentType', 'Document Type')}</th><th>${App.I18n.t('common.lastNumber', 'Last Number')}</th></tr>
             </thead>
             <tbody>
               <tr><td>Orders</td><td>${sequences.lastOrderNumber || 0}</td></tr>
@@ -266,11 +266,11 @@ App.UI.Views.Settings = {
         <table class="table" style="font-size:12px;">
           <thead>
             <tr>
-              <th>Time</th>
-              <th>User</th>
-              <th>Action</th>
-              <th>Entity</th>
-              <th>Details</th>
+              <th>${App.I18n.t('common.time', 'Time')}</th>
+              <th>${App.I18n.t('common.user', 'User')}</th>
+              <th>${App.I18n.t('common.action', 'Action')}</th>
+              <th>${App.I18n.t('common.entity', 'Entity')}</th>
+              <th>${App.I18n.t('common.details', 'Details')}</th>
             </tr>
           </thead>
           <tbody>

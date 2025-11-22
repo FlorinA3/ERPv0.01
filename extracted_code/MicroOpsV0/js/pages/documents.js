@@ -60,15 +60,15 @@ App.UI.Views.Documents = {
         <table class="table">
           <thead>
             <tr>
-              <th>Type</th>
-              <th>Number</th>
-              <th>Customer</th>
-              <th>Date</th>
-              <th>Due Date</th>
-              <th style="text-align:right;">Total</th>
-              <th style="text-align:center;">Status</th>
-              <th style="text-align:center;">Payment</th>
-              <th style="text-align:center;">Actions</th>
+              <th>${App.I18n.t('common.type', 'Type')}</th>
+              <th>${App.I18n.t('common.number', 'Number')}</th>
+              <th>${App.I18n.t('common.customer', 'Customer')}</th>
+              <th>${App.I18n.t('common.date', 'Date')}</th>
+              <th>${App.I18n.t('common.dueDate', 'Due Date')}</th>
+              <th style="text-align:right;">${App.I18n.t('common.total', 'Total')}</th>
+              <th style="text-align:center;">${App.I18n.t('common.status', 'Status')}</th>
+              <th style="text-align:center;">${App.I18n.t('documents.payment', 'Payment')}</th>
+              <th style="text-align:center;">${App.I18n.t('common.actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody>

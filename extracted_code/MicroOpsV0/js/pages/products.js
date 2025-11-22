@@ -14,13 +14,13 @@ App.UI.Views.Products = {
         <table class="table">
           <thead>
             <tr>
-              <th>Art. No.</th>
-              <th>Name</th>
-              <th>Type</th>
-              <th style="text-align:right;">Dealer Price</th>
-              <th style="text-align:right;">Stock</th>
+              <th>${App.I18n.t('common.artNo', 'Art. No.')}</th>
+              <th>${App.I18n.t('common.name', 'Name')}</th>
+              <th>${App.I18n.t('common.type', 'Type')}</th>
+              <th style="text-align:right;">${App.I18n.t('products.dealerPrice', 'Dealer Price')}</th>
+              <th style="text-align:right;">${App.I18n.t('common.stock', 'Stock')}</th>
               <th style="text-align:center;">BOM</th>
-              <th style="text-align:right;">Actions</th>
+              <th style="text-align:right;">${App.I18n.t('common.actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody>

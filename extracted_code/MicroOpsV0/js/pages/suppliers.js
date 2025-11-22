@@ -31,14 +31,14 @@ App.UI.Views.Suppliers = {
         <table class="table">
           <thead>
             <tr>
-              <th>${App.I18n.t('suppliers.name','Name')}</th>
-              <th>${App.I18n.t('suppliers.country','Country')}</th>
-              <th>Payment Terms</th>
-              <th style="text-align:right;">Lead Time</th>
-              <th style="text-align:right;">Orders</th>
-              <th style="text-align:center;">On-Time</th>
-              <th style="text-align:right;">Total Spend</th>
-              <th style="text-align:right;">${App.I18n.t('common.actions','Actions')}</th>
+              <th>${App.I18n.t('suppliers.name', 'Name')}</th>
+              <th>${App.I18n.t('suppliers.country', 'Country')}</th>
+              <th>${App.I18n.t('common.paymentTerms', 'Payment Terms')}</th>
+              <th style="text-align:right;">${App.I18n.t('suppliers.leadTime', 'Lead Time')}</th>
+              <th style="text-align:right;">${App.I18n.t('suppliers.orders', 'Orders')}</th>
+              <th style="text-align:center;">${App.I18n.t('suppliers.onTime', 'On-Time')}</th>
+              <th style="text-align:right;">${App.I18n.t('suppliers.totalSpend', 'Total Spend')}</th>
+              <th style="text-align:right;">${App.I18n.t('common.actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody>
