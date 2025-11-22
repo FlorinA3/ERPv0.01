@@ -193,11 +193,39 @@ This release establishes the core foundation for production-ready ERP functional
 - **Remove Item Button**: Can remove line items from order
 - **Improved UI**: Card-style line items with better spacing
 
+### Phase 2.5: BOM (Recipe) Support - Complete
+
+#### Product BOM Management (js/pages/products.js)
+- **Complete Rewrite**: Uses correct data structure with full field support
+- **BOM Editor Modal**: Define components per unit for each product
+- **BOM Count Display**: Shows component count in product list
+- **Product Types**: Finished, Device, Consumable, Part, Service
+- **Multi-Language Names**: German and English product names
+- **Pricing Tiers**: Purchase, Dealer, End Customer prices
+- **Stock Management**: Current stock and minimum stock levels
+
+#### Auto-BOM in Production (js/pages/production.js)
+- **Auto-Load BOM**: Components populate when product selected
+- **Quantity Calculation**: Total qty = quantityPerUnit × PO quantity
+- **Toast Notification**: Confirms BOM loaded with component count
+- **Quantity Change Recalc**: Updates totals when PO quantity changes
+
+### Phase 3: Dashboard Improvements - Complete
+
+#### Enhanced Dashboard (js/pages/dashboard.js)
+- **Revenue from Invoices**: Calculates from actual invoices, not orders
+- **Open Orders Count**: Shows unfulfilled orders with blue highlight
+- **Pending Production**: Shows incomplete production orders with amber
+- **Recent Orders Section**: Last 5 orders with customer and amounts
+- **Low Stock Alerts**: Top 5 low stock items with details
+- **Recent Documents Table**: Latest invoices and delivery notes
+- **Navigation Buttons**: Quick links to Orders and Inventory
+
 ---
 
 ## [Unreleased]
 
-### Planned for Version 0.3.0 (Phase 2: Business Logic continued)
+### Planned for Version 0.3.1
 
 #### Enhanced Order Wizard
 - [ ] Multi-step order creation flow

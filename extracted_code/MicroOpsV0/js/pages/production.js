@@ -181,18 +181,46 @@ App.UI.Views.Production = {
         } }
     ]);
 
-    // Dynamic component rows
     setTimeout(() => {
       const container = document.getElementById('po-components-container');
       const addBtn = document.getElementById('btn-add-comp-row');
-      
-      // Function to wire up delete buttons
+      const productSelect = document.getElementById('po-product');
+      const qtyInput = document.getElementById('po-qty');
+
       const wireUpDelete = () => {
         container.querySelectorAll('.po-remove-comp').forEach(btn => {
           btn.onclick = () => btn.closest('.po-comp-row').remove();
         });
       };
-      
+
+      const loadBOMFromProduct = () => {
+        const productId = productSelect.value;
+        const poQty = parseInt(qtyInput.value) || 1;
+        const product = products.find(p => p.id === productId);
+
+        if (product && product.bom && product.bom.length > 0) {
+          container.innerHTML = '';
+          product.bom.forEach(b => {
+            const totalQty = b.quantityPerUnit * poQty;
+            container.insertAdjacentHTML('beforeend', getCompRow(b.componentId, totalQty));
+          });
+          wireUpDelete();
+          App.UI.Toast.show(`Loaded ${product.bom.length} components from BOM`);
+        }
+      };
+
+      if (productSelect && !isEdit) {
+        productSelect.addEventListener('change', loadBOMFromProduct);
+      }
+
+      if (qtyInput) {
+        qtyInput.addEventListener('change', () => {
+          if (!isEdit && productSelect.value) {
+            loadBOMFromProduct();
+          }
+        });
+      }
+
       if (addBtn) {
         addBtn.onclick = () => {
           container.insertAdjacentHTML('beforeend', getCompRow());
