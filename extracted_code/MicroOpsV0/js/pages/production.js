@@ -9,7 +9,10 @@ App.UI.Views.Production = {
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.production.title','Production Orders')}</h3>
-          <button class="btn btn-primary" id="btn-add-po">+ ${App.I18n.t('common.add','Add')}</button>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-ghost" id="btn-auto-settings" title="Automation Settings">⚙️ Automation</button>
+            <button class="btn btn-primary" id="btn-add-po">+ ${App.I18n.t('common.add','Add')}</button>
+          </div>
         </div>
         <table class="table">
           <thead>
@@ -37,8 +40,10 @@ App.UI.Views.Production = {
                   <td><span class="tag ${statusColor}">${po.status || '-'}</span></td>
                   <td>${po.plannedStart ? App.Utils.formatDate(po.plannedStart) : '-'}</td>
                   <td style="text-align:right;">
-                    <button class="btn btn-ghost btn-edit-po" data-id="${po.id}">✏️</button>
-                    ${po.status !== 'completed' ? `<button class="btn btn-ghost btn-complete-po" data-id="${po.id}" title="Complete & Book Stock">✅</button>` : ''}
+                    <button class="btn btn-ghost btn-edit-po" data-id="${po.id}" title="Edit">✏️</button>
+                    ${po.status === 'planned' ? `<button class="btn btn-ghost btn-start-po" data-id="${po.id}" title="Start Production (Deduct Components)">▶️</button>` : ''}
+                    ${po.status === 'in_progress' ? `<button class="btn btn-ghost btn-complete-po" data-id="${po.id}" title="Complete & Book Stock">✅</button>` : ''}
+                    ${po.sourceOrderId ? `<button class="btn btn-ghost btn-view-source" data-id="${po.sourceOrderId}" title="View Source Order">🔗</button>` : ''}
                   </td>
                 </tr>`;
             }).join('') || `<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">No production orders</td></tr>`}
@@ -52,6 +57,15 @@ App.UI.Views.Production = {
       addBtn.onclick = () => this.openPOModal();
     }
 
+    const autoSettingsBtn = document.getElementById('btn-auto-settings');
+    if (autoSettingsBtn) {
+      autoSettingsBtn.onclick = () => {
+        if (App.Services.Automation?.showConfigModal) {
+          App.Services.Automation.showConfigModal();
+        }
+      };
+    }
+
     // Event listeners for actions
     root.querySelectorAll('.btn-edit-po').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -59,6 +73,15 @@ App.UI.Views.Production = {
         const id = btn.getAttribute('data-id');
         const po = pos.find(p => p.id === id);
         if (po) this.openPOModal(po);
+      });
+    });
+
+    root.querySelectorAll('.btn-start-po').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const po = pos.find(p => p.id === id);
+        if (po) this.startProduction(po);
       });
     });
 
@@ -70,6 +93,82 @@ App.UI.Views.Production = {
         if (po) this.completeOrder(po);
       });
     });
+
+    root.querySelectorAll('.btn-view-source').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const orderId = btn.getAttribute('data-id');
+        // Navigate to orders page and show the source order
+        App.Core.Router.navigate('orders');
+        setTimeout(() => {
+          if (App.UI.Views.Orders?.viewOrder) {
+            App.UI.Views.Orders.viewOrder(orderId);
+          }
+        }, 100);
+      });
+    });
+  },
+
+  /**
+   * Start production - deducts components from inventory
+   */
+  startProduction(po) {
+    const prod = (App.Data.products || []).find(p => p.id === po.productId);
+    if (!prod) return;
+
+    // Build component list for confirmation
+    const compList = (po.components || []).map(c => {
+      const comp = (App.Data.components || []).find(x => x.id === c.componentId);
+      const available = comp ? (comp.stock || 0) : 0;
+      const shortage = c.quantity > available ? c.quantity - available : 0;
+      return {
+        name: comp?.description || comp?.componentNumber || c.componentId,
+        quantity: c.quantity,
+        available,
+        shortage
+      };
+    });
+
+    const hasShortage = compList.some(c => c.shortage > 0);
+
+    const msg = `
+      Starting Production <strong>${po.orderNumber}</strong> will:<br/>
+      <ul>
+        <li>Deduct components from inventory:</li>
+      </ul>
+      <table style="width:100%; font-size:12px; margin:8px 0;">
+        <tr>
+          <th style="text-align:left;">Component</th>
+          <th style="text-align:right;">Required</th>
+          <th style="text-align:right;">Available</th>
+        </tr>
+        ${compList.map(c => `
+          <tr style="${c.shortage > 0 ? 'color:#f97373;' : ''}">
+            <td>${c.name}</td>
+            <td style="text-align:right;">${c.quantity}</td>
+            <td style="text-align:right;">${c.available}${c.shortage > 0 ? ` (short ${c.shortage})` : ''}</td>
+          </tr>
+        `).join('')}
+      </table>
+      ${hasShortage ? '<p style="color:#f97373; font-size:12px;">⚠️ Warning: Some components are short. Stock will go negative.</p>' : ''}
+      <p style="font-size:12px;">Confirm to start production?</p>
+    `;
+
+    App.UI.Modal.open('Start Production', msg, [
+      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      { text: 'Start Production', variant: 'primary', onClick: () => {
+          if (App.Services.Automation) {
+            App.Services.Automation.startProduction(po.id);
+          } else {
+            // Fallback if automation service not available
+            po.status = 'in_progress';
+            App.DB.save();
+            App.UI.Toast.show('Production started');
+          }
+          App.Core.Router.navigate('production');
+        }
+      }
+    ]);
   },
 
   /**
@@ -254,54 +353,36 @@ App.UI.Views.Production = {
     App.UI.Modal.open('Complete Production', msg, [
       { text: 'Cancel', variant: 'ghost', onClick: () => {} },
       { text: 'Complete Order', variant: 'primary', onClick: () => {
-          // 1. Add Product Stock
-          prod.stock = (prod.stock || 0) + po.quantity;
-          
-          // 2. Record Production Movement (Receipt)
-          const movements = App.Data.movements || [];
-          movements.push({
-            id: App.Utils.generateId('mv'),
-            date: new Date().toISOString(),
-            type: 'production',
-            direction: 'in',
-            productId: po.productId,
-            quantity: po.quantity,
-            reference: po.orderNumber,
-            notes: 'Production completed'
-          });
+          // Use Automation service if available
+          if (App.Services.Automation) {
+            const result = App.Services.Automation.completeProduction(po.id);
+            if (!result.success) {
+              App.UI.Toast.show('Failed to complete production: ' + result.reason);
+            }
+          } else {
+            // Fallback to original logic
+            // 1. Add Product Stock
+            prod.stock = (prod.stock || 0) + po.quantity;
 
-          // 3. Consume Components
-          if (po.components && po.components.length > 0) {
-            po.components.forEach(c => {
-              const comp = (App.Data.components || []).find(x => x.id === c.componentId);
-              if (comp) {
-                const totalQty = c.quantity * po.quantity; // Per unit * total units? Or total? Usually BOM is per unit.
-                // Assumption: The BOM in the modal is entered as TOTAL required for this specific PO quantity, 
-                // OR per unit? Given the simple UI, let's assume the user entered Total Quantity needed for the PO.
-                // WAIT: Standard ERP behavior: BOM is per unit, but in a PO specific list, it's usually the total material list.
-                // Let's treat the value in the input as the TOTAL amount to deduct.
-                
-                comp.stock = (comp.stock || 0) - c.quantity;
-                
-                movements.push({
-                  id: App.Utils.generateId('mv'),
-                  date: new Date().toISOString(),
-                  type: 'consumption',
-                  direction: 'out',
-                  componentId: c.componentId,
-                  quantity: c.quantity,
-                  reference: po.orderNumber,
-                  notes: 'Consumed for production'
-                });
-              }
+            // 2. Record Production Movement (Receipt)
+            const movements = App.Data.movements || [];
+            movements.push({
+              id: App.Utils.generateId('mv'),
+              date: new Date().toISOString(),
+              type: 'production',
+              direction: 'in',
+              productId: po.productId,
+              quantity: po.quantity,
+              reference: po.orderNumber,
+              notes: 'Production completed'
             });
-          }
 
-          // 4. Update PO Status
-          po.status = 'completed';
-          
-          App.DB.save();
-          App.UI.Toast.show('Order completed & stock updated');
+            // 3. Update PO Status
+            po.status = 'completed';
+
+            App.DB.save();
+            App.UI.Toast.show('Order completed & stock updated');
+          }
           App.Core.Router.navigate('production');
         }
       }

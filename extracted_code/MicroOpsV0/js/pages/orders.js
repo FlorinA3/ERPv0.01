@@ -331,6 +331,22 @@ App.UI.Views.Orders = {
 
           App.DB.save();
           App.UI.Toast.show(`Order status updated to ${newStatus}`);
+
+          // Trigger automation - generate documents based on status
+          if (App.Services.Automation) {
+            App.Services.Automation.onStatusChange(order.id, newStatus, currentStatus);
+          }
+
+          // Log activity
+          if (App.Services.ActivityLog) {
+            App.Services.ActivityLog.log('update', 'order', order.id, {
+              name: order.orderId,
+              action: 'status_change',
+              oldStatus: currentStatus,
+              newStatus: newStatus
+            });
+          }
+
           App.Core.Router.navigate('orders');
         }
       }
@@ -495,6 +511,22 @@ App.UI.Views.Orders = {
       App.Data.orders.push(order);
       App.DB.save();
       App.UI.Toast.show('Order saved');
+
+      // Trigger automation - create production orders for products with BOM
+      if (App.Services.Automation) {
+        App.Services.Automation.processOrderCreation(order);
+      }
+
+      // Log activity
+      if (App.Services.ActivityLog) {
+        App.Services.ActivityLog.log('create', 'order', order.id, {
+          name: order.orderId,
+          customer: (App.Data.customers || []).find(c => c.id === custId)?.company,
+          total: order.totalGross,
+          itemCount: items.length
+        });
+      }
+
       App.Core.Router.navigate('orders');
     };
 
