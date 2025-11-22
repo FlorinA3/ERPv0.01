@@ -131,7 +131,26 @@ window.App = window.App || {
           edit: 'Bearbeiten',
           actions: 'Aktionen',
           view: 'Ansehen',
-          search: 'Suchen...'
+          search: 'Suchen...',
+          noDataToExport: 'Keine Daten zum Exportieren',
+          exportSuccess: 'Export erfolgreich',
+          rows: 'Zeilen',
+          viewPrint: 'Anzeigen/Drucken',
+          recordPayment: 'Zahlung erfassen',
+          paymentHistory: 'Zahlungshistorie',
+          viewDetails: 'Details anzeigen',
+          changeStatus: 'Status ändern',
+          deliveryNote: 'Lieferschein',
+          invoice: 'Rechnung',
+          receiveStock: 'Wareneingang',
+          adjustStock: 'Bestand anpassen',
+          createPO: 'Bestellung erstellen',
+          trace: 'Rückverfolgen',
+          editBOM: 'Stückliste bearbeiten',
+          remove: 'Entfernen',
+          receive: 'Empfangen',
+          offlineMode: 'Offline-Modus - Daten werden lokal gespeichert',
+          backOnline: 'Wieder online'
         },
         pricing: {
           name: 'Name',
@@ -254,7 +273,26 @@ window.App = window.App || {
           edit: 'Edit',
           actions: 'Actions',
           view: 'View',
-          search: 'Search...'
+          search: 'Search...',
+          noDataToExport: 'No data to export',
+          exportSuccess: 'Export successful',
+          rows: 'rows',
+          viewPrint: 'View/Print',
+          recordPayment: 'Record Payment',
+          paymentHistory: 'Payment History',
+          viewDetails: 'View Details',
+          changeStatus: 'Change Status',
+          deliveryNote: 'Delivery Note',
+          invoice: 'Invoice',
+          receiveStock: 'Receive Stock',
+          adjustStock: 'Adjust Stock',
+          createPO: 'Create Purchase Order',
+          trace: 'Trace',
+          editBOM: 'Edit BOM',
+          remove: 'Remove',
+          receive: 'Receive',
+          offlineMode: 'Offline mode - data is saved locally',
+          backOnline: 'Back online'
         },
         pricing: {
           name: 'Name',
@@ -375,7 +413,26 @@ window.App = window.App || {
           edit: 'Editează',
           actions: 'Acțiuni',
           view: 'Vizualizează',
-          search: 'Caută...'
+          search: 'Caută...',
+          noDataToExport: 'Nu există date de exportat',
+          exportSuccess: 'Export reușit',
+          rows: 'rânduri',
+          viewPrint: 'Vizualizează/Printează',
+          recordPayment: 'Înregistrează plată',
+          paymentHistory: 'Istoric plăți',
+          viewDetails: 'Vezi detalii',
+          changeStatus: 'Schimbă status',
+          deliveryNote: 'Aviz de livrare',
+          invoice: 'Factură',
+          receiveStock: 'Recepție stoc',
+          adjustStock: 'Ajustează stoc',
+          createPO: 'Creează comandă',
+          trace: 'Urmărește',
+          editBOM: 'Editează BOM',
+          remove: 'Elimină',
+          receive: 'Primește',
+          offlineMode: 'Mod offline - datele sunt salvate local',
+          backOnline: 'Înapoi online'
         },
         pricing: {
           name: 'Nume',
@@ -437,6 +494,20 @@ App.Utils.generateId = function (prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 };
 
+/**
+ * HTML Escape utility to prevent XSS attacks
+ * Use this when inserting user-provided data into HTML
+ */
+App.Utils.escapeHtml = function (str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 App.Utils.formatCurrency = function (value) {
   const cfg = App.Data.Config || { currency: 'EUR', lang: 'en' };
   const lang = cfg.lang || 'en';
@@ -455,6 +526,66 @@ App.Utils.formatDate = function (iso) {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+/**
+ * Secure CSV Export Utility
+ * - Adds UTF-8 BOM for Excel compatibility with special characters
+ * - Sanitizes formula injection (=, +, -, @, TAB, CR)
+ * - Handles empty states with user feedback
+ */
+App.Utils.exportCSV = function (headers, rows, filename, options = {}) {
+  // Check for empty data
+  if (!rows || rows.length === 0) {
+    const emptyMsg = App.I18n.t('common.noDataToExport', 'No data to export');
+    App.UI.Toast.show(emptyMsg, 'warning');
+    return false;
+  }
+
+  // Sanitize a single cell value for CSV injection protection
+  const sanitizeCell = (value) => {
+    let str = String(value ?? '');
+
+    // Escape double quotes by doubling them
+    str = str.replace(/"/g, '""');
+
+    // CSV injection protection: prefix dangerous characters with single quote
+    // This prevents Excel from interpreting formulas
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = "'" + str;
+    }
+
+    return `"${str}"`;
+  };
+
+  // Build CSV content
+  const csvRows = [
+    headers.map(h => sanitizeCell(h)).join(','),
+    ...rows.map(row => row.map(cell => sanitizeCell(cell)).join(','))
+  ];
+
+  const csvContent = csvRows.join('\n');
+
+  // Add UTF-8 BOM for Excel compatibility with special characters (ä, ö, ü, ș, etc.)
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+  // Create download
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename || 'export.csv');
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  // Show success message
+  const successMsg = App.I18n.t('common.exportSuccess', 'Export successful');
+  App.UI.Toast.show(`${successMsg}: ${rows.length} ${App.I18n.t('common.rows', 'rows')}`, 'success');
+
+  return true;
 };
 
 /**
@@ -2103,6 +2234,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     App.Services.Keyboard.init();
     App.Services.Automation.loadConfig();
     App.Services.Auth.initLoginScreen();
+
+    // Offline/Online status detection
+    window.addEventListener('offline', () => {
+      App.UI.Toast.show(App.I18n.t('common.offlineMode', 'Offline mode - data is saved locally'), 'warning', 5000);
+    });
+    window.addEventListener('online', () => {
+      App.UI.Toast.show(App.I18n.t('common.backOnline', 'Back online'), 'success');
+    });
   } catch (e) {
     console.error(e);
     alert('Failed to initialize MicroOps. Check console for details.');

@@ -216,19 +216,8 @@ App.UI.Views.Reports = {
   },
 
   exportCSV(filename, headers, rows) {
-    const csv = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-    App.UI.Toast.show(`Exported ${filename}`);
+    // Use secure CSV utility with injection protection and BOM
+    App.Utils.exportCSV(headers, rows, filename);
   },
 
   exportOrders() {

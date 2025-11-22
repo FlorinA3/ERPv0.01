@@ -452,18 +452,7 @@ App.UI.Views.Inventory = {
         ];
       });
 
-    const csv = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'inventory.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    App.UI.Toast.show('Exported inventory.csv');
+    // Use secure CSV utility with injection protection and BOM
+    App.Utils.exportCSV(headers, rows, 'inventory.csv');
   }
 };

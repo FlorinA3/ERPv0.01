@@ -100,30 +100,22 @@ App.UI.Views.Orders = {
 
     document.getElementById('btn-add-order').onclick = () => this.openCreateModal();
     
-    // Export Logic
+    // Export Logic - uses secure CSV utility with injection protection
     const exp = document.getElementById('ord-export-excel');
     if (exp) {
       exp.onclick = () => {
-        const rows = [];
-        rows.push('ID,Customer,Status,Date,Total');
-        orders.forEach(o => {
+        const headers = ['ID', 'Customer', 'Status', 'Date', 'Total'];
+        const rows = orders.map(o => {
           const cust = App.Data.customers.find(c => c.id === o.custId);
-          rows.push([
+          return [
             o.orderId || o.id,
             cust ? cust.company : '',
             o.status || '',
             App.Utils.formatDate(o.date),
             o.totalGross
-          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          ];
         });
-        const csv = rows.join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'orders.csv';
-        a.click();
-        URL.revokeObjectURL(url);
+        App.Utils.exportCSV(headers, rows, 'orders.csv');
       };
     }
     

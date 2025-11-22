@@ -44,21 +44,23 @@ App.UI.Views.Movements = {
     if (addBtn) {
       addBtn.onclick = () => this.openMovementModal();
     }
-    // Export button stub
+    // Export button - uses secure CSV utility
     const exportBtn = document.getElementById('btn-export-movements');
     if (exportBtn) {
       exportBtn.onclick = () => {
-        // Simple CSV export of movements
-        const headers = ['Date','Type','Item','Qty','Direction','Reference'];
+        const headers = ['Date', 'Type', 'Item', 'Qty', 'Direction', 'Reference'];
         const rows = (App.Data.movements || []).map(m => {
           const item = (m.productId && (App.Data.products||[]).find(p=>p.id===m.productId)) || (m.componentId && (App.Data.components||[]).find(c=>c.id===m.componentId)) || {};
-          return [m.date, m.type, item.name || item.description || '', m.quantity, m.direction, m.reference].join(',');
+          return [
+            m.date,
+            m.type,
+            item.name || item.description || '',
+            m.quantity,
+            m.direction,
+            m.reference
+          ];
         });
-        const csv = [headers.join(','), ...rows].join('\n');
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-        a.download = 'movements.csv';
-        a.click();
+        App.Utils.exportCSV(headers, rows, 'movements.csv');
       };
     }
   }
