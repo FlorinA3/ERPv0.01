@@ -48,9 +48,9 @@ App.UI.Views.PurchaseOrders = {
                 <td>${po.expectedDate || '-'}</td>
                 <td style="text-align:right;">${App.Utils.formatCurrency(po.totalNet || 0)}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-edit-po" data-id="${po.id}" title="Edit" aria-label="Edit purchase order">✏️</button>
-                  <button class="btn btn-ghost btn-receive-po" data-id="${po.id}" title="Receive" aria-label="Receive stock" ${po.status === 'received' || po.status === 'closed' ? 'disabled' : ''}>📥</button>
-                  <button class="btn btn-ghost btn-view-po" data-id="${po.id}" title="View" aria-label="View purchase order">👁️</button>
+                  <button class="btn btn-ghost btn-edit-po" data-id="${po.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="Edit purchase order">✏️</button>
+                  <button class="btn btn-ghost btn-receive-po" data-id="${po.id}" title="${App.I18n.t('common.receive', 'Receive')}" aria-label="Receive stock" ${po.status === 'received' || po.status === 'closed' ? 'disabled' : ''}>📥</button>
+                  <button class="btn btn-ghost btn-view-po" data-id="${po.id}" title="${App.I18n.t('common.view', 'View')}" aria-label="View purchase order">👁️</button>
                 </td>
               </tr>
             `).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);">No purchase orders</td></tr>'}

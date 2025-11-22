@@ -18,12 +18,12 @@ App.UI.Views.Batches = {
 
     const getStatusBadge = (batch) => {
       const now = new Date();
-      if (batch.qcStatus === 'rejected') return '<span class="tag" style="background:#fee2e2;color:#dc2626;">Rejected</span>';
-      if (batch.qcStatus === 'quarantine') return '<span class="tag" style="background:#fef3c7;color:#d97706;">Quarantine</span>';
-      if (batch.expiryDate && new Date(batch.expiryDate) < now) return '<span class="tag" style="background:#fee2e2;color:#dc2626;">Expired</span>';
+      if (batch.qcStatus === 'rejected') return '<span class="tag tag-danger">Rejected</span>';
+      if (batch.qcStatus === 'quarantine') return '<span class="tag tag-warning">Quarantine</span>';
+      if (batch.expiryDate && new Date(batch.expiryDate) < now) return '<span class="tag tag-danger">Expired</span>';
       if (batch.expiryDate) {
         const daysToExpiry = Math.ceil((new Date(batch.expiryDate) - now) / (1000*60*60*24));
-        if (daysToExpiry <= 30) return '<span class="tag" style="background:#fef3c7;color:#d97706;">Expiring</span>';
+        if (daysToExpiry <= 30) return '<span class="tag tag-warning">Expiring</span>';
       }
       if (batch.qcStatus === 'released') return '<span class="tag tag-success">Released</span>';
       return '<span class="tag tag-muted">Pending QC</span>';
@@ -59,9 +59,9 @@ App.UI.Views.Batches = {
                 <td>${getStatusBadge(b)}</td>
                 <td>${b.createdAt ? b.createdAt.split('T')[0] : '-'}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-edit-batch" data-id="${b.id}" title="Edit" aria-label="Edit batch">✏️</button>
+                  <button class="btn btn-ghost btn-edit-batch" data-id="${b.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="Edit batch">✏️</button>
                   <button class="btn btn-ghost btn-qc-batch" data-id="${b.id}" title="QC" aria-label="Quality control">🔬</button>
-                  <button class="btn btn-ghost btn-trace-batch" data-id="${b.id}" title="Trace" aria-label="Trace batch">🔍</button>
+                  <button class="btn btn-ghost btn-trace-batch" data-id="${b.id}" title="${App.I18n.t('common.trace', 'Trace')}" aria-label="Trace batch">🔍</button>
                 </td>
               </tr>
             `).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--color-text-muted);">No batches</td></tr>'}

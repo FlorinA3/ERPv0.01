@@ -10,8 +10,8 @@ App.UI.Views.Components = {
     };
 
     const getStockStatus = (comp) => {
-      if (comp.stock <= 0) return '<span class="tag" style="background:#fee2e2;color:#dc2626;">Out</span>';
-      if (comp.stock <= (comp.safetyStock || 0)) return '<span class="tag" style="background:#fef3c7;color:#d97706;">Low</span>';
+      if (comp.stock <= 0) return '<span class="tag tag-danger">Out</span>';
+      if (comp.stock <= (comp.safetyStock || 0)) return '<span class="tag tag-warning">Low</span>';
       return '<span class="tag tag-success">OK</span>';
     };
 

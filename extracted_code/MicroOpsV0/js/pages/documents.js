@@ -70,10 +70,10 @@ App.UI.Views.Documents = {
                   <td style="text-align:right;">${isInv ? App.Utils.formatCurrency(d.grossTotal || d.total) : '-'}</td>
                   <td style="text-align:center;">${getPaymentStatus(d)}</td>
                   <td style="text-align:center;">
-                    <button class="btn btn-ghost btn-doc-view" data-id="${d.id}" title="View/Print" aria-label="View document">👁️</button>
-                    ${isInv && (d.paidAmount || 0) < (d.grossTotal || 0) ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="Record Payment" aria-label="Record payment">💰</button>` : ''}
-                    ${isInv ? `<button class="btn btn-ghost btn-doc-history" data-id="${d.id}" title="Payment History" aria-label="Payment history">📋</button>` : ''}
-                    <button class="btn btn-ghost btn-doc-delete" data-id="${d.id}" title="Delete" aria-label="Delete document">🗑️</button>
+                    <button class="btn btn-ghost btn-doc-view" data-id="${d.id}" title="${App.I18n.t('common.viewPrint', 'View/Print')}" aria-label="View document">👁️</button>
+                    ${isInv && (d.paidAmount || 0) < (d.grossTotal || 0) ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="${App.I18n.t('common.recordPayment', 'Record Payment')}" aria-label="Record payment">💰</button>` : ''}
+                    ${isInv ? `<button class="btn btn-ghost btn-doc-history" data-id="${d.id}" title="${App.I18n.t('common.paymentHistory', 'Payment History')}" aria-label="Payment history">📋</button>` : ''}
+                    <button class="btn btn-ghost btn-doc-delete" data-id="${d.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete document">🗑️</button>
                   </td>
                 </tr>
               `;

@@ -27,18 +27,19 @@ App.UI.Views.Products = {
             ${products.map(p => {
               const stockClass = p.type !== 'Service' && (p.stock || 0) <= (p.minStock || 0) ? 'color:#f97373;' : '';
               const bomCount = (p.bom || []).length;
+              const esc = App.Utils.escapeHtml;
               return `
               <tr>
-                <td>${p.internalArticleNumber || p.sku || '-'}</td>
-                <td><strong>${p.nameDE || p.nameEN || p.name || '-'}</strong></td>
-                <td><span class="tag tag-muted">${p.type || p.cat || '-'}</span></td>
+                <td>${esc(p.internalArticleNumber || p.sku) || '-'}</td>
+                <td><strong>${esc(p.nameDE || p.nameEN || p.name) || '-'}</strong></td>
+                <td><span class="tag tag-muted">${esc(p.type || p.cat) || '-'}</span></td>
                 <td style="text-align:right;">${App.Utils.formatCurrency(p.dealerPrice || p.price || 0)}</td>
                 <td style="text-align:right; ${stockClass}">${p.type === 'Service' ? '-' : (p.stock ?? 0)}</td>
                 <td style="text-align:center;">${bomCount > 0 ? `<span class="tag tag-info">${bomCount}</span>` : '-'}</td>
                 <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-edit-product" data-id="${p.id}" title="Edit" aria-label="Edit product">✏️</button>
-                  <button class="btn btn-ghost btn-bom-product" data-id="${p.id}" title="Edit BOM" aria-label="Edit bill of materials">🔧</button>
-                  <button class="btn btn-ghost btn-del-product" data-id="${p.id}" title="Delete" aria-label="Delete product">🗑️</button>
+                  <button class="btn btn-ghost btn-edit-product" data-id="${p.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="Edit product">✏️</button>
+                  <button class="btn btn-ghost btn-bom-product" data-id="${p.id}" title="${App.I18n.t('common.editBOM', 'Edit BOM')}" aria-label="Edit bill of materials">🔧</button>
+                  <button class="btn btn-ghost btn-del-product" data-id="${p.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete product">🗑️</button>
                 </td>
               </tr>`;
             }).join('') || `<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">No products</td></tr>`}

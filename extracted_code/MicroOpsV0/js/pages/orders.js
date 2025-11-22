@@ -75,20 +75,21 @@ App.UI.Views.Orders = {
             ${orders.length > 0 ? orders.map(o => {
               const cust = (App.Data.customers || []).find(c => c.id === o.custId);
               const carrier = o.carrierId ? carriers.find(c => c.id === o.carrierId) : null;
+              const esc = App.Utils.escapeHtml;
               return `
                 <tr>
-                  <td><strong>${o.orderId || o.id}</strong></td>
-                  <td>${cust ? cust.company : '-'}</td>
+                  <td><strong>${esc(o.orderId || o.id)}</strong></td>
+                  <td>${cust ? esc(cust.company) : '-'}</td>
                   <td>${getStatusBadge(o.status)}</td>
-                  <td>${carrier ? carrier.name : '-'}</td>
+                  <td>${carrier ? esc(carrier.name) : '-'}</td>
                   <td>${App.Utils.formatDate(o.date)}</td>
                   <td style="text-align:right;">${App.Utils.formatCurrency(o.totalGross || o.subtotalNet || 0)}</td>
                   <td style="text-align:center;">
-                    <button class="btn btn-ghost btn-view-order" data-id="${o.id}" title="View Details" aria-label="View order details">👁️</button>
-                    <button class="btn btn-ghost btn-status-order" data-id="${o.id}" title="Change Status" aria-label="Change order status">🔄</button>
-                    <button class="btn btn-ghost btn-gen-delivery" data-id="${o.id}" title="Delivery Note" aria-label="Generate delivery note">📦</button>
-                    <button class="btn btn-ghost btn-gen-invoice" data-id="${o.id}" title="Invoice" aria-label="Generate invoice">🧾</button>
-                    <button class="btn btn-ghost btn-del-order" data-id="${o.id}" title="Delete Order" aria-label="Delete order">🗑️</button>
+                    <button class="btn btn-ghost btn-view-order" data-id="${o.id}" title="${App.I18n.t('common.viewDetails', 'View Details')}" aria-label="View order details">👁️</button>
+                    <button class="btn btn-ghost btn-status-order" data-id="${o.id}" title="${App.I18n.t('common.changeStatus', 'Change Status')}" aria-label="Change order status">🔄</button>
+                    <button class="btn btn-ghost btn-gen-delivery" data-id="${o.id}" title="${App.I18n.t('common.deliveryNote', 'Delivery Note')}" aria-label="Generate delivery note">📦</button>
+                    <button class="btn btn-ghost btn-gen-invoice" data-id="${o.id}" title="${App.I18n.t('common.invoice', 'Invoice')}" aria-label="Generate invoice">🧾</button>
+                    <button class="btn btn-ghost btn-del-order" data-id="${o.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete order">🗑️</button>
                   </td>
                 </tr>
               `;

@@ -29,17 +29,18 @@ App.UI.Views.Customers = {
               const contact = (c.contacts && c.contacts[0]) || c.name || '-';
               const phone = (c.phones && c.phones[0]) || '-';
               const email = (c.emails && c.emails[0]) || c.email || '-';
+              const esc = App.Utils.escapeHtml;
               return `
                 <tr>
-                  <td><strong>${c.customerNumber || '-'}</strong></td>
-                  <td>${c.company || '-'}</td>
-                  <td>${contact}</td>
-                  <td>${email}</td>
-                  <td>${phone}</td>
-                  <td>${addr.country || '-'}</td>
+                  <td><strong>${esc(c.customerNumber) || '-'}</strong></td>
+                  <td>${esc(c.company) || '-'}</td>
+                  <td>${esc(contact)}</td>
+                  <td>${esc(email)}</td>
+                  <td>${esc(phone)}</td>
+                  <td>${esc(addr.country) || '-'}</td>
                   <td style="text-align:right;">
-                    <button class="btn btn-ghost btn-edit-customer" data-id="${c.id}" title="Edit" aria-label="Edit customer">✏️</button>
-                    <button class="btn btn-ghost btn-del-customer" data-id="${c.id}" title="Delete" aria-label="Delete customer">🗑️</button>
+                    <button class="btn btn-ghost btn-edit-customer" data-id="${c.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="Edit customer">✏️</button>
+                    <button class="btn btn-ghost btn-del-customer" data-id="${c.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete customer">🗑️</button>
                   </td>
                 </tr>
               `;

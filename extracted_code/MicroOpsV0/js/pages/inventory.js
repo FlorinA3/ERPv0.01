@@ -43,11 +43,11 @@ App.UI.Views.Inventory = {
       let stockBadge = '';
 
       if (stock <= 0) {
-        stockClass = 'color:#dc2626; font-weight:500;';
-        stockBadge = '<span class="tag" style="background:#fee2e2;color:#dc2626; margin-left:4px;">Out</span>';
+        stockClass = 'color:var(--color-danger); font-weight:500;';
+        stockBadge = '<span class="tag tag-danger" style="margin-left:4px;">Out</span>';
       } else if (stock <= minStock) {
-        stockClass = 'color:#f59e0b; font-weight:500;';
-        stockBadge = '<span class="tag" style="background:#fef3c7;color:#d97706; margin-left:4px;">Low</span>';
+        stockClass = 'color:var(--color-warning); font-weight:500;';
+        stockBadge = '<span class="tag tag-warning" style="margin-left:4px;">Low</span>';
       }
 
       return `
@@ -58,8 +58,8 @@ App.UI.Views.Inventory = {
           <td style="text-align:center;">${minStock}</td>
           <td style="text-align:right;">${App.Utils.formatCurrency(p.dealerPrice || p.purchasePrice || 0)}</td>
           <td style="text-align:right;">
-            <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="Receive Stock" aria-label="Receive stock">⬆️</button>
-            <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="Adjust Stock" aria-label="Adjust stock">🔄</button>
+            <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="${App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="Receive stock">⬆️</button>
+            <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="Adjust stock">🔄</button>
           </td>
         </tr>
       `;
