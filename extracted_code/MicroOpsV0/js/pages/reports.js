@@ -1,5 +1,7 @@
 App.UI.Views.Reports = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`reports.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const orders = App.Data.orders || [];
     const documents = App.Data.documents || [];
     const products = App.Data.products || [];
@@ -13,23 +15,23 @@ App.UI.Views.Reports = {
 
     root.innerHTML = `
       <div class="card-soft" style="margin-bottom:16px;">
-        <h3 style="font-size:16px; font-weight:600; margin-bottom:16px;">${App.I18n.t('pages.reports.title','Reports & Analytics')}</h3>
+        <h3 style="font-size:16px; font-weight:600; margin-bottom:16px;">${App.I18n.t('pages.reports.title', t('title', 'Reports & Analytics'))}</h3>
 
         <div class="grid grid-4" style="margin-bottom:16px;">
           <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Total Revenue</div>
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">${t('totalRevenue', 'Total Revenue')}</div>
             <div style="font-size:20px; font-weight:700; margin-top:4px;">${App.Utils.formatCurrency(totalRevenue)}</div>
           </div>
           <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Collected</div>
-            <div style="font-size:20px; font-weight:700; margin-top:4px; color:#16a34a;">${App.Utils.formatCurrency(totalPaid)}</div>
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">${t('collected', 'Collected')}</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px; color:var(--color-success);">${App.Utils.formatCurrency(totalPaid)}</div>
           </div>
           <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Outstanding</div>
-            <div style="font-size:20px; font-weight:700; margin-top:4px; color:#f59e0b;">${App.Utils.formatCurrency(totalOutstanding)}</div>
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">${t('outstanding', 'Outstanding')}</div>
+            <div style="font-size:20px; font-weight:700; margin-top:4px; color:var(--color-warning);">${App.Utils.formatCurrency(totalOutstanding)}</div>
           </div>
           <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
-            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">Avg Order</div>
+            <div style="font-size:11px; text-transform:uppercase; color:var(--color-text-muted);">${t('avgOrder', 'Avg Order')}</div>
             <div style="font-size:20px; font-weight:700; margin-top:4px;">${App.Utils.formatCurrency(avgOrderValue)}</div>
           </div>
         </div>
@@ -37,52 +39,52 @@ App.UI.Views.Reports = {
 
       <div class="grid grid-2" style="gap:16px; margin-bottom:16px;">
         <div class="card-soft">
-          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Top 5 Customers by Revenue</h4>
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('topCustomers', 'Top 5 Customers by Revenue')}</h4>
           <div id="top-customers-list"></div>
         </div>
         <div class="card-soft">
-          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Top 5 Products by Sales</h4>
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('topProducts', 'Top 5 Products by Sales')}</h4>
           <div id="top-products-list"></div>
         </div>
       </div>
 
       <div class="card-soft" style="margin-bottom:16px;">
-        <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Monthly Sales Trend</h4>
+        <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('monthlyTrend', 'Monthly Sales Trend')}</h4>
         <div id="monthly-chart"></div>
       </div>
 
       <div class="card-soft">
-        <h4 style="font-size:14px; font-weight:600; margin-bottom:16px;">Export Reports</h4>
+        <h4 style="font-size:14px; font-weight:600; margin-bottom:16px;">${t('exportReports', 'Export Reports')}</h4>
         <div class="grid grid-3" style="gap:12px;">
           <div style="padding:12px; background:var(--color-bg); border:1px solid var(--color-border); border-radius:6px;">
-            <h5 style="font-weight:600; margin-bottom:4px;">Orders Masterlist</h5>
-            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">All orders with details</p>
-            <button class="btn btn-primary" id="btn-rep-orders" style="width:100%;">Download CSV</button>
+            <h5 style="font-weight:600; margin-bottom:4px;">${t('ordersMasterlist', 'Orders Masterlist')}</h5>
+            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">${t('allOrdersWithDetails', 'All orders with details')}</p>
+            <button class="btn btn-primary" id="btn-rep-orders" style="width:100%;">${t('downloadCsv', 'Download CSV')}</button>
           </div>
           <div style="padding:12px; background:var(--color-bg); border:1px solid var(--color-border); border-radius:6px;">
-            <h5 style="font-weight:600; margin-bottom:4px;">Invoices Report</h5>
-            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">Invoice payments & status</p>
-            <button class="btn btn-primary" id="btn-rep-invoices" style="width:100%;">Download CSV</button>
+            <h5 style="font-weight:600; margin-bottom:4px;">${t('invoicesReport', 'Invoices Report')}</h5>
+            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">${t('invoicePaymentsStatus', 'Invoice payments & status')}</p>
+            <button class="btn btn-primary" id="btn-rep-invoices" style="width:100%;">${t('downloadCsv', 'Download CSV')}</button>
           </div>
           <div style="padding:12px; background:var(--color-bg); border:1px solid var(--color-border); border-radius:6px;">
-            <h5 style="font-weight:600; margin-bottom:4px;">Customer Report</h5>
-            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">Revenue per customer</p>
-            <button class="btn btn-primary" id="btn-rep-customers" style="width:100%;">Download CSV</button>
+            <h5 style="font-weight:600; margin-bottom:4px;">${t('customerReport', 'Customer Report')}</h5>
+            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">${t('revenuePerCustomer', 'Revenue per customer')}</p>
+            <button class="btn btn-primary" id="btn-rep-customers" style="width:100%;">${t('downloadCsv', 'Download CSV')}</button>
           </div>
           <div style="padding:12px; background:var(--color-bg); border:1px solid var(--color-border); border-radius:6px;">
-            <h5 style="font-weight:600; margin-bottom:4px;">Product Sales</h5>
-            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">Units sold by product</p>
-            <button class="btn btn-primary" id="btn-rep-products" style="width:100%;">Download CSV</button>
+            <h5 style="font-weight:600; margin-bottom:4px;">${t('productSales', 'Product Sales')}</h5>
+            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">${t('unitsSoldByProduct', 'Units sold by product')}</p>
+            <button class="btn btn-primary" id="btn-rep-products" style="width:100%;">${t('downloadCsv', 'Download CSV')}</button>
           </div>
           <div style="padding:12px; background:var(--color-bg); border:1px solid var(--color-border); border-radius:6px;">
-            <h5 style="font-weight:600; margin-bottom:4px;">Inventory Valuation</h5>
-            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">Stock value report</p>
-            <button class="btn btn-primary" id="btn-rep-inventory" style="width:100%;">Download CSV</button>
+            <h5 style="font-weight:600; margin-bottom:4px;">${t('inventoryValuation', 'Inventory Valuation')}</h5>
+            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">${t('stockValueReport', 'Stock value report')}</p>
+            <button class="btn btn-primary" id="btn-rep-inventory" style="width:100%;">${t('downloadCsv', 'Download CSV')}</button>
           </div>
           <div style="padding:12px; background:var(--color-bg); border:1px solid var(--color-border); border-radius:6px;">
-            <h5 style="font-weight:600; margin-bottom:4px;">Production Summary</h5>
-            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">Production orders log</p>
-            <button class="btn btn-primary" id="btn-rep-production" style="width:100%;">Download CSV</button>
+            <h5 style="font-weight:600; margin-bottom:4px;">${t('productionSummary', 'Production Summary')}</h5>
+            <p style="font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">${t('productionOrdersLog', 'Production orders log')}</p>
+            <button class="btn btn-primary" id="btn-rep-production" style="width:100%;">${t('downloadCsv', 'Download CSV')}</button>
           </div>
         </div>
       </div>

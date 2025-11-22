@@ -2,6 +2,8 @@ App.UI.Views.Settings = {
   activeTab: 'company',
 
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`settings.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const cfg = App.Data.config || App.Data.Config || {};
     const users = App.Data.users || App.Data.Users || [];
     const sequences = cfg.numberSequences || {};
@@ -9,10 +11,10 @@ App.UI.Views.Settings = {
     root.innerHTML = `
       <div class="card-soft" style="margin-bottom:16px;">
         <div style="display:flex; gap:8px; border-bottom:1px solid var(--color-border); padding-bottom:12px; margin-bottom:16px;">
-          <button class="btn ${this.activeTab === 'company' ? 'btn-primary' : 'btn-ghost'}" data-tab="company">Company</button>
-          <button class="btn ${this.activeTab === 'users' ? 'btn-primary' : 'btn-ghost'}" data-tab="users">Users</button>
-          <button class="btn ${this.activeTab === 'system' ? 'btn-primary' : 'btn-ghost'}" data-tab="system">System</button>
-          <button class="btn ${this.activeTab === 'activity' ? 'btn-primary' : 'btn-ghost'}" data-tab="activity">Activity Log</button>
+          <button class="btn ${this.activeTab === 'company' ? 'btn-primary' : 'btn-ghost'}" data-tab="company">${t('tabCompany', 'Company')}</button>
+          <button class="btn ${this.activeTab === 'users' ? 'btn-primary' : 'btn-ghost'}" data-tab="users">${t('tabUsers', 'Users')}</button>
+          <button class="btn ${this.activeTab === 'system' ? 'btn-primary' : 'btn-ghost'}" data-tab="system">${t('tabSystem', 'System')}</button>
+          <button class="btn ${this.activeTab === 'activity' ? 'btn-primary' : 'btn-ghost'}" data-tab="activity">${t('tabActivity', 'Activity Log')}</button>
         </div>
 
         <!-- Company Tab -->
@@ -50,10 +52,11 @@ App.UI.Views.Settings = {
   },
 
   _renderCompanyTab(cfg) {
+    const t = (key, fallback) => App.I18n.t(`settings.${key}`, fallback);
     return `
       <div class="grid grid-2" style="gap:16px;">
         <div>
-          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Company Information</h4>
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('companyInfo', 'Company Information')}</h4>
           <div class="grid" style="gap:8px;">
             <label class="field-label">${App.I18n.t('settings.companyName', 'Company Name')}</label>
             <input id="set-company" class="input" value="${cfg.companyName || ''}" />
@@ -86,7 +89,7 @@ App.UI.Views.Settings = {
         </div>
 
         <div>
-          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Banking & Terms</h4>
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('bankingTerms', 'Banking & Terms')}</h4>
           <div class="grid" style="gap:8px;">
             <label class="field-label">${App.I18n.t('settings.bank', 'Bank Name')}</label>
             <input id="set-bank" class="input" value="${cfg.bankName || ''}" />
@@ -130,10 +133,12 @@ App.UI.Views.Settings = {
   },
 
   _renderUsersTab(users) {
+    const t = (key, fallback) => App.I18n.t(`settings.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h4 style="font-size:14px; font-weight:600;">User Management</h4>
-        <button class="btn btn-primary" id="btn-add-user">+ Add User</button>
+        <h4 style="font-size:14px; font-weight:600;">${t('userManagement', 'User Management')}</h4>
+        <button class="btn btn-primary" id="btn-add-user">+ ${t('addUser', 'Add User')}</button>
       </div>
       <div style="display:flex; flex-direction:column; gap:6px;">
         ${users.map(u => `
@@ -166,10 +171,11 @@ App.UI.Views.Settings = {
   },
 
   _renderSystemTab(cfg, sequences) {
+    const t = (key, fallback) => App.I18n.t(`settings.${key}`, fallback);
     return `
       <div class="grid grid-2" style="gap:16px;">
         <div>
-          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Number Sequences</h4>
+          <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">${t('numberSequences', 'Number Sequences')}</h4>
           <table class="table" style="font-size:13px;">
             <thead>
               <tr><th>${App.I18n.t('common.documentType', 'Document Type')}</th><th>${App.I18n.t('common.lastNumber', 'Last Number')}</th></tr>

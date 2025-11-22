@@ -1,7 +1,32 @@
 // Tasks / Planner page
 App.UI.Views.Tasks = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`tasks.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const tasks = App.Data.tasks || App.Data.Tasks || [];
+
+    const getStatusLabel = (status) => {
+      if (status === 'open') return t('statusOpen', 'Open');
+      if (status === 'in progress') return t('statusInProgress', 'In Progress');
+      if (status === 'completed') return t('statusCompleted', 'Completed');
+      return status || '-';
+    };
+
+    const getPriorityLabel = (priority) => {
+      if (priority === 'low') return t('priorityLow', 'Low');
+      if (priority === 'medium') return t('priorityMedium', 'Medium');
+      if (priority === 'high') return t('priorityHigh', 'High');
+      return priority || '-';
+    };
+
+    const getCategoryLabel = (category) => {
+      if (category === 'General') return t('categoryGeneral', 'General');
+      if (category === 'Programming') return t('categoryProgramming', 'Programming');
+      if (category === 'Production') return t('categoryProduction', 'Production');
+      if (category === 'Warehouse') return t('categoryWarehouse', 'Warehouse');
+      return category || '-';
+    };
+
     root.innerHTML = `
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -11,25 +36,25 @@ App.UI.Views.Tasks = {
         <table class="table">
           <thead>
             <tr>
-              <th>${App.I18n.t('tasks.title','Title')}</th>
-              <th>${App.I18n.t('tasks.category','Category')}</th>
-              <th>${App.I18n.t('tasks.status','Status')}</th>
-              <th>${App.I18n.t('tasks.priority','Priority')}</th>
-              <th>${App.I18n.t('tasks.assignee','Assignee')}</th>
-              <th>${App.I18n.t('tasks.due','Due')}</th>
+              <th>${t('title','Title')}</th>
+              <th>${t('category','Category')}</th>
+              <th>${t('status','Status')}</th>
+              <th>${t('priority','Priority')}</th>
+              <th>${t('assignee','Assignee')}</th>
+              <th>${t('due','Due')}</th>
             </tr>
           </thead>
           <tbody>
-            ${tasks.map(t => `
+            ${tasks.map(task => `
               <tr>
-                <td>${t.title || '-'}</td>
-                <td>${t.category || '-'}</td>
-                <td>${t.status || '-'}</td>
-                <td>${t.priority || '-'}</td>
-                <td>${(App.Data.users||App.Data.Users||[]).find(u=>u.id===t.assignedTo)?.name || '-'}</td>
-                <td>${t.dueDate ? App.Utils.formatDate(t.dueDate) : '-'}</td>
+                <td>${esc(task.title || '-')}</td>
+                <td>${getCategoryLabel(task.category)}</td>
+                <td>${getStatusLabel(task.status)}</td>
+                <td>${getPriorityLabel(task.priority)}</td>
+                <td>${esc((App.Data.users||App.Data.Users||[]).find(u=>u.id===task.assignedTo)?.name || '-')}</td>
+                <td>${task.dueDate ? App.Utils.formatDate(task.dueDate) : '-'}</td>
               </tr>
-            `).join('') || `<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">No tasks</td></tr>`}
+            `).join('') || `<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">${t('noTasks', 'No tasks')}</td></tr>`}
           </tbody>
         </table>
       </div>

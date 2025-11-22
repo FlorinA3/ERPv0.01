@@ -1,54 +1,59 @@
 // Production Orders page
 App.UI.Views.Production = {
   render(root) {
+    const t = (key, fallback) => App.I18n.t(`production.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
     const pos = App.Data.productionOrders || App.Data.ProductionOrders || [];
     // Sort by date descending
     pos.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
+    const getStatusBadge = (status) => {
+      if (status === 'completed') return `<span class="tag tag-success">${t('statusCompleted', 'Completed')}</span>`;
+      if (status === 'in_progress') return `<span class="tag tag-info">${t('statusInProgress', 'In Progress')}</span>`;
+      return `<span class="tag tag-muted">${t('statusPlanned', 'Planned')}</span>`;
+    };
+
     root.innerHTML = `
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.production.title','Production Orders')}</h3>
+          <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.production.title', t('title', 'Production Orders'))}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
-            <input type="text" id="production-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
-            <button class="btn btn-ghost" id="btn-auto-settings" title="Automation Settings">⚙️ Automation</button>
+            <input type="text" id="production-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" aria-label="${App.I18n.t('common.search','Search')}" />
+            <button class="btn btn-ghost" id="btn-auto-settings" title="${t('automation', 'Automation')}" aria-label="${t('automation', 'Automation')}">⚙️ ${t('automation', 'Automation')}</button>
             <button class="btn btn-primary" id="btn-add-po">+ ${App.I18n.t('common.add','Add')}</button>
           </div>
         </div>
         <table class="table">
           <thead>
             <tr>
-              <th>${App.I18n.t('production.number','Number')}</th>
-              <th>${App.I18n.t('production.product','Product')}</th>
-              <th style="text-align:right;">${App.I18n.t('production.qty','Qty')}</th>
-              <th>${App.I18n.t('production.status','Status')}</th>
-              <th>${App.I18n.t('production.planned','Planned')}</th>
+              <th>${t('number','Number')}</th>
+              <th>${t('product','Product')}</th>
+              <th style="text-align:right;">${t('qty','Qty')}</th>
+              <th>${t('status','Status')}</th>
+              <th>${t('planned','Planned')}</th>
               <th style="text-align:right;">${App.I18n.t('common.actions','Actions')}</th>
             </tr>
           </thead>
           <tbody>
             ${pos.map(po => {
               const prod = (App.Data.products||[]).find(p=>p.id===po.productId) || {};
-              let statusColor = 'tag-muted';
-              if (po.status === 'completed') statusColor = 'tag-success';
-              if (po.status === 'in_progress') statusColor = 'tag-info';
-              
+
               return `
                 <tr>
-                  <td>${po.orderNumber || po.id}</td>
-                  <td>${prod.nameDE || prod.nameEN || prod.name || '-'}</td>
+                  <td>${esc(po.orderNumber || po.id)}</td>
+                  <td>${esc(prod.nameDE || prod.nameEN || prod.name || '-')}</td>
                   <td style="text-align:right;">${po.quantity ?? '-'}</td>
-                  <td><span class="tag ${statusColor}">${po.status || '-'}</span></td>
+                  <td>${getStatusBadge(po.status)}</td>
                   <td>${po.plannedStart ? App.Utils.formatDate(po.plannedStart) : '-'}</td>
                   <td style="text-align:right;">
-                    <button class="btn btn-ghost btn-edit-po" data-id="${po.id}" title="Edit" aria-label="Edit production order">✏️</button>
-                    ${po.status === 'planned' ? `<button class="btn btn-ghost btn-start-po" data-id="${po.id}" title="Start Production (Deduct Components)" aria-label="Start production">▶️</button>` : ''}
-                    ${po.status === 'in_progress' ? `<button class="btn btn-ghost btn-complete-po" data-id="${po.id}" title="Complete & Book Stock" aria-label="Complete production">✅</button>` : ''}
-                    ${po.sourceOrderId ? `<button class="btn btn-ghost btn-view-source" data-id="${po.sourceOrderId}" title="View Source Order" aria-label="View source order">🔗</button>` : ''}
-                    <button class="btn btn-ghost btn-delete-po" data-id="${po.id}" title="Delete" aria-label="Delete production order">🗑️</button>
+                    <button class="btn btn-ghost btn-edit-po" data-id="${po.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${t('edit', 'Edit production order')}">✏️</button>
+                    ${po.status === 'planned' ? `<button class="btn btn-ghost btn-start-po" data-id="${po.id}" title="${t('startProduction', 'Start Production')}" aria-label="${t('startProduction', 'Start production')}">▶️</button>` : ''}
+                    ${po.status === 'in_progress' ? `<button class="btn btn-ghost btn-complete-po" data-id="${po.id}" title="${t('completeProduction', 'Complete Production')}" aria-label="${t('completeProduction', 'Complete production')}">✅</button>` : ''}
+                    ${po.sourceOrderId ? `<button class="btn btn-ghost btn-view-source" data-id="${po.sourceOrderId}" title="${App.I18n.t('common.viewSourceOrder', 'View Source Order')}" aria-label="${App.I18n.t('common.viewSourceOrder', 'View source order')}">🔗</button>` : ''}
+                    <button class="btn btn-ghost btn-delete-po" data-id="${po.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="${t('deleteProduction', 'Delete production order')}">🗑️</button>
                   </td>
                 </tr>`;
-            }).join('') || `<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">No production orders</td></tr>`}
+            }).join('') || `<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">${t('noOrders', 'No production orders')}</td></tr>`}
           </tbody>
         </table>
       </div>
