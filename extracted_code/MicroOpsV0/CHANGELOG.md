@@ -268,14 +268,31 @@ This release establishes the core foundation for production-ready ERP functional
 
 ---
 
+## [0.5.1] - 2025-11-22
+
+### Supplier Management Enhancements - Complete
+
+#### Enhanced Suppliers Page (js/pages/suppliers.js)
+- **Extended Fields**: Payment terms, lead time, minimum order value, currency, VAT ID, rating
+- **Performance Tracking**: Order count, on-time delivery rate, total spend per supplier
+- **Supplier Code**: Unique identifier for each supplier
+- **Delete Protection**: Cannot delete suppliers with linked purchase orders
+- **Better Modal**: Two-column layout with business terms section
+
+#### Enhanced Components Page (js/pages/components.js)
+- **Preferred Supplier**: Link components to preferred suppliers with lead time display
+- **Purchase Price**: Track purchase price per component
+- **Reorder Management**: Reorder point and reorder quantity fields
+- **Min Order Qty**: Minimum order quantity for suppliers
+- **Supplier Part Number**: Track supplier's internal part number
+- **Stock Status Badges**: Visual indicators for stock levels (OK/Low/Out)
+- **Delete Protection**: Cannot delete components used in product BOMs
+
+---
+
 ## [Unreleased]
 
 ### Planned for Version 0.6.0
-
-#### Supplier Management Enhancements
-- [ ] Extended supplier fields (payment terms, lead times)
-- [ ] Supplier performance tracking
-- [ ] Preferred supplier per component
 
 #### Financial Management
 - [ ] Payment tracking

@@ -1,7 +1,20 @@
-// Components (E‑Komponenten) page
 App.UI.Views.Components = {
   render(root) {
-    const comps = App.Data.components || App.Data.Components || [];
+    const comps = App.Data.components || [];
+    const suppliers = App.Data.suppliers || [];
+
+    const getSupplierInfo = (supplierId) => {
+      if (!supplierId) return { name: '-', leadTime: null };
+      const sup = suppliers.find(s => s.id === supplierId);
+      return sup ? { name: sup.name, leadTime: sup.leadTimeDays } : { name: '-', leadTime: null };
+    };
+
+    const getStockStatus = (comp) => {
+      if (comp.stock <= 0) return '<span class="tag" style="background:#fee2e2;color:#dc2626;">Out</span>';
+      if (comp.stock <= (comp.safetyStock || 0)) return '<span class="tag" style="background:#fef3c7;color:#d97706;">Low</span>';
+      return '<span class="tag tag-success">OK</span>';
+    };
+
     root.innerHTML = `
       <div class="card-soft">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -11,129 +24,242 @@ App.UI.Views.Components = {
         <table class="table">
           <thead>
             <tr>
-              <th>#</th>
+              <th>${App.I18n.t('components.number','Component No')}</th>
               <th>${App.I18n.t('components.description','Description')}</th>
               <th>${App.I18n.t('components.unit','Unit')}</th>
-              <th>${App.I18n.t('components.stock','Stock')}</th>
-              <th>${App.I18n.t('components.supplier','Supplier')}</th>
+              <th style="text-align:right;">${App.I18n.t('components.stock','Stock')}</th>
+              <th style="text-align:center;">Status</th>
+              <th>${App.I18n.t('components.supplier','Preferred Supplier')}</th>
+              <th style="text-align:right;">Purchase Price</th>
               <th style="text-align:right;">${App.I18n.t('common.actions','Actions')}</th>
             </tr>
           </thead>
           <tbody>
-            ${comps.map((c,i) => `
-              <tr>
-                <td>${i+1}</td>
-                <td>${c.description || '-'}</td>
-                <td>${c.unit || '-'}</td>
-                <td>${c.stock ?? '-'}</td>
-                <td>${(App.Data.suppliers || []).find(s=>s.id===c.supplierId)?.name || '-'}</td>
-                <td style="text-align:right;">
-                  <button class="btn btn-ghost" data-id="${c.id}" disabled>Edit</button>
-                </td>
-              </tr>
-            `).join('') || `<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">No components</td></tr>`}
+            ${comps.length > 0 ? comps.map(c => {
+              const supInfo = getSupplierInfo(c.supplierId);
+              return `
+                <tr>
+                  <td><strong>${c.componentNumber || '-'}</strong></td>
+                  <td>${c.description || '-'}</td>
+                  <td>${c.unit || '-'}</td>
+                  <td style="text-align:right;">${c.stock ?? 0}${c.safetyStock ? ` <small style="color:var(--color-text-muted);">(min: ${c.safetyStock})</small>` : ''}</td>
+                  <td style="text-align:center;">${getStockStatus(c)}</td>
+                  <td>${supInfo.name}${supInfo.leadTime ? ` <small style="color:var(--color-text-muted);">(${supInfo.leadTime}d)</small>` : ''}</td>
+                  <td style="text-align:right;">${c.purchasePrice ? '€' + c.purchasePrice.toFixed(2) : '-'}</td>
+                  <td style="text-align:right;">
+                    <button class="btn btn-ghost btn-edit-comp" data-id="${c.id}" title="Edit">✏️</button>
+                    <button class="btn btn-ghost btn-delete-comp" data-id="${c.id}" title="Delete">🗑️</button>
+                  </td>
+                </tr>
+              `;
+            }).join('') : `<tr><td colspan="8" style="text-align:center; color:var(--color-text-muted);">No components</td></tr>`}
           </tbody>
         </table>
       </div>
     `;
-    // Bind add button
-    const addBtn = document.getElementById('btn-add-component');
-    if (addBtn) {
-      addBtn.onclick = () => this.openComponentModal();
-    }
-    // Make rows clickable for editing
-    const rows = root.querySelectorAll('tbody tr');
-    rows.forEach((row, idx) => {
-      const comp = comps[idx];
-      if (!comp) return;
-      row.addEventListener('click', () => {
-        this.openComponentModal(comp);
+
+    document.getElementById('btn-add-component')?.addEventListener('click', () => this.openComponentModal());
+
+    root.querySelectorAll('.btn-edit-comp').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const comp = comps.find(c => c.id === btn.getAttribute('data-id'));
+        if (comp) this.openComponentModal(comp);
       });
     });
-  }
-  ,
-  /**
-   * Opens a modal to add or edit a component. When an existing component is passed
-   * the form fields are pre-filled. On save, the component is added or updated
-   * in the database and the view is re-rendered.
-   * @param {Object} comp The component to edit, or undefined to add a new one
-   */
+
+    root.querySelectorAll('.btn-delete-comp').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const comp = comps.find(c => c.id === id);
+        if (!comp) return;
+
+        const products = App.Data.products || [];
+        const usedIn = products.filter(p => (p.bom || []).some(b => b.componentId === id));
+        if (usedIn.length > 0) {
+          App.UI.Toast.show(`Cannot delete: Used in ${usedIn.length} product BOMs`);
+          return;
+        }
+
+        App.UI.Modal.open('Delete Component', `
+          <p>Are you sure you want to delete <strong>${comp.componentNumber}</strong>?</p>
+        `, [
+          { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+          {
+            text: 'Delete',
+            variant: 'primary',
+            onClick: () => {
+              const idx = comps.findIndex(c => c.id === id);
+              if (idx >= 0) {
+                comps.splice(idx, 1);
+                App.DB.save();
+                App.UI.Toast.show('Component deleted');
+                App.Core.Router.navigate('components');
+              }
+            }
+          }
+        ]);
+      });
+    });
+  },
+
   openComponentModal(comp) {
     const isEdit = !!comp;
     const suppliers = App.Data.suppliers || [];
-    const supplierOptions = suppliers.map(s => `<option value="${s.id}" ${comp && comp.supplierId === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
+    const supplierOptions = suppliers.map(s =>
+      `<option value="${s.id}" ${comp && comp.supplierId === s.id ? 'selected' : ''}>${s.name}${s.leadTimeDays ? ` (${s.leadTimeDays}d)` : ''}</option>`
+    ).join('');
+
     const body = `
-      <div>
-        <label class="field-label">${App.I18n.t('components.number','Component No')}*</label>
-        <input id="cmp-number" class="input" value="${comp ? comp.componentNumber : ''}" />
+      <div class="grid grid-2" style="gap:12px;">
+        <div>
+          <label class="field-label">${App.I18n.t('components.number','Component No')}*</label>
+          <input id="cmp-number" class="input" value="${comp ? comp.componentNumber : ''}" placeholder="e.g., E0001" />
+        </div>
+        <div>
+          <label class="field-label">${App.I18n.t('components.group','Group')}</label>
+          <input id="cmp-group" class="input" value="${comp ? comp.group || '' : ''}" placeholder="e.g., Packaging" />
+        </div>
+      </div>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('components.group','Group')}</label>
-        <input id="cmp-group" class="input" value="${comp ? comp.group || '' : ''}" />
-
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('components.description','Description')}</label>
+      <div style="margin-top:8px;">
+        <label class="field-label">${App.I18n.t('components.description','Description')}*</label>
         <input id="cmp-description" class="input" value="${comp ? comp.description || '' : ''}" />
+      </div>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('components.unit','Unit')}</label>
-        <input id="cmp-unit" class="input" value="${comp ? comp.unit || '' : ''}" />
+      <div class="grid grid-2" style="gap:12px; margin-top:8px;">
+        <div>
+          <label class="field-label">${App.I18n.t('components.unit','Unit')}</label>
+          <select id="cmp-unit" class="input">
+            <option value="pcs" ${comp && comp.unit === 'pcs' ? 'selected' : ''}>pcs (pieces)</option>
+            <option value="kg" ${comp && comp.unit === 'kg' ? 'selected' : ''}>kg</option>
+            <option value="L" ${comp && comp.unit === 'L' ? 'selected' : ''}>L (liters)</option>
+            <option value="m" ${comp && comp.unit === 'm' ? 'selected' : ''}>m (meters)</option>
+            <option value="roll" ${comp && comp.unit === 'roll' ? 'selected' : ''}>roll</option>
+            <option value="box" ${comp && comp.unit === 'box' ? 'selected' : ''}>box</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">${App.I18n.t('components.status','Status')}</label>
+          <select id="cmp-status" class="input">
+            <option value="active" ${!comp || comp.status === 'active' ? 'selected' : ''}>Active</option>
+            <option value="blocked" ${comp && comp.status === 'blocked' ? 'selected' : ''}>Blocked</option>
+            <option value="discontinued" ${comp && comp.status === 'discontinued' ? 'selected' : ''}>Discontinued</option>
+          </select>
+        </div>
+      </div>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('components.stock','Stock')}</label>
-        <input id="cmp-stock" class="input" type="number" min="0" step="1" value="${comp && comp.stock != null ? comp.stock : 0}" />
+      <h4 style="margin:16px 0 8px 0; font-size:14px; font-weight:600; border-bottom:1px solid var(--color-border); padding-bottom:4px;">Stock Management</h4>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('components.safetyStock','Safety Stock')}</label>
-        <input id="cmp-safety" class="input" type="number" min="0" step="1" value="${comp && comp.safetyStock != null ? comp.safetyStock : 0}" />
+      <div class="grid grid-2" style="gap:12px;">
+        <div>
+          <label class="field-label">${App.I18n.t('components.stock','Current Stock')}</label>
+          <input id="cmp-stock" class="input" type="number" min="0" step="0.01" value="${comp && comp.stock != null ? comp.stock : 0}" />
+        </div>
+        <div>
+          <label class="field-label">${App.I18n.t('components.safetyStock','Safety Stock')}</label>
+          <input id="cmp-safety" class="input" type="number" min="0" step="0.01" value="${comp && comp.safetyStock != null ? comp.safetyStock : 0}" />
+        </div>
+      </div>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('components.supplier','Supplier')}</label>
-        <select id="cmp-supplier" class="input">
-          <option value="">-</option>
-          ${supplierOptions}
-        </select>
+      <div class="grid grid-2" style="gap:12px; margin-top:8px;">
+        <div>
+          <label class="field-label">Reorder Point</label>
+          <input id="cmp-reorder" class="input" type="number" min="0" step="0.01" value="${comp ? comp.reorderPoint || '' : ''}" />
+        </div>
+        <div>
+          <label class="field-label">Reorder Quantity</label>
+          <input id="cmp-reorder-qty" class="input" type="number" min="0" step="0.01" value="${comp ? comp.reorderQuantity || '' : ''}" />
+        </div>
+      </div>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('components.leadTime','Lead Time (days)')}</label>
-        <input id="cmp-lead" class="input" type="number" min="0" step="1" value="${comp && comp.leadTimeDays != null ? comp.leadTimeDays : ''}" />
+      <h4 style="margin:16px 0 8px 0; font-size:14px; font-weight:600; border-bottom:1px solid var(--color-border); padding-bottom:4px;">Purchasing</h4>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('components.status','Status')}</label>
-        <select id="cmp-status" class="input">
-          ${['active','blocked'].map(st => `<option value="${st}" ${comp && comp.status === st ? 'selected' : ''}>${st}</option>`).join('')}
-        </select>
+      <div class="grid grid-2" style="gap:12px;">
+        <div>
+          <label class="field-label">${App.I18n.t('components.supplier','Preferred Supplier')}</label>
+          <select id="cmp-supplier" class="input">
+            <option value="">Select...</option>
+            ${supplierOptions}
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Purchase Price (€)</label>
+          <input id="cmp-price" class="input" type="number" min="0" step="0.01" value="${comp ? comp.purchasePrice || '' : ''}" />
+        </div>
+      </div>
 
-        <label class="field-label" style="margin-top:8px;">${App.I18n.t('components.notes','Notes')}</label>
-        <textarea id="cmp-notes" class="input" style="height:60px;">${comp ? comp.notes || '' : ''}</textarea>
+      <div class="grid grid-2" style="gap:12px; margin-top:8px;">
+        <div>
+          <label class="field-label">${App.I18n.t('components.leadTime','Lead Time (days)')}</label>
+          <input id="cmp-lead" class="input" type="number" min="0" step="1" value="${comp && comp.leadTimeDays != null ? comp.leadTimeDays : ''}" placeholder="Override supplier default" />
+        </div>
+        <div>
+          <label class="field-label">Min Order Qty</label>
+          <input id="cmp-moq" class="input" type="number" min="0" step="0.01" value="${comp ? comp.minimumOrderQty || '' : ''}" />
+        </div>
+      </div>
+
+      <div style="margin-top:8px;">
+        <label class="field-label">Supplier Part Number</label>
+        <input id="cmp-supplier-part" class="input" value="${comp ? comp.supplierPartNumber || '' : ''}" />
+      </div>
+
+      <div style="margin-top:8px;">
+        <label class="field-label">${App.I18n.t('components.notes','Notes')}</label>
+        <textarea id="cmp-notes" class="input" rows="2">${comp ? comp.notes || '' : ''}</textarea>
       </div>
     `;
+
     const title = isEdit ? App.I18n.t('components.edit','Edit Component') : App.I18n.t('components.add','Add Component');
     App.UI.Modal.open(title, body, [
-      { text: App.I18n.t('common.cancel','Cancel'), variant:'ghost', onClick: () => {} },
-      { text: App.I18n.t('common.save','Save'), variant:'primary', onClick: () => {
+      { text: App.I18n.t('common.cancel','Cancel'), variant: 'ghost', onClick: () => {} },
+      {
+        text: App.I18n.t('common.save','Save'),
+        variant: 'primary',
+        onClick: () => {
           const number = document.getElementById('cmp-number').value.trim();
           if (!number) {
             App.UI.Toast.show(App.I18n.t('components.number','Component No') + ' is required');
             return false;
           }
+
           const list = App.Data.components || [];
           const newComp = {
             id: isEdit ? comp.id : App.Utils.generateId('cmp'),
             componentNumber: number,
             group: document.getElementById('cmp-group').value.trim() || null,
             description: document.getElementById('cmp-description').value.trim() || null,
-            unit: document.getElementById('cmp-unit').value.trim() || null,
+            unit: document.getElementById('cmp-unit').value || 'pcs',
             stock: parseFloat(document.getElementById('cmp-stock').value) || 0,
             safetyStock: parseFloat(document.getElementById('cmp-safety').value) || 0,
+            reorderPoint: parseFloat(document.getElementById('cmp-reorder').value) || null,
+            reorderQuantity: parseFloat(document.getElementById('cmp-reorder-qty').value) || null,
             supplierId: document.getElementById('cmp-supplier').value || null,
+            purchasePrice: parseFloat(document.getElementById('cmp-price').value) || null,
             leadTimeDays: parseInt(document.getElementById('cmp-lead').value) || null,
+            minimumOrderQty: parseFloat(document.getElementById('cmp-moq').value) || null,
+            supplierPartNumber: document.getElementById('cmp-supplier-part').value.trim() || null,
             status: document.getElementById('cmp-status').value,
             notes: document.getElementById('cmp-notes').value.trim() || null,
-            prices: comp && comp.prices ? comp.prices : []
+            prices: comp && comp.prices ? comp.prices : [],
+            createdAt: isEdit ? comp.createdAt : new Date().toISOString(),
+            updatedAt: new Date().toISOString()
           };
+
           if (isEdit) {
             const idx = list.findIndex(c => c.id === comp.id);
-            if (idx >= 0) list[idx] = newComp;
+            if (idx >= 0) list[idx] = { ...list[idx], ...newComp };
           } else {
             list.push(newComp);
           }
+
           App.DB.save();
-          // Re-render page
+          App.UI.Toast.show('Component saved');
           App.Core.Router.navigate('components');
-        } }
+        }
+      }
     ]);
   }
 };
