@@ -44,7 +44,7 @@ App.UI.Views.Customers = {
                   </td>
                 </tr>
               `;
-            }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);">No customers</td></tr>'}
+            }).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);">${App.I18n.t('common.noCustomers', 'No customers')}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -147,28 +147,31 @@ App.UI.Views.Customers = {
       `<option value="${s}" ${c.segment === s ? 'selected' : ''}>${s || 'Select...'}</option>`
     ).join('');
 
+    const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+
     const body = `
       <div>
-        ${!isNew && c.customerNumber ? `<p style="margin-bottom:12px; font-size:13px; color:var(--color-text-muted);">Customer No: <strong>${c.customerNumber}</strong></p>` : ''}
+        ${!isNew && c.customerNumber ? `<p style="margin-bottom:12px; font-size:13px; color:var(--color-text-muted);">${t('customerNo', 'Customer No')}: <strong>${esc(c.customerNumber)}</strong></p>` : ''}
 
         <div class="grid grid-2" style="gap:12px;">
           <div>
-            <label class="field-label">Company*</label>
-            <input id="cust-company" class="input" value="${c.company || ''}" />
+            <label class="field-label" for="cust-company">${t('company', 'Company')}*</label>
+            <input id="cust-company" class="input" value="${esc(c.company || '')}" aria-required="true" />
           </div>
           <div>
-            <label class="field-label">Segment</label>
+            <label class="field-label" for="cust-segment">${t('segment', 'Segment')}</label>
             <select id="cust-segment" class="input">${segmentOptions}</select>
           </div>
         </div>
 
         <div class="grid grid-2" style="gap:12px; margin-top:8px;">
           <div>
-            <label class="field-label">VAT Number</label>
-            <input id="cust-vat" class="input" value="${c.vatNumber || ''}" placeholder="e.g., DE123456789" />
+            <label class="field-label" for="cust-vat">${t('vatNumber', 'VAT Number')}</label>
+            <input id="cust-vat" class="input" value="${esc(c.vatNumber || '')}" placeholder="e.g., DE123456789" />
           </div>
           <div>
-            <label class="field-label">Payment Terms</label>
+            <label class="field-label" for="cust-payment-terms">${t('paymentTerms', 'Payment Terms')}</label>
             <select id="cust-payment-terms" class="input">
               <option value="">Select...</option>
               <option value="Net 7" ${c.paymentTerms === 'Net 7' ? 'selected' : ''}>Net 7</option>
@@ -183,45 +186,45 @@ App.UI.Views.Customers = {
         </div>
 
         <div style="margin-top:12px;">
-          <label class="field-label">Contacts</label>
+          <label class="field-label">${t('contacts', 'Contacts')}</label>
           <div id="cust-contacts-container">${buildListInputs(contacts, 'contact')}</div>
-          <button type="button" class="btn btn-ghost" id="cust-add-contact" style="margin-top:4px;">+ Add Contact</button>
+          <button type="button" class="btn btn-ghost" id="cust-add-contact" style="margin-top:4px;">${t('addContact', '+ Add Contact')}</button>
         </div>
 
         <div style="margin-top:8px;">
-          <label class="field-label">Phones</label>
+          <label class="field-label">${t('phones', 'Phones')}</label>
           <div id="cust-phones-container">${buildListInputs(phones, 'phone')}</div>
-          <button type="button" class="btn btn-ghost" id="cust-add-phone" style="margin-top:4px;">+ Add Phone</button>
+          <button type="button" class="btn btn-ghost" id="cust-add-phone" style="margin-top:4px;">${t('addPhone', '+ Add Phone')}</button>
         </div>
 
         <div style="margin-top:8px;">
-          <label class="field-label">Emails</label>
+          <label class="field-label">${t('emails', 'Emails')}</label>
           <div id="cust-emails-container">${buildListInputs(emails, 'email')}</div>
-          <button type="button" class="btn btn-ghost" id="cust-add-email" style="margin-top:4px;">+ Add Email</button>
+          <button type="button" class="btn btn-ghost" id="cust-add-email" style="margin-top:4px;">${t('addEmail', '+ Add Email')}</button>
         </div>
 
         <div style="margin-top:8px;">
-          <label class="field-label">Addresses</label>
+          <label class="field-label">${t('addresses', 'Addresses')}</label>
           <div id="cust-addresses-container">${buildAddressInputs(addresses)}</div>
-          <button type="button" class="btn btn-ghost" id="cust-add-address" style="margin-top:4px;">+ Add Address</button>
+          <button type="button" class="btn btn-ghost" id="cust-add-address" style="margin-top:4px;">${t('addAddress', '+ Add Address')}</button>
         </div>
 
         <div style="margin-top:8px;">
-          <label class="field-label">Notes</label>
-          <textarea id="cust-notes" class="input" rows="2">${c.notes || ''}</textarea>
+          <label class="field-label" for="cust-notes">${t('notes', 'Notes')}</label>
+          <textarea id="cust-notes" class="input" rows="2">${esc(c.notes || '')}</textarea>
         </div>
       </div>
     `;
 
-    App.UI.Modal.open(isNew ? 'Add Customer' : 'Edit Customer', body, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+    App.UI.Modal.open(isNew ? t('addCustomer', 'Add Customer') : t('editCustomer', 'Edit Customer'), body, [
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Save',
+        text: App.I18n.t('common.save', 'Save'),
         variant: 'primary',
         onClick: () => {
           const company = document.getElementById('cust-company').value.trim();
           if (!company) {
-            App.UI.Toast.show('Company name is required');
+            App.UI.Toast.show(t('companyRequired', 'Company name is required'));
             return false;
           }
 
@@ -241,7 +244,7 @@ App.UI.Views.Customers = {
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           for (const email of emailVals) {
             if (!emailRegex.test(email)) {
-              App.UI.Toast.show(`Invalid email format: ${email}`);
+              App.UI.Toast.show(`${t('invalidEmailFormat', 'Invalid email format')}: ${email}`);
               return false;
             }
           }
@@ -376,6 +379,9 @@ App.UI.Views.Customers = {
   },
 
   deleteCustomer(id) {
+    const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
+    const esc = App.Utils.escapeHtml;
+
     const customers = App.Data.customers || App.Data.Customers || [];
     const customer = customers.find(c => c.id === id);
     if (!customer) return;
@@ -389,26 +395,26 @@ App.UI.Views.Customers = {
     const linkedDocs = documents.filter(d => d.customerId === id);
 
     if (linkedOrders.length > 0 || linkedDocs.length > 0) {
-      App.UI.Modal.open(App.I18n.t('common.cannotDeleteCustomer', 'Cannot Delete Customer'), `
-        <div style="color:#dc2626;">
-          <p>This customer has linked records that must be deleted first:</p>
+      App.UI.Modal.open(t('cannotDeleteCustomer', 'Cannot Delete Customer'), `
+        <div style="color:var(--color-danger);">
+          <p>${t('linkedRecordsWarning', 'This customer has linked records:')}</p>
           <ul style="margin:8px 0; padding-left:20px; font-size:12px;">
-            ${linkedOrders.length > 0 ? `<li>${linkedOrders.length} order(s)</li>` : ''}
-            ${linkedDocs.length > 0 ? `<li>${linkedDocs.length} document(s)</li>` : ''}
+            ${linkedOrders.length > 0 ? `<li>${linkedOrders.length} ${t('ordersCount', 'order(s)')}</li>` : ''}
+            ${linkedDocs.length > 0 ? `<li>${linkedDocs.length} ${t('documentsCount', 'document(s)')}</li>` : ''}
           </ul>
-          <p style="font-size:12px; margin-top:8px;">Delete these records first, then try again.</p>
+          <p style="font-size:12px; margin-top:8px;">${t('deleteRecordsFirst', 'Delete these records first.')}</p>
         </div>
-      `, [{ text: 'Close', variant: 'ghost', onClick: () => {} }]);
+      `, [{ text: App.I18n.t('common.cancel', 'Close'), variant: 'ghost', onClick: () => {} }]);
       return;
     }
 
-    App.UI.Modal.open(App.I18n.t('common.deleteCustomer', 'Delete Customer'), `
-      <p>Are you sure you want to delete <strong>${customer.company}</strong>?</p>
-      ${customer.customerNumber ? `<p style="font-size:12px; color:var(--color-text-muted);">Customer No: ${customer.customerNumber}</p>` : ''}
+    App.UI.Modal.open(t('deleteCustomer', 'Delete Customer'), `
+      <p>${t('confirmDeleteCustomer', 'Are you sure you want to delete')} <strong>${esc(customer.company)}</strong>?</p>
+      ${customer.customerNumber ? `<p style="font-size:12px; color:var(--color-text-muted);">${t('customerNo', 'Customer No')}: ${esc(customer.customerNumber)}</p>` : ''}
     `, [
-      { text: 'Cancel', variant: 'ghost', onClick: () => {} },
+      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
       {
-        text: 'Delete',
+        text: App.I18n.t('common.delete', 'Delete'),
         variant: 'primary',
         onClick: () => {
           const idx = customers.findIndex(c => c.id === id);
