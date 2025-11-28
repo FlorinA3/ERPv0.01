@@ -6,6 +6,7 @@ App.DB = {
   useIndexedDB: true,
   lastSaveTime: null,
   maxBackups: 7,
+  _saveTimer: null,
 
   async init() {
     try {
@@ -36,6 +37,16 @@ App.DB = {
     this._seed();
     await this.save();
     return { isFirstRun: true };
+  },
+
+  scheduleSave(delay = 250) {
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+    }
+    this._saveTimer = setTimeout(() => {
+      this._saveTimer = null;
+      this.save();
+    }, delay);
   },
 
   async _initIndexedDB() {

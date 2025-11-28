@@ -1430,6 +1430,11 @@ App.UI.Views.Settings = {
   openUserModal(user) {
     const isEdit = !!user;
     const title = isEdit ? 'Edit User' : 'Add User';
+    const langOptions = (App.I18n.getLanguages ? App.I18n.getLanguages() : [
+      { code: 'en', label: 'English' },
+      { code: 'de', label: 'Deutsch' },
+      { code: 'ro', label: 'Română' }
+    ]).map(l => `<option value="${l.code}" ${user?.preferredLang === l.code ? 'selected' : ''}>${l.label}</option>`).join('');
 
     const body = `
       <div class="grid" style="gap:12px;">
@@ -1456,9 +1461,7 @@ App.UI.Views.Settings = {
           <div>
             <label class="field-label">Preferred Language</label>
             <select id="user-lang" class="input">
-              <option value="en" ${user?.preferredLang === 'en' ? 'selected' : ''}>English</option>
-              <option value="de" ${user?.preferredLang === 'de' ? 'selected' : ''}>Deutsch</option>
-              <option value="ro" ${user?.preferredLang === 'ro' ? 'selected' : ''}>Română</option>
+              ${langOptions}
             </select>
           </div>
           <div>

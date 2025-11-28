@@ -15,8 +15,8 @@
 App.Api = {
   // Configuration for API mode
   config: {
-    mode: 'local', // 'local' | 'remote'
-    baseUrl: '/api/v1',
+    mode: 'remote', // 'local' | 'remote' - CHANGED TO REMOTE
+    baseUrl: '/api', // Changed from /api/v1
     timeout: 30000
   },
 
@@ -29,6 +29,17 @@ App.Api = {
     }
 
     const url = `${this.config.baseUrl}${endpoint}`;
+    const method = (options.method || 'GET').toUpperCase();
+    const mutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+    if (mutating && App.Services?.Offline?.isOffline?.()) {
+      const message = 'You appear to be offline. This action requires a connection.';
+      App.UI?.Toast?.show(message, 'warning');
+      const err = new Error(message);
+      err.code = 'OFFLINE';
+      err.status = 0;
+      throw err;
+    }
+
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
@@ -37,11 +48,38 @@ App.Api = {
       timeout: this.config.timeout
     };
 
-    const response = await fetch(url, { ...defaultOptions, ...options });
+    let response;
+    try {
+      response = await fetch(url, { ...defaultOptions, ...options });
+    } catch (networkErr) {
+      const isOffline = App.Services?.Offline?.isOffline?.();
+      const message = isOffline
+        ? 'You appear to be offline. This action requires a connection.'
+        : 'Network error while reaching the server. Please retry.';
+      App.UI?.Toast?.show(message, 'warning');
+      const err = new Error(message);
+      err.status = 0;
+      err.code = isOffline ? 'OFFLINE' : 'NETWORK_ERROR';
+      throw err;
+    }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(error.message || `API Error: ${response.status}`);
+      const error = await response.json().catch(() => ({ message: response.statusText, code: undefined }));
+      if (response.status === 409) {
+        const msg =
+          error.message ||
+          error.error ||
+          'Conflict: This record was changed by another user. Please reload to see the latest version.';
+        App.UI?.Toast?.show(msg, 'warning');
+        const conflict = new Error(msg);
+        conflict.status = 409;
+        conflict.code = error.code || 'CONFLICT';
+        throw conflict;
+      }
+      const err = new Error(error.message || `API Error: ${response.status}`);
+      err.status = response.status;
+      err.code = error.code;
+      throw err;
     }
 
     return response.json();
@@ -257,171 +295,91 @@ App.Api = {
     this.components = this._createCollection('components', 'comp');
     this.suppliers = this._createCollection('suppliers', 'sup');
     this.carriers = this._createCollection('carriers', 'car');
-    this.orders = this._createCollection('orders', 'o');
-    this.documents = this._createCollection('documents', 'd');
+    this.orders = this._createCollection('orders', 'ord');
+    this.documents = this._createCollection('documents', 'doc');
     this.productionOrders = this._createCollection('productionOrders', 'po');
-    this.movements = this._createCollection('movements', 'mv');
-    this.users = this._createCollection('users', 'u');
+    this.movements = this._createCollection('movements', 'mov');
+    this.users = this._createCollection('users', 'usr');
     this.priceLists = this._createCollection('priceLists', 'pl');
     this.tasks = this._createCollection('tasks', 'task');
 
-    // Add custom methods for specific business logic
-    this._addCustomMethods();
-  },
+    // Order methods
+    this.orders.confirm = async (id) => {
+      if (this.config.mode === 'local') {
+        const orders = App.Data.orders || [];
+        const order = orders.find(o => o.id === id);
+        if (order) {
+          order.status = 'confirmed';
+          order.confirmedAt = new Date().toISOString();
+          App.DB.save();
+          return { data: order };
+        }
+      }
 
-  /**
-   * Add domain-specific methods to collections
-   */
-  _addCustomMethods() {
-    // Customer-specific methods
-    this.customers.getWithAddresses = async (id) => {
-      const result = await this.customers.get(id);
-      // In remote mode, addresses might need separate fetch
-      return result;
-    };
-
-    this.customers.getBySegment = async (segment) => {
-      return this.customers.list({
-        where: { segment }
+      return this._fetch(`/orders/${id}/confirm`, {
+        method: 'POST'
       });
     };
 
-    // Product-specific methods
-    this.products.getLowStock = async () => {
+    this.orders.ship = async (id, trackingNumber) => {
       if (this.config.mode === 'local') {
-        const products = App.Data.products || [];
-        const lowStock = products.filter(p =>
-          p.type !== 'Service' &&
-          (p.stock || 0) <= (p.minStock || 0)
-        );
-        return { data: lowStock };
-      }
-      return this._fetch('/products/low-stock');
-    };
-
-    this.products.adjustStock = async (id, quantity, reason = 'adjustment') => {
-      if (this.config.mode === 'local') {
-        const products = App.Data.products || [];
-        const product = products.find(p => p.id === id);
-        if (!product) throw new Error('Product not found');
-
-        const oldStock = product.stock || 0;
-        product.stock = oldStock + quantity;
-
-        // Record movement
-        const movements = App.Data.movements || [];
-        movements.push({
-          id: App.Utils.generateId('mv'),
-          date: new Date().toISOString(),
-          type: reason,
-          direction: quantity >= 0 ? 'in' : 'out',
-          productId: id,
-          quantity: Math.abs(quantity),
-          notes: `Stock adjusted from ${oldStock} to ${product.stock}`
-        });
-
-        App.DB.save();
-        return { data: product };
+        const orders = App.Data.orders || [];
+        const order = orders.find(o => o.id === id);
+        if (order) {
+          order.status = 'shipped';
+          order.trackingNumber = trackingNumber;
+          order.shippedAt = new Date().toISOString();
+          App.DB.save();
+          return { data: order };
+        }
       }
 
-      return this._fetch(`/products/${id}/adjust-stock`, {
+      return this._fetch(`/orders/${id}/ship`, {
         method: 'POST',
-        body: JSON.stringify({ quantity, reason })
+        body: JSON.stringify({ trackingNumber })
       });
     };
 
-    // Order-specific methods
-    this.orders.getByStatus = async (status) => {
-      return this.orders.list({
-        where: { status },
-        orderBy: { field: 'date', direction: 'desc' }
-      });
-    };
+    // Document methods
+    this.documents.generateFromOrder = async (orderId) => {
+      if (this.config.mode === 'local') {
+        const orders = App.Data.orders || [];
+        const order = orders.find(o => o.id === orderId);
+        if (!order) throw new Error('Order not found');
 
-    this.orders.getByCustomer = async (customerId) => {
-      return this.orders.list({
-        where: { custId: customerId },
-        orderBy: { field: 'date', direction: 'desc' }
-      });
-    };
+        const doc = {
+          id: App.Utils.generateId('doc'),
+          orderId,
+          type: 'invoice',
+          date: new Date().toISOString(),
+          items: order.items || [],
+          customerId: order.customerId,
+          subtotal: order.subtotal || 0,
+          tax: order.tax || 0,
+          grossTotal: order.total || 0,
+          status: 'draft'
+        };
 
-    this.orders.updateStatus = async (id, status) => {
-      return this.orders.patch(id, { status });
-    };
+        (App.Data.documents || []).push(doc);
+        App.DB.save();
+        return { data: doc };
+      }
 
-    // Document-specific methods
-    this.documents.getByOrder = async (orderId) => {
-      return this.documents.list({
-        where: { orderId }
-      });
-    };
-
-    this.documents.getByType = async (type) => {
-      return this.documents.list({
-        where: { type },
-        orderBy: { field: 'date', direction: 'desc' }
+      return this._fetch(`/documents/from-order/${orderId}`, {
+        method: 'POST'
       });
     };
 
     // Production order methods
-    this.productionOrders.getActive = async () => {
-      return this.productionOrders.list({
-        where: {
-          status: (s) => s !== 'completed'
-        }
-      });
-    };
-
     this.productionOrders.complete = async (id) => {
       if (this.config.mode === 'local') {
-        const pos = App.Data.productionOrders || [];
-        const po = pos.find(p => p.id === id);
-        if (!po) throw new Error('Production order not found');
-
-        const product = (App.Data.products || []).find(p => p.id === po.productId);
-        if (!product) throw new Error('Product not found');
-
-        // Add finished goods
-        product.stock = (product.stock || 0) + po.quantity;
-
-        // Record movements
-        const movements = App.Data.movements || [];
-        movements.push({
-          id: App.Utils.generateId('mv'),
-          date: new Date().toISOString(),
-          type: 'production',
-          direction: 'in',
-          productId: po.productId,
-          quantity: po.quantity,
-          reference: po.orderNumber,
-          notes: 'Production completed'
-        });
-
-        // Consume components
-        if (po.components) {
-          for (const c of po.components) {
-            const comp = (App.Data.components || []).find(x => x.id === c.componentId);
-            if (comp) {
-              comp.stock = (comp.stock || 0) - c.quantity;
-              movements.push({
-                id: App.Utils.generateId('mv'),
-                date: new Date().toISOString(),
-                type: 'consumption',
-                direction: 'out',
-                componentId: c.componentId,
-                quantity: c.quantity,
-                reference: po.orderNumber,
-                notes: 'Consumed for production'
-              });
-            }
-          }
+        const po = (App.Data.productionOrders || []).find(x => x.id === id);
+        if (po) {
+          po.status = 'completed';
+          po.completedAt = new Date().toISOString();
+          App.DB.save();
+          return { data: po };
         }
-
-        po.status = 'completed';
-        po.completedAt = new Date().toISOString();
-
-        App.DB.save();
-        return { data: po };
       }
 
       return this._fetch(`/production-orders/${id}/complete`, {

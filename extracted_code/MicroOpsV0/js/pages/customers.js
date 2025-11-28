@@ -1,38 +1,47 @@
 App.UI.Views.Customers = {
+  _unsubscribe: null,
+
   render(root) {
+    this.root = root;
+
+    // initial render (may be empty state)
+    this.renderTable();
+
+    // subscribe to store updates
+    if (this._unsubscribe) this._unsubscribe();
+    this._unsubscribe = App.Store.Customers.subscribe(() => this.renderTable());
+
+    // trigger load from server (store handles errors and caching)
+    App.Store.Customers.load().catch(() => {});
+  },
+
+  getState() {
+    return App.Store.Customers.getState();
+  },
+
+  renderTable() {
+    const root = this.root;
+    if (!root) return;
+
+    const state = this.getState();
+    const stale = App.Store.Customers.isStale();
+    if (stale && !state.loading) {
+      App.Store.Customers.load({ force: true }).catch(() => {});
+    }
     const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
     const esc = App.Utils.escapeHtml;
-    const customers = App.Data.customers || App.Data.Customers || [];
+    const customers = state.items || [];
+    const lastUpdated =
+      state.lastLoadedAt ? new Date(state.lastLoadedAt).toLocaleTimeString() : App.I18n.t('common.never', 'Never');
 
-    root.innerHTML = `
-      <div class="card-soft">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.customers.title','Customers')}</h3>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <input type="text" id="customer-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
-            <button class="btn btn-ghost" id="btn-import-customers" title="${t('importCSV', 'Import CSV')}">📥 ${t('importCSV', 'Import')}</button>
-            <button class="btn btn-primary" id="btn-add-customer">+ ${App.I18n.t('common.add','Add')}</button>
-          </div>
-        </div>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>${App.I18n.t('common.customerNo', 'Customer No')}</th>
-              <th>${App.I18n.t('common.company', 'Company')}</th>
-              <th>${App.I18n.t('common.contact', 'Contact')}</th>
-              <th>${App.I18n.t('common.email', 'Email')}</th>
-              <th>${App.I18n.t('common.phone', 'Phone')}</th>
-              <th>${App.I18n.t('common.country', 'Country')}</th>
-              <th style="text-align:right;">${App.I18n.t('common.actions', 'Actions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${customers.length > 0 ? customers.map(c => {
-              const addr = (c.addresses && c.addresses[0]) || {};
+    const rows =
+      customers.length > 0
+        ? customers
+            .map((c) => {
               const contact = (c.contacts && c.contacts[0]) || c.name || '-';
               const phone = (c.phones && c.phones[0]) || '-';
               const email = (c.emails && c.emails[0]) || c.email || '-';
-              const esc = App.Utils.escapeHtml;
+              const addr = (c.addresses && c.addresses[0]) || {};
               return `
                 <tr>
                   <td><strong>${esc(c.customerNumber) || '-'}</strong></td>
@@ -47,7 +56,38 @@ App.UI.Views.Customers = {
                   </td>
                 </tr>
               `;
-            }).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);">${App.I18n.t('common.noCustomers', 'No customers')}</td></tr>`}
+            })
+            .join('')
+        : `<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);">${App.I18n.t(
+            'common.noCustomers',
+            'No customers'
+          )}</td></tr>`;
+
+    root.innerHTML = `
+      <div class="card-soft">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.customers.title','Customers')}</h3>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="customer-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
+            <button class="btn btn-ghost" id="btn-import-customers" title="${t('importCSV', 'Import CSV')}">📥 ${t('importCSV', 'Import')}</button>
+            <button class="btn btn-primary" id="btn-add-customer">+ ${App.I18n.t('common.add','Add')}</button>
+          </div>
+        </div>
+        <div id="customers-error" class="${state.error ? '' : 'hidden'}" style="color:var(--color-danger); margin-bottom:8px;">${esc(state.error || '')}</div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>${App.I18n.t('common.customerNo', 'Customer No')}</th>
+              <th>${App.I18n.t('common.company', 'Company')}</th>
+              <th>${App.I18n.t('common.contact', 'Contact')}</th>
+              <th>${App.I18n.t('common.email', 'Email')}</th>
+              <th>${App.I18n.t('common.phone', 'Phone')}</th>
+              <th>${App.I18n.t('common.country', 'Country')}</th>
+              <th style="text-align:right;">${App.I18n.t('common.actions', 'Actions')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
           </tbody>
         </table>
       </div>
@@ -55,26 +95,29 @@ App.UI.Views.Customers = {
 
     document.getElementById('btn-add-customer')?.addEventListener('click', () => this.openEditModal());
     document.getElementById('btn-import-customers')?.addEventListener('click', () => this.openImportModal());
+    document.getElementById('customers-refresh')?.addEventListener('click', () => {
+      App.Store.Customers.load({ force: true });
+    });
 
-    root.querySelectorAll('.btn-edit-customer').forEach(btn => {
+    root.querySelectorAll('.btn-edit-customer').forEach((btn) => {
       btn.addEventListener('click', () => {
         this.openEditModal(btn.getAttribute('data-id'));
       });
     });
 
-    root.querySelectorAll('.btn-del-customer').forEach(btn => {
+    root.querySelectorAll('.btn-del-customer').forEach((btn) => {
       btn.addEventListener('click', () => {
         this.deleteCustomer(btn.getAttribute('data-id'));
       });
     });
 
-    // Search functionality
+    // Search filter (client-side on current list)
     const searchInput = document.getElementById('customer-search');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
         const rows = root.querySelectorAll('tbody tr');
-        rows.forEach(row => {
+        rows.forEach((row) => {
           const text = row.textContent.toLowerCase();
           row.style.display = query === '' || text.includes(query) ? '' : 'none';
         });
@@ -83,11 +126,12 @@ App.UI.Views.Customers = {
   },
 
   openEditModal(id) {
-    const customers = App.Data.customers || App.Data.Customers || [];
+    const state = this.getState();
+    const customers = state.items || [];
     const isNew = !id;
     const c = isNew
       ? { company: '', contacts: [''], phones: [''], emails: [''], addresses: [{ id: App.Utils.generateId('a'), label: 'Main', street: '', number: '', city: '', zip: '', country: '' }] }
-      : (customers.find(x => x.id === id) || { company: '', contacts: [], phones: [], emails: [], addresses: [] });
+      : customers.find((x) => x.id == id) || { company: '', contacts: [], phones: [], emails: [], addresses: [] };
 
     const contacts = c.contacts && c.contacts.length ? c.contacts : [''];
     const phones = c.phones && c.phones.length ? c.phones : [''];
@@ -95,16 +139,22 @@ App.UI.Views.Customers = {
     const addresses = c.addresses && c.addresses.length ? c.addresses : [{ id: App.Utils.generateId('a'), label: 'Main', street: '', number: '', city: '', zip: '', country: '' }];
 
     const buildListInputs = (items, type) => {
-      return items.map((val, idx) => `
+      return items
+        .map(
+          (val, idx) => `
         <div class="cust-${type}-row" data-index="${idx}" style="display:flex; align-items:center; margin-bottom:6px; gap:4px;">
           <input class="input cust-${type}-input" style="flex:1;" value="${val || ''}" />
-          <button type="button" class="btn btn-ghost cust-${type}-remove" title="Remove" style="padding:2px 6px;">✖️</button>
+          <button type="button" class="btn btn-ghost cust-${type}-remove" title="Remove" style="padding:2px 6px;">✖</button>
         </div>
-      `).join('');
+      `
+        )
+        .join('');
     };
 
     const buildAddressInputs = (items) => {
-      return items.map((addr, idx) => `
+      return items
+        .map(
+          (addr, idx) => `
         <div class="cust-address-row" data-index="${idx}" style="border:1px solid var(--color-border); padding:8px; border-radius:8px; margin-bottom:8px;">
           <div class="grid grid-2" style="gap:8px;">
             <div>
@@ -144,12 +194,14 @@ App.UI.Views.Customers = {
           <input class="input cust-address-country" value="${addr.country || ''}" />
           <button type="button" class="btn btn-ghost cust-address-remove" title="Remove address" style="margin-top:6px;">Remove</button>
         </div>
-      `).join('');
+      `
+        )
+        .join('');
     };
 
-    const segmentOptions = ['', 'Premium', 'Standard', 'Basic', 'Retail', 'Wholesale'].map(s =>
-      `<option value="${s}" ${c.segment === s ? 'selected' : ''}>${s || 'Select...'}</option>`
-    ).join('');
+    const segmentOptions = ['', 'Premium', 'Standard', 'Basic', 'Retail', 'Wholesale']
+      .map((s) => `<option value="${s}" ${c.segment === s ? 'selected' : ''}>${s || 'Select...'}</option>`)
+      .join('');
 
     const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
     const esc = App.Utils.escapeHtml;
@@ -225,7 +277,7 @@ App.UI.Views.Customers = {
       {
         text: App.I18n.t('common.save', 'Save'),
         variant: 'primary',
-        onClick: () => {
+        onClick: async () => {
           const company = document.getElementById('cust-company').value.trim();
           if (!company) {
             App.UI.Toast.show(t('companyRequired', 'Company name is required'));
@@ -233,19 +285,19 @@ App.UI.Views.Customers = {
           }
 
           const contactVals = Array.from(document.querySelectorAll('#cust-contacts-container .cust-contact-input'))
-            .map(i => i.value.trim())
-            .filter(v => v);
+            .map((i) => i.value.trim())
+            .filter((v) => v);
 
           const phoneVals = Array.from(document.querySelectorAll('#cust-phones-container .cust-phone-input'))
-            .map(i => i.value.trim())
-            .filter(v => v);
+            .map((i) => i.value.trim())
+            .filter((v) => v);
 
           const emailVals = Array.from(document.querySelectorAll('#cust-emails-container .cust-email-input'))
-            .map(i => i.value.trim())
-            .filter(v => v);
+            .map((i) => i.value.trim())
+            .filter((v) => v);
 
           // Validate email format
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
           for (const email of emailVals) {
             if (!emailRegex.test(email)) {
               App.UI.Toast.show(`${t('invalidEmailFormat', 'Invalid email format')}: ${email}`);
@@ -263,13 +315,16 @@ App.UI.Views.Customers = {
               number: row.querySelector('.cust-address-number').value.trim(),
               city: row.querySelector('.cust-address-city').value.trim(),
               zip: row.querySelector('.cust-address-zip').value.trim(),
-              country: row.querySelector('.cust-address-country').value.trim()
+              country: row.querySelector('.cust-address-country').value.trim(),
             };
           });
 
-          const n = {
+          const payload = {
             id: isNew ? App.Utils.generateId('c') : c.id,
-            customerNumber: isNew ? App.Services.NumberSequence.nextCustomerNumber() : c.customerNumber,
+            rowVersion: isNew ? 1 : c.rowVersion || c.row_version || 1,
+            customerNumber: isNew
+              ? App.Services.NumberSequence?.nextCustomerNumber?.() || null
+              : c.customerNumber,
             company,
             segment: document.getElementById('cust-segment').value || null,
             vatNumber: document.getElementById('cust-vat').value.trim() || null,
@@ -281,49 +336,37 @@ App.UI.Views.Customers = {
             notes: document.getElementById('cust-notes').value.trim() || null,
             name: contactVals[0] || '',
             email: emailVals[0] || '',
-            createdAt: isNew ? new Date().toISOString() : c.createdAt,
-            updatedAt: new Date().toISOString()
           };
 
-          const list = App.Data.customers || App.Data.Customers || [];
+          const validation = App.Validate?.customer
+            ? App.Validate.customer(payload)
+            : { isValid: true, errors: {} };
+          const summary = App.UI.Validation.showErrors(document, validation.errors);
+          if (!validation.isValid) {
+            App.UI.Toast.show(summary || t('fixValidation', 'Please fix validation errors'), 'error');
+            return false;
+          }
 
-          // Validate before save
-          if (App.Validate && App.Validate.customer) {
-            try {
-              App.Validate.customer(n);
-            } catch (err) {
-              App.UI.Toast.show(err.message, 'error');
-              return;
+          try {
+            if (isNew) {
+              await App.Store.Customers.create(payload);
+            } else {
+              await App.Store.Customers.update(c.id, payload);
             }
-          }
-
-          let oldCustomer = null;
-          if (isNew) {
-            list.push(n);
-          } else {
-            const idx = list.findIndex(x => x.id === n.id);
-            if (idx >= 0) {
-              oldCustomer = { ...list[idx] };
-              list[idx] = { ...list[idx], ...n };
+            App.UI.Toast.show(App.I18n.t('common.customerSaved', 'Customer saved'));
+            App.Core.Router.navigate('customers');
+          } catch (err) {
+            if (err.status === 409 || err.code === 'CONFLICT' || err.code === 'CONCURRENT_UPDATE') {
+              App.UI.Toast.show(App.I18n.t('common.conflictReload', 'This record was changed elsewhere. Reloading latest data.'), 'warning');
+              await App.Store.Customers.load({ force: true });
+              this.renderTable();
+              return false;
             }
+            App.UI.Toast.show(App.I18n.t('common.saveFailed', 'Save failed') + ': ' + (err.message || err), 'error');
+            return false;
           }
-
-          // Audit log
-          if (App.Audit) {
-            App.Audit.log(
-              isNew ? 'CREATE' : 'UPDATE',
-              'customers',
-              n.id,
-              oldCustomer,
-              n
-            );
-          }
-
-          App.DB.save();
-          App.UI.Toast.show(App.I18n.t('common.customerSaved', 'Customer saved'));
-          App.Core.Router.navigate('customers');
-        }
-      }
+        },
+      },
     ]);
 
     setTimeout(() => {
@@ -379,7 +422,7 @@ App.UI.Views.Customers = {
         div.querySelector('.cust-address-remove').addEventListener('click', () => div.remove());
       });
 
-      document.querySelectorAll('#cust-addresses-container .cust-address-remove').forEach(btn => {
+      document.querySelectorAll('#cust-addresses-container .cust-address-remove').forEach((btn) => {
         btn.addEventListener('click', () => btn.closest('.cust-address-row').remove());
       });
     }, 0);
@@ -396,83 +439,49 @@ App.UI.Views.Customers = {
         row.style.cssText = 'display:flex; align-items:center; margin-bottom:6px; gap:4px;';
         row.innerHTML = `
           <input class="input cust-${type}-input" style="flex:1;" value="" />
-          <button type="button" class="btn btn-ghost cust-${type}-remove" style="padding:2px 6px;">✖️</button>
+          <button type="button" class="btn btn-ghost cust-${type}-remove" style="padding:2px 6px;">✖</button>
         `;
         container.appendChild(row);
         row.querySelector(`.cust-${type}-remove`).addEventListener('click', () => row.remove());
       });
     }
 
-    container?.querySelectorAll(`.cust-${type}-remove`).forEach(btn => {
+    container?.querySelectorAll(`.cust-${type}-remove`).forEach((btn) => {
       btn.addEventListener('click', () => btn.parentElement.remove());
     });
   },
 
-  deleteCustomer(id) {
+  async deleteCustomer(id) {
     const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
     const esc = App.Utils.escapeHtml;
 
-    const customers = App.Data.customers || App.Data.Customers || [];
-    const customer = customers.find(c => c.id === id);
+    const state = this.getState();
+    const customers = state.items || [];
+    const customer = customers.find((c) => c.id == id);
     if (!customer) return;
 
-    // Check for linked orders
-    const orders = App.Data.orders || [];
-    const linkedOrders = orders.filter(o => o.custId === id);
-
-    // Check for linked documents
-    const documents = App.Data.documents || [];
-    const linkedDocs = documents.filter(d => d.customerId === id);
-
-    if (linkedOrders.length > 0 || linkedDocs.length > 0) {
-      App.UI.Modal.open(t('cannotDeleteCustomer', 'Cannot Delete Customer'), `
-        <div style="color:var(--color-danger);">
-          <p>${t('linkedRecordsWarning', 'This customer has linked records:')}</p>
-          <ul style="margin:8px 0; padding-left:20px; font-size:12px;">
-            ${linkedOrders.length > 0 ? `<li>${linkedOrders.length} ${t('ordersCount', 'order(s)')}</li>` : ''}
-            ${linkedDocs.length > 0 ? `<li>${linkedDocs.length} ${t('documentsCount', 'document(s)')}</li>` : ''}
-          </ul>
-          <p style="font-size:12px; margin-top:8px;">${t('deleteRecordsFirst', 'Delete these records first.')}</p>
-        </div>
-      `, [{ text: App.I18n.t('common.cancel', 'Close'), variant: 'ghost', onClick: () => {} }]);
-      return;
-    }
-
-    App.UI.Modal.open(t('deleteCustomer', 'Delete Customer'), `
+    App.UI.Modal.open(
+      t('deleteCustomer', 'Delete Customer'),
+      `
       <p>${t('confirmDeleteCustomer', 'Are you sure you want to delete')} <strong>${esc(customer.company)}</strong>?</p>
       ${customer.customerNumber ? `<p style="font-size:12px; color:var(--color-text-muted);">${t('customerNo', 'Customer No')}: ${esc(customer.customerNumber)}</p>` : ''}
-    `, [
-      { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
-      {
-        text: App.I18n.t('common.delete', 'Delete'),
-        variant: 'primary',
-        onClick: () => {
-          const idx = customers.findIndex(c => c.id === id);
-          if (idx >= 0) {
-            const deletedCustomer = { ...customers[idx] };
-            customers.splice(idx, 1);
-
-            // Audit log
-            if (App.Audit) {
-              App.Audit.log('DELETE', 'customers', id, deletedCustomer, null);
+    `,
+      [
+        { text: App.I18n.t('common.cancel', 'Cancel'), variant: 'ghost', onClick: () => {} },
+        {
+          text: App.I18n.t('common.delete', 'Delete'),
+          variant: 'primary',
+          onClick: async () => {
+            try {
+              await App.Store.Customers.remove(id);
+              App.UI.Toast.show(App.I18n.t('common.customerDeleted', 'Customer deleted'));
+            } catch (err) {
+              App.UI.Toast.show(App.I18n.t('common.deleteFailed', 'Delete failed') + ': ' + (err.message || err), 'error');
             }
-
-            App.DB.save();
-
-            // Log activity (legacy)
-            if (App.Services.ActivityLog) {
-              App.Services.ActivityLog.log('delete', 'customer', id, {
-                name: customer.company,
-                customerNumber: customer.customerNumber
-              });
-            }
-
-            App.UI.Toast.show(App.I18n.t('common.customerDeleted', 'Customer deleted'));
-            App.Core.Router.navigate('customers');
-          }
-        }
-      }
-    ]);
+          },
+        },
+      ]
+    );
   },
 
   openImportModal() {
@@ -490,7 +499,7 @@ App.UI.Views.Customers = {
         </div>
         <div style="margin-bottom:12px;">
           <button class="btn btn-ghost" id="btn-download-customer-template">
-            📋 ${t('downloadTemplate', 'Download template')}
+            📄 ${t('downloadTemplate', 'Download template')}
           </button>
         </div>
         <div style="border:2px dashed var(--color-border); border-radius:8px; padding:20px; text-align:center;">
@@ -515,31 +524,28 @@ App.UI.Views.Customers = {
       {
         text: t('importCSV', 'Import'),
         variant: 'primary',
-        onClick: () => {
+        onClick: async () => {
           if (!parsedData || parsedData.length === 0) {
             App.UI.Toast.show(t('noFileSelected', 'No file selected'));
             return false;
           }
 
-          const customers = App.Data.customers || App.Data.Customers || [];
           let imported = 0;
           let skipped = 0;
 
-          parsedData.forEach(row => {
-            // Check for duplicates by company name
-            const exists = customers.find(c =>
-              c.company && row.company &&
-              c.company.toLowerCase().trim() === row.company.toLowerCase().trim()
+          for (const row of parsedData) {
+            const exists = (App.Data.customers || []).find(
+              (c) => c.company && row.company && c.company.toLowerCase().trim() === row.company.toLowerCase().trim()
             );
 
             if (exists) {
               skipped++;
-              return;
+              continue;
             }
 
             const newCustomer = {
               id: App.Utils.generateId('c'),
-              customerNumber: App.Services.NumberSequence.nextCustomerNumber(),
+              customerNumber: App.Services.NumberSequence?.nextCustomerNumber?.(),
               company: row.company || '',
               segment: row.segment || null,
               vatNumber: row.vatNumber || row.vat || null,
@@ -547,28 +553,30 @@ App.UI.Views.Customers = {
               contacts: row.contact ? [row.contact] : [],
               phones: row.phone ? [row.phone] : [],
               emails: row.email ? [row.email] : [],
-              addresses: [{
-                id: App.Utils.generateId('a'),
-                label: 'Main',
-                role: 'main',
-                street: row.street || '',
-                number: row.number || '',
-                city: row.city || '',
-                zip: row.zip || row.postalCode || '',
-                country: row.country || ''
-              }],
+              addresses: [
+                {
+                  id: App.Utils.generateId('a'),
+                  label: 'Main',
+                  role: 'main',
+                  street: row.street || '',
+                  number: row.number || '',
+                  city: row.city || '',
+                  zip: row.zip || row.postalCode || '',
+                  country: row.country || '',
+                },
+              ],
               notes: row.notes || null,
               name: row.contact || '',
               email: row.email || '',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
             };
 
-            customers.push(newCustomer);
-            imported++;
-          });
-
-          App.DB.save();
+            try {
+              await App.Store.Customers.create(newCustomer);
+              imported++;
+            } catch (err) {
+              console.error('Import customer failed', err);
+            }
+          }
 
           let message = `${t('importSuccess', 'Import successful')}: ${imported} ${t('rowsImported', 'rows imported')}`;
           if (skipped > 0) {
@@ -576,8 +584,8 @@ App.UI.Views.Customers = {
           }
           App.UI.Toast.show(message);
           App.Core.Router.navigate('customers');
-        }
-      }
+        },
+      },
     ]);
 
     // Wire up file selection
@@ -592,8 +600,34 @@ App.UI.Views.Customers = {
 
       // Download template
       templateBtn?.addEventListener('click', () => {
-        const headers = ['company', 'contact', 'email', 'phone', 'street', 'city', 'zip', 'country', 'segment', 'vatNumber', 'paymentTerms', 'notes'];
-        const sampleRow = ['Example Company GmbH', 'John Doe', 'john@example.com', '+49 123 456789', 'Main Street', 'Berlin', '10115', 'Germany', 'Standard', 'DE123456789', 'Net 30', 'Sample customer'];
+        const headers = [
+          'company',
+          'contact',
+          'email',
+          'phone',
+          'street',
+          'city',
+          'zip',
+          'country',
+          'segment',
+          'vatNumber',
+          'paymentTerms',
+          'notes',
+        ];
+        const sampleRow = [
+          'Example Company GmbH',
+          'John Doe',
+          'john@example.com',
+          '+49 123 456789',
+          'Main Street',
+          'Berlin',
+          '10115',
+          'Germany',
+          'Standard',
+          'DE123456789',
+          'Net 30',
+          'Sample customer',
+        ];
         App.Utils.exportCSV(headers, [sampleRow], 'customers_template.csv');
       });
 
@@ -628,7 +662,7 @@ App.UI.Views.Customers = {
             segment: ['segment', 'kategorie', 'category'],
             vatNumber: ['vatnumber', 'vat', 'ust', 'ustid', 'uidnummer'],
             paymentTerms: ['paymentterms', 'zahlungsbedingungen', 'payment'],
-            notes: ['notes', 'notizen', 'bemerkungen', 'comment']
+            notes: ['notes', 'notizen', 'bemerkungen', 'comment'],
           };
 
           const mapping = App.Utils.mapCSVFields(result.headers, fieldMappings);
@@ -641,25 +675,31 @@ App.UI.Views.Customers = {
           }
 
           // Transform data using mapping
-          parsedData = result.data.map(row => {
-            const mapped = {};
-            Object.entries(row).forEach(([key, value]) => {
-              const field = mapping[key] || key.toLowerCase();
-              mapped[field] = value;
-            });
-            return mapped;
-          }).filter(row => row.company);
+          parsedData = result.data
+            .map((row) => {
+              const mapped = {};
+              Object.entries(row).forEach(([key, value]) => {
+                const field = mapping[key] || key.toLowerCase();
+                mapped[field] = value;
+              });
+              return mapped;
+            })
+            .filter((row) => row.company);
 
           // Show preview
           if (parsedData.length > 0) {
             previewEl.style.display = 'block';
-            const previewRows = parsedData.slice(0, 5).map(row =>
-              `<div style="padding:4px 0; border-bottom:1px solid var(--color-border);">
+            const previewRows = parsedData
+              .slice(0, 5)
+              .map(
+                (row) =>
+                  `<div style="padding:4px 0; border-bottom:1px solid var(--color-border);">
                 <strong>${esc(row.company || '')}</strong>
                 ${row.contact ? ` - ${esc(row.contact)}` : ''}
                 ${row.email ? ` (${esc(row.email)})` : ''}
               </div>`
-            ).join('');
+              )
+              .join('');
             previewContent.innerHTML = previewRows;
             previewCount.textContent = `${parsedData.length} ${t('foundRows', 'rows found')}`;
           }
@@ -667,5 +707,5 @@ App.UI.Views.Customers = {
         reader.readAsText(file);
       });
     }, 50);
-  }
+  },
 };

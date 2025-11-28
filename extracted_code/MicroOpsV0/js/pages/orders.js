@@ -4,7 +4,17 @@ App.UI.Views.Orders = {
   render(root) {
     const t = (key, fallback) => App.I18n.t(`orders.${key}`, fallback);
     const esc = App.Utils.escapeHtml;
-    const orders = App.Data.orders || [];
+    const state = App.Store?.Orders?.getState?.() || {};
+    const orders = state.items || App.Data.orders || [];
+    const stale = App.Store?.Orders?.isStale?.();
+    if (stale && App.Store?.Orders?.load) {
+      App.Store.Orders.load({ force: true });
+    }
+    const localDemo = App.Config?.localOnlyDemoMode === true;
+    const offline = App.Services?.Offline?.isOffline?.();
+    const lastUpdated = state.lastLoadedAt
+      ? new Date(state.lastLoadedAt).toLocaleTimeString()
+      : App.I18n.t('common.never', 'Never');
     const carriers = App.Data.carriers || [];
     // Sort orders by date descending
     orders.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -36,6 +46,8 @@ App.UI.Views.Orders = {
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:16px; font-weight:600;">${App.I18n.t('pages.orders.title','Orders')}</h3>
           <div style="display:flex; gap:8px; align-items:center;">
+            <small style="color:var(--color-text-muted);">${App.I18n.t('common.lastUpdated','Last updated')}: ${lastUpdated}${stale ? ' (' + App.I18n.t('common.stale','stale') + ')' : ''}</small>
+            <button class="btn btn-ghost" id="orders-refresh">${App.I18n.t('common.refresh','Refresh')}</button>
             <input type="text" id="order-search" class="input" placeholder="${App.I18n.t('common.search','Search...')}" style="width:200px;" />
             <button class="btn btn-ghost" id="ord-export-excel">${App.I18n.t('orders.exportCsv','Export CSV')}</button>
             <button class="btn btn-primary" id="btn-add-order">+ ${App.I18n.t('orders.create','Create Order')}</button>
@@ -89,8 +101,8 @@ App.UI.Views.Orders = {
                   <td style="text-align:center;">
                     <button class="btn btn-ghost btn-view-order" data-id="${o.id}" title="${App.I18n.t('common.viewDetails', 'View Details')}" aria-label="View order details">👁️</button>
                     <button class="btn btn-ghost btn-status-order" data-id="${o.id}" title="${App.I18n.t('common.changeStatus', 'Change Status')}" aria-label="Change order status">🔄</button>
-                    <button class="btn btn-ghost btn-gen-delivery" data-id="${o.id}" title="${App.I18n.t('common.deliveryNote', 'Delivery Note')}" aria-label="Generate delivery note">📦</button>
-                    <button class="btn btn-ghost btn-gen-invoice" data-id="${o.id}" title="${App.I18n.t('common.invoice', 'Invoice')}" aria-label="Generate invoice">🧾</button>
+                    <button class="btn btn-ghost btn-gen-delivery" data-id="${o.id}" title="${!localDemo ? 'Local demo only (not GA)' : offline ? App.I18n.t('common.offlineMode', 'Offline – posting blocked') : App.I18n.t('common.deliveryNote', 'Delivery Note')}" aria-label="Generate delivery note" ${(!localDemo || offline) ? 'disabled' : ''}>📦</button>
+                    <button class="btn btn-ghost btn-gen-invoice" data-id="${o.id}" title="${!localDemo ? 'Local demo only (not GA)' : offline ? App.I18n.t('common.offlineMode', 'Offline – posting blocked') : App.I18n.t('common.invoice', 'Invoice')}" aria-label="Generate invoice" ${(!localDemo || offline) ? 'disabled' : ''}>🧾</button>
                     <button class="btn btn-ghost btn-clone-order" data-id="${o.id}" title="${App.I18n.t('common.duplicate', 'Duplicate')}" aria-label="Clone order">📋</button>
                     <button class="btn btn-ghost btn-del-order" data-id="${o.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete order">🗑️</button>
                   </td>
@@ -102,6 +114,9 @@ App.UI.Views.Orders = {
       </div>
     `;
 
+    document.getElementById('orders-refresh')?.addEventListener('click', () => {
+      App.Store?.Orders?.load?.({ force: true });
+    });
     document.getElementById('btn-add-order').onclick = () => this.openCreateModal();
     
     // Export Logic - uses secure CSV utility with injection protection
@@ -536,14 +551,13 @@ App.UI.Views.Orders = {
         }
       });
 
-      // Validate order
-      if (App.Validate && App.Validate.order) {
-        try {
-          App.Validate.order(order);
-        } catch (err) {
-          App.UI.Toast.show(err.message, 'error');
-          return;
-        }
+      const validation = App.Validate?.order
+        ? App.Validate.order(order)
+        : { isValid: true, errors: {} };
+      const summary = App.UI.Validation.showErrors(document, validation.errors);
+      if (!validation.isValid) {
+        App.UI.Toast.show(summary || App.I18n.t('common.fixValidation', 'Please fix validation errors'), 'error');
+        return;
       }
 
       App.Data.orders.push(order);

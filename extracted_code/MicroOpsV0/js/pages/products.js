@@ -1,8 +1,28 @@
 App.UI.Views.Products = {
+  _pendingReload: false,
+
+  getProducts() {
+    return (App.Store?.Products?.getState?.().items) || App.Data.products || App.Data.Products || [];
+  },
+
   render(root) {
     const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
     const esc = App.Utils.escapeHtml;
-    const products = App.Data.products || App.Data.Products || [];
+    const state = App.Store?.Products?.getState?.() || {};
+    const products = state.items || this.getProducts();
+    const stale = App.Store?.Products?.isStale?.();
+    if (stale && !this._pendingReload && App.Store?.Products?.load) {
+      this._pendingReload = true;
+      App.Store.Products.load({}, { force: true }).finally(() => {
+        this._pendingReload = false;
+        if (App.Core.Router.currentRoute === 'products') {
+          this.render(root);
+        }
+      });
+    }
+    const lastUpdated = state.lastLoadedAt
+      ? new Date(state.lastLoadedAt).toLocaleTimeString()
+      : App.I18n.t('common.never', 'Never');
 
     root.innerHTML = `
       <div class="card-soft">
@@ -51,6 +71,9 @@ App.UI.Views.Products = {
       </div>
     `;
 
+    document.getElementById('products-refresh')?.addEventListener('click', () => {
+      App.Store?.Products?.load?.({}, { force: true });
+    });
     document.getElementById('btn-add-product').onclick = () => this.openEditModal();
     document.getElementById('btn-import-products')?.addEventListener('click', () => this.openImportModal());
 
@@ -91,7 +114,7 @@ App.UI.Views.Products = {
     const esc = App.Utils.escapeHtml;
 
     const isNew = !id;
-    const products = App.Data.products || App.Data.Products || [];
+    const products = this.getProducts();
     const p = isNew
       ? { nameDE: '', nameEN: '', internalArticleNumber: '', type: 'Consumable', dealerPrice: 0, endCustomerPrice: 0, avgPurchasePrice: 0, stock: 0, minStock: 0, unit: 'Stk' }
       : products.find(x => x.id === id) || {};
@@ -180,25 +203,33 @@ App.UI.Views.Products = {
           };
 
           // Validate product
-          if (App.Validate && App.Validate.product) {
-            try {
-              App.Validate.product(updated);
-            } catch (err) {
-              App.UI.Toast.show(err.message, 'error');
-              return false;
-            }
+          const validation = App.Validate?.product
+            ? App.Validate.product(updated)
+            : { isValid: true, errors: {} };
+          const summary = App.UI.Validation.showErrors(document, validation.errors);
+          if (!validation.isValid) {
+            App.UI.Toast.show(summary || t('fixValidation', 'Please fix validation errors'), 'error');
+            return false;
           }
 
           // Capture old product for audit
           const oldProduct = isNew ? null : JSON.parse(JSON.stringify(p));
 
-          if (isNew) {
-            products.push(updated);
-          } else {
-            const idx = products.findIndex(x => x.id === updated.id);
-            if (idx >= 0) products[idx] = { ...products[idx], ...updated };
+          try {
+            if (isNew) {
+              await App.Store?.Products?.create?.({ ...updated, rowVersion: 1 });
+            } else {
+              await App.Store?.Products?.update?.(updated.id, { ...updated, rowVersion: p.rowVersion || p.row_version || 1 });
+            }
+          } catch (err) {
+            if (err.status === 409 || err.code === 'CONFLICT' || err.code === 'CONCURRENT_UPDATE') {
+              App.UI.Toast.show(App.I18n.t('common.conflictReload', 'This record was changed elsewhere. Reloading latest data.'), 'warning');
+              await App.Store?.Products?.load?.({}, { force: true });
+              return false;
+            }
+            App.UI.Toast.show(App.I18n.t('common.saveFailed', 'Save failed') + ': ' + (err.message || err), 'error');
+            return false;
           }
-          App.DB.save();
 
           // Audit log
           if (App.Audit) {
@@ -221,7 +252,7 @@ App.UI.Views.Products = {
     const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
     const esc = App.Utils.escapeHtml;
 
-    const products = App.Data.products || App.Data.Products || [];
+    const products = this.getProducts();
     const p = products.find(x => x.id === id);
     if (!p) return;
 
@@ -321,7 +352,7 @@ App.UI.Views.Products = {
     const t = (key, fallback) => App.I18n.t(`common.${key}`, fallback);
     const esc = App.Utils.escapeHtml;
 
-    const products = App.Data.products || App.Data.Products || [];
+    const products = this.getProducts();
     const p = products.find(x => x.id === id);
     if (!p) return;
 
@@ -369,8 +400,7 @@ App.UI.Views.Products = {
           // Capture product for audit before deletion
           const deletedProduct = JSON.parse(JSON.stringify(p));
 
-          App.Data.products = products.filter(x => x.id !== id);
-          App.DB.save();
+          App.Store?.Products?.remove?.(id);
 
           // Audit log
           if (App.Audit) {
@@ -432,13 +462,13 @@ App.UI.Views.Products = {
       {
         text: t('importCSV', 'Import'),
         variant: 'primary',
-        onClick: () => {
+        onClick: async () => {
           if (!parsedData || parsedData.length === 0) {
             App.UI.Toast.show(t('noFileSelected', 'No file selected'));
             return false;
           }
 
-          const products = App.Data.products || App.Data.Products || [];
+          const products = this.getProducts();
           let imported = 0;
           let skipped = 0;
 
@@ -472,11 +502,14 @@ App.UI.Views.Products = {
               updatedAt: new Date().toISOString()
             };
 
-            products.push(newProduct);
-            imported++;
+            try {
+              await App.Store?.Products?.create?.({ ...newProduct, rowVersion: 1 });
+              imported++;
+            } catch (e) {
+              console.error('Import product failed', e);
+              skipped++;
+            }
           });
-
-          App.DB.save();
 
           let message = `${t('importSuccess', 'Import successful')}: ${imported} ${t('rowsImported', 'rows imported')}`;
           if (skipped > 0) {

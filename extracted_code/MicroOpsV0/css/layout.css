@@ -29,14 +29,14 @@
 .login-logo {
   width: 56px;
   height: 56px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #3b82f6, #22c55e);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   font-size: 28px;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-m);
 }
 
 .login-title {
@@ -51,9 +51,9 @@
 }
 
 .login-error {
-  margin-top: 8px;
+  margin-top: var(--space-s);
   font-size: 13px;
-  color: #f97373;
+  color: var(--color-danger-text);
 }
 
 /* Lock Screen */
@@ -116,7 +116,7 @@
 
 .shake {
   animation: shake 0.5s ease-in-out;
-  border-color: #f97373 !important;
+  border-color: var(--color-danger) !important;
 }
 
  

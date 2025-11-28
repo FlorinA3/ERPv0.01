@@ -1,0 +1,28 @@
+{
+  "name": "microops-erp",
+  "version": "0.5.0-phase1",
+  "description": "MicroOps ERP client + server (Phase 1 backend scaffolding)",
+  "private": true,
+  "scripts": {
+    "dev:server": "node server/index.js",
+    "start:server": "node server/index.js",
+    "start:prod": "node -e \"process.env.NODE_ENV='production'; require('./server/index');\"",
+    "migrate:db": "node server/db/migrate.js",
+    "backup:db": "node server/utils/backupDb.js",
+    "test:money": "node --test server/utils/money.test.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

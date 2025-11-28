@@ -164,84 +164,134 @@ App.Audit = {
   }
 };
 
+/**
+ * Frontend validation summary (Phase 2.6)
+ * - Existing coverage: customers, products, orders, documents, components (basic), now extended with shipments.
+ * - Missing historically: detailed per-field errors and alignment with backend FSM/quantity rules (added below).
+ * - Known backend constraints mirrored: required customer on orders/docs, positive quantities, VAT rate range, no negative stock/price.
+ */
 App.Validate = {
-  order(order) {
-    if (!order.custId && !order.customerId) {
-      throw new Error('Customer is required');
-    }
-    if (!order.items || order.items.length === 0) {
-      throw new Error('At least 1 item required');
-    }
-    for (const item of order.items) {
-      if (!item.productId) {
-        throw new Error('Each item must have a product');
-      }
-      if (!item.qty || item.qty <= 0) {
-        throw new Error('Item quantity must be > 0');
-      }
-      if (item.unitPrice < 0) {
-        throw new Error('Item price cannot be negative');
-      }
-    }
-    return true;
+  _makeResult() {
+    const errors = {};
+    const add = (field, message) => {
+      if (!errors[field]) errors[field] = [];
+      errors[field].push(message);
+    };
+    const finalize = () => {
+      const isValid = Object.keys(errors).length === 0;
+      return { isValid, errors };
+    };
+    return { add, finalize };
   },
 
   customer(customer) {
+    const res = this._makeResult();
     if (!customer.company || customer.company.trim() === '') {
-      throw new Error('Customer/Company name required');
+      res.add('cust-company', 'Customer/Company name is required.');
     }
     if (customer.vatNumber && customer.vatNumber.trim() !== '') {
       const vat = customer.vatNumber.trim().toUpperCase();
       if (vat.startsWith('AT') && !vat.match(/^ATU[0-9]{8}$/)) {
-        throw new Error('Austrian VAT must be format: ATU12345678');
+        res.add('cust-vat', 'Austrian VAT must be ATU12345678.');
       }
     }
-    if (customer.contacts) {
-      for (const contact of customer.contacts) {
-        if (contact.email && !contact.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-          throw new Error(`Invalid email format: ${contact.email}`);
+    if (customer.emails) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      customer.emails.forEach((email) => {
+        if (email && !emailRegex.test(email)) {
+          res.add('cust-emails', `Invalid email format: ${email}`);
         }
-      }
+      });
     }
-    return true;
+    return res.finalize();
   },
 
   product(product) {
+    const res = this._makeResult();
+    if (!product.sku || product.sku.trim() === '') {
+      res.add('prod-artno', 'SKU / Article number is required.');
+    }
     if (!product.nameDE && !product.nameEN && !product.name) {
-      throw new Error('Product name required');
+      res.add('prod-namede', 'Product name is required.');
     }
     if (product.dealerPrice < 0 || product.endCustomerPrice < 0) {
-      throw new Error('Price cannot be negative');
+      res.add('prod-dealer', 'Prices cannot be negative.');
     }
     if (product.stock < 0) {
-      throw new Error('Stock cannot be negative');
+      res.add('prod-stock', 'Stock cannot be negative.');
     }
-    if (!product.sku || product.sku.trim() === '') {
-      throw new Error('SKU is required');
+    if (product.vatRate !== undefined && (product.vatRate < 0 || product.vatRate > 100)) {
+      res.add('prod-vat', 'VAT rate must be between 0 and 100.');
     }
-    return true;
+    return res.finalize();
+  },
+
+  order(order) {
+    const res = this._makeResult();
+    if (!order.custId && !order.customerId) {
+      res.add('ord-cust', 'Customer is required.');
+    }
+    if (!order.items || order.items.length === 0) {
+      res.add('items', 'At least one item is required.');
+    }
+    (order.items || []).forEach((item, idx) => {
+      if (!item.productId) {
+        res.add(`item-${idx}`, 'Each item must have a product.');
+      }
+      if (!item.qty || item.qty <= 0) {
+        res.add(`item-${idx}`, 'Quantity must be greater than 0.');
+      }
+      if (item.unitPrice < 0) {
+        res.add(`item-${idx}`, 'Item price cannot be negative.');
+      }
+    });
+    return res.finalize();
   },
 
   document(doc) {
-    if (!doc.customerId) {
-      throw new Error('Customer required for document');
+    const res = this._makeResult();
+    if (!doc.customerId && !doc.customer_id) {
+      res.add('doc-customer', 'Customer is required for document.');
+    }
+    if (!doc.type) {
+      res.add('doc-type', 'Document type is required.');
     }
     if (!doc.items || doc.items.length === 0) {
-      throw new Error('Document must have items');
+      res.add('doc-items', 'Document must have at least one line item.');
     }
-    return true;
+    return res.finalize();
+  },
+
+  shipment(payload) {
+    const res = this._makeResult();
+    if (!payload.document_id) {
+      res.add('ship-document', 'Document is required for shipment.');
+    }
+    if (!payload.lines || payload.lines.length === 0) {
+      res.add('ship-lines', 'At least one shipment line is required.');
+    }
+    (payload.lines || []).forEach((line, idx) => {
+      if (!line.product_id) {
+        res.add(`ship-line-${idx}`, 'Product is required.');
+      }
+      if (!line.quantity || line.quantity <= 0) {
+        res.add(`ship-line-${idx}`, 'Quantity must be greater than 0.');
+      }
+    });
+    return res.finalize();
   },
 
   component(component) {
+    const res = this._makeResult();
     if (!component.componentNumber || component.componentNumber.trim() === '') {
-      throw new Error('Component number required');
+      res.add('component-number', 'Component number required.');
     }
     if (!component.description || component.description.trim() === '') {
-      throw new Error('Component description required');
+      res.add('component-description', 'Component description required.');
     }
     if (component.stock < 0) {
-      throw new Error('Stock cannot be negative');
+      res.add('component-stock', 'Stock cannot be negative.');
     }
-    return true;
+    return res.finalize();
   }
 };

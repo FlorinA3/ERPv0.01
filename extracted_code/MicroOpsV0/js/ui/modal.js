@@ -310,8 +310,8 @@ App.UI.Tutorial = {
       justify-content: center;
     `;
 
-    this.renderStep();
     document.body.appendChild(this.overlay);
+    this.renderStep();
   },
 
   renderStep() {
@@ -320,6 +320,9 @@ App.UI.Tutorial = {
     const step = this.steps[this.currentStep];
     const isLast = this.currentStep === this.steps.length - 1;
     const isFirst = this.currentStep === 0;
+    
+    // Store reference to 'this' for callbacks
+    const self = this;
 
     this.overlay.innerHTML = `
       <div style="background:var(--color-surface, #1e293b); border-radius:12px; padding:24px; max-width:400px; margin:16px; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
@@ -342,10 +345,31 @@ App.UI.Tutorial = {
       </div>
     `;
 
-    // Wire up buttons
-    document.getElementById('tutorial-skip')?.addEventListener('click', () => this.close());
-    document.getElementById('tutorial-prev')?.addEventListener('click', () => this.prev());
-    document.getElementById('tutorial-next')?.addEventListener('click', () => isLast ? this.close() : this.next());
+    // Wire up buttons with PROPER context binding
+    const skipBtn = document.getElementById('tutorial-skip');
+    const nextBtn = document.getElementById('tutorial-next');
+    const prevBtn = document.getElementById('tutorial-prev');
+
+    if (skipBtn) {
+      skipBtn.onclick = null; // Clear any old listeners
+      skipBtn.addEventListener('click', () => self.close());
+    }
+
+    if (nextBtn) {
+      nextBtn.onclick = null;
+      nextBtn.addEventListener('click', () => {
+        if (isLast) {
+          self.close();
+        } else {
+          self.next();
+        }
+      });
+    }
+
+    if (prevBtn) {
+      prevBtn.onclick = null;
+      prevBtn.addEventListener('click', () => self.prev());
+    }
   },
 
   next() {

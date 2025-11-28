@@ -1,0 +1,48 @@
+# Node
+node_modules/
+
+# Python / virtual env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Playwright / test artifacts
+playwright-report/
+test-results/
+test-results-*/
+trace/
+traces/
+*.trace.zip
+
+# Logs
+logs/
+*.log
+
+# Environment / secrets
+.env
+.env.*
+!*.env.example
+
+server/.env
+server/.env.*
+!server/.env.example
+
+# Build / cache
+dist/
+build/
+.cache/
+.tmp/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+node_modules/
+.venv/
+*.zip
+.env
+extracted_code/MicroOpsV0/server/.env

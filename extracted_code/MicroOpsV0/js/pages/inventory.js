@@ -1,4 +1,5 @@
 App.UI.Views.Inventory = {
+  // Legacy local-mode inventory UI: mutates App.Data for offline/demo; remote/GA stock changes must go through backend inventory APIs.
   activeTab: 'Finished',
 
   render(root) {
@@ -6,6 +7,8 @@ App.UI.Views.Inventory = {
     const esc = App.Utils.escapeHtml;
     const products = App.Data.products || [];
     const components = App.Data.components || [];
+    const localDemo = App.Config?.localOnlyDemoMode === true;
+    const offline = App.Services?.Offline?.isOffline?.();
 
     const productItems = products.filter(p => p.type !== 'Service');
     const categories = ['Finished', 'Device', 'Consumable', 'Part', 'Components'];
@@ -83,8 +86,8 @@ App.UI.Views.Inventory = {
             <td style="text-align:right;">${App.Utils.formatCurrency(c.purchasePrice || 0)}</td>
             <td style="text-align:right;">
               <button class="btn btn-ghost btn-edit-component" data-id="${c.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${App.I18n.t('common.edit', 'Edit')}">✏️</button>
-              <button class="btn btn-ghost btn-receive-component" data-id="${c.id}" title="${App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="${App.I18n.t('common.receiveStock', 'Receive Stock')}">⬆️</button>
-              <button class="btn btn-ghost btn-adjust-component" data-id="${c.id}" title="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="${App.I18n.t('common.adjustStock', 'Adjust Stock')}">🔄</button>
+              <button class="btn btn-ghost btn-receive-component" data-id="${c.id}" title="${!localDemo ? 'Local demo only (not GA)' : offline ? App.I18n.t('common.offlineMode', 'Offline – posting blocked') : App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="${App.I18n.t('common.receiveStock', 'Receive Stock')}" ${(!localDemo || offline) ? 'disabled' : ''}>⬆️</button>
+              <button class="btn btn-ghost btn-adjust-component" data-id="${c.id}" title="${!localDemo ? 'Local demo only (not GA)' : offline ? App.I18n.t('common.offlineMode', 'Offline – posting blocked') : App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" ${(!localDemo || offline) ? 'disabled' : ''}>🔄</button>
               <button class="btn btn-ghost btn-delete-component" data-id="${c.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="${App.I18n.t('common.delete', 'Delete')}">🗑️</button>
             </td>
           </tr>
@@ -124,8 +127,8 @@ App.UI.Views.Inventory = {
             <td style="text-align:right;">${App.Utils.formatCurrency(p.dealerPrice || p.purchasePrice || 0)}</td>
             <td style="text-align:right;">
               <button class="btn btn-ghost btn-edit-product" data-id="${p.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="${App.I18n.t('common.edit', 'Edit')}">✏️</button>
-              <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="${App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="${App.I18n.t('common.receiveStock', 'Receive Stock')}">⬆️</button>
-              <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="${App.I18n.t('common.adjustStock', 'Adjust Stock')}">🔄</button>
+              <button class="btn btn-ghost btn-receive" data-id="${p.id}" title="${!localDemo ? 'Local demo only (not GA)' : offline ? App.I18n.t('common.offlineMode', 'Offline – posting blocked') : App.I18n.t('common.receiveStock', 'Receive Stock')}" aria-label="${App.I18n.t('common.receiveStock', 'Receive Stock')}" ${(!localDemo || offline) ? 'disabled' : ''}>⬆️</button>
+              <button class="btn btn-ghost btn-adjust" data-id="${p.id}" title="${!localDemo ? 'Local demo only (not GA)' : offline ? App.I18n.t('common.offlineMode', 'Offline – posting blocked') : App.I18n.t('common.adjustStock', 'Adjust Stock')}" aria-label="${App.I18n.t('common.adjustStock', 'Adjust Stock')}" ${(!localDemo || offline) ? 'disabled' : ''}>🔄</button>
               <button class="btn btn-ghost btn-delete-product" data-id="${p.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="${App.I18n.t('common.delete', 'Delete')}">🗑️</button>
             </td>
           </tr>
@@ -141,6 +144,9 @@ App.UI.Views.Inventory = {
             <button class="btn btn-ghost" id="inv-export">${t('exportCsv', 'Export CSV')}</button>
           </div>
         </div>
+        ${!localDemo ? `<div style="margin-bottom:12px; padding:8px 10px; background:var(--color-bg, #f8fafc); border:1px dashed var(--color-border); border-radius:6px; font-size:12px; color:var(--color-text-muted);">
+          Stock receive/adjust actions are demo-only and disabled in GA backend mode. Enable App.Config.localOnlyDemoMode only for single-user local/demo use.
+        </div>` : ''}
 
         <div class="grid grid-3" style="margin-bottom:16px;">
           <div style="padding:12px; background:var(--color-bg); border-radius:6px; text-align:center;">
@@ -416,6 +422,7 @@ App.UI.Views.Inventory = {
     const products = App.Data.products || [];
     const item = products.find(p => p.id === id);
     if (!item) return;
+    if (!this._assertInventoryMutationAllowed('Receiving stock')) return;
 
     const body = `
       <div>
@@ -471,6 +478,7 @@ App.UI.Views.Inventory = {
     const products = App.Data.products || [];
     const item = products.find(p => p.id === id);
     if (!item) return;
+    if (!this._assertInventoryMutationAllowed('Adjusting stock')) return;
 
     const body = `
       <div>
@@ -755,6 +763,7 @@ App.UI.Views.Inventory = {
     const components = App.Data.components || [];
     const item = components.find(c => c.id === id);
     if (!item) return;
+    if (!this._assertInventoryMutationAllowed('Receiving stock')) return;
 
     const body = `
       <div>
@@ -810,6 +819,7 @@ App.UI.Views.Inventory = {
     const components = App.Data.components || [];
     const item = components.find(c => c.id === id);
     if (!item) return;
+    if (!this._assertInventoryMutationAllowed('Adjusting stock')) return;
 
     const body = `
       <div>
@@ -901,5 +911,21 @@ App.UI.Views.Inventory = {
         }
       }
     ]);
+  },
+
+  // Guard to ensure stock mutations are only allowed in local demo mode and while online.
+  _assertInventoryMutationAllowed(reason = 'Stock change') {
+    if (!App.Config?.localOnlyDemoMode) {
+      App.UI.Toast.show(
+        `${reason} is disabled in GA backend mode. Enable App.Config.localOnlyDemoMode only for single-user demos.`,
+        'warning'
+      );
+      return false;
+    }
+    if (App.Services?.Offline?.isOffline?.()) {
+      App.UI.Toast.show('Cannot change stock while offline. Please reconnect and retry.', 'warning');
+      return false;
+    }
+    return true;
   }
 };

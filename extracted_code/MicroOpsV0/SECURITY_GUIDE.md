@@ -23,7 +23,7 @@ MicroOps uses 4-digit PIN authentication:
 ### Rate Limiting
 
 **Login Protection:**
-- 5 failed attempts → 5-minute lockout
+- 5 failed attempts -> 5-minute lockout
 - Lockout applies per user account
 - Failed attempts logged to audit trail
 - Countdown timer shows remaining lockout time
@@ -183,6 +183,16 @@ The audit trail supports:
 - No data interception risk
 - Works in air-gapped environments
 - No third-party data exposure
+
+### Offline Safety & Posting Policy
+
+- In GA v1 backend/remote deployments, offline mode is **read + draft only**. Users may browse cached data and fill forms, but cannot finalize operations that change stock or financial state.
+- The following actions **require an online backend call**:
+  - Posting shipments (`inventoryService.postShipment` via `/api/inventory/...`).
+  - Posting invoices or credit notes (`documentService.postDocument`).
+  - Marking invoices paid (`markDocumentPaid`).
+- Legacy local/demo flows that finalize invoices or adjust stock purely in the browser are **non-GA** and must remain disabled unless explicitly running in a single-user local/demo configuration flag.
+- A future release will add a controlled offline write queue with reconciliation; until then, GA v1 forbids offline posting to protect auditability and invariants.
 
 ### Browser Security
 

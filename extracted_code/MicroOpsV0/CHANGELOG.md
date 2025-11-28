@@ -7,6 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Phase 5.2: Design System & Theming (2025-11-28)
+
+#### Added
+
+##### Design Token System (css/base.css)
+- **Spacing Scale**: Added `--space-xs` through `--space-2xl` tokens (4px to 32px increments)
+- **Border Radius Tokens**: Expanded radius scale with `--radius-xs` through `--radius-xl`
+- **Shadow Tokens**: Consistent shadow system with `--shadow-sm`, `--shadow-md`, `--shadow-soft`, `--shadow-lg`
+- **Multi-Theme Support**: 6 complete theme variants (Dark, Light, Cyberpunk, Vaporwave, Steampunk, Sci-Fi)
+- **Theme switching** via `data-theme` attribute on root element
+
+##### Local Icon Module (js/ui/icons.js)
+- **Offline SVG Icon Library**: 40+ icons based on Lucide design system (no CDN required)
+- **Icon Categories**: Status (check, x, warning, info), Actions (edit, delete, print, download), Navigation (chevrons, arrows, menu), Business (package, users, documents), System (settings, search, lock)
+- **Flexible API**: `App.UI.Icons.get(name, options)` with customizable size, color, strokeWidth
+- **Semantic Aliases**: Convenience mappings (success → check, error → x, add → plus)
+- **Accessible**: All icons use proper SVG with stroke attributes for theme compatibility
+
+#### Changed
+
+##### Component Refactoring to Use Tokens (css/components.css, css/layout.css)
+- **Buttons**: Removed hardcoded gradients, now use `var(--color-primary)` and theme-aware hover states
+- **Cards & Panels**: Use `--radius-lg`, `--shadow-soft`, and `--color-bg-surface` tokens
+- **Badges/Tags**: Fully tokenized color system for success/warning/danger/info variants
+- **Navbar Logo**: Replaced gradient with `var(--color-primary)` and `--radius-md`
+- **Login Screen**: Replaced hex colors with theme tokens (`--color-danger-text`, `--space-md`)
+- **Form Inputs**: Focus states now use `--color-primary` instead of hardcoded blue
+- **Hover States**: Consistent `--color-hover-bg` and `--color-primary-soft` across all interactive elements
+
+#### Removed
+
+- **Hardcoded Hex Colors**: Eliminated scattered `#3b82f6`, `#10b981`, `#ef4444` etc. from CSS
+- **Inline Gradient Definitions**: Replaced `linear-gradient(135deg, #3b82f6, #06b6d4)` with token references
+
+### Phase 5.1: Frontend Modularization & Code Hygiene (2025-11-28)
+
+#### Added
+
+##### Core Configuration Module ([js/core/config.js](js/core/config.js))
+- **Debug Flag**: `App.Config.debug` to control console logging verbosity in production
+- **Conditional Logging**: `App.Config.log()`, `App.Config.warn()`, `App.Config.error()` methods
+- **Centralized Constants**: Session timeout, VAT rate, theme defaults
+
+##### UI Helpers Module ([js/ui/helpers.js](js/ui/helpers.js))
+- **Toast System**: Extracted `App.UI.Toast` with `show()`, `success()`, `error()`, `warning()` methods
+- **Loading Overlay**: Extracted `App.UI.Loading` with `show()`, `hide()`, `wrap()` for async operations
+- **Validation Helpers**: Extracted `App.UI.Validation` for form error display
+- **XSS Protection**: `App.UI.escapeHtml()` utility for safe HTML rendering
+
+##### Lock Screen Event Module ([js/core/lockScreen.js](js/core/lockScreen.js))
+- Extracted session lock/unlock event handlers from inline `onclick` attributes
+- Added Enter key support for PIN unlock
+- Improved maintainability and testability of auth UI interactions
+
+#### Changed
+
+##### index.html - Cleaned Event Handlers
+- Removed inline `onclick` attributes from lock screen buttons
+- Updated script load order: core modules → app.js → pages
+- Improved separation of concerns and code hygiene
+
+##### app.js - Module Integration
+- Added backward-compatibility shims for extracted modules
+- Preserved existing functionality while delegating to new modules
+- Reduced God file anti-pattern incrementally
+
+#### Technical Notes
+- **No Breaking Changes**: All existing functionality preserved via compatibility layer
+- **Script Load Order**: Core modules must load before app.js
+- **Future Work**: Continue extracting auth.js, router.js, formatters.js in subsequent phases
+
+---
+
 ## [1.0.0] - 2025-11-22 🎉 GA Release
 
 ### Phase 53: GA Release v1.0.0 (120/120 = 100%)
@@ -758,6 +833,30 @@ This release establishes the core foundation for production-ready ERP functional
 ---
 
 ## [Unreleased]
+
+### Added
+- Structured JSON logging with request/user IDs, daily log files, and retention settings (`server/utils/logger.js`, request/error middleware).
+- Health endpoints (`/api/health`, `/api/health/deep`) covering DB/env/log/backup checks with HTTP 503 on degradation.
+- Windows health probe helper for Task Scheduler (`scripts/check_health_windows.ps1`) plus logging/monitoring guidance in deployment/DR docs.
+- Server-side pg_dump CLI with retention (`server/utils/backupDb.js`) and `npm run backup:db` for manual runs.
+- Windows Task Scheduler helpers for backups/restores (`scripts/backup_db_windows.ps1`, `scripts/restore_db_windows.ps1`) plus backup env settings.
+- Backup/restore guide and DR runbook for Windows deployments (`docs/BACKUP_RESTORE_WINDOWS.md`, `docs/DR_RUNBOOK_WINDOWS.md`) and scheduling notes in `docs/DEPLOYMENT_WINDOWS.md`.
+- Windows on-prem deployment guide (`docs/DEPLOYMENT_WINDOWS.md`) covering packaging ZIP contents, migrations, and install steps.
+- Environment template set (`.env.example/.env.development/.env.test/.env.production`) plus shared loader for `NODE_ENV`-specific configs and `npm run start:prod`.
+- NSSM-based Windows service template script (`scripts/install_service_windows.ps1`) and network-share guidance for hosting the static frontend without secrets.
+- Documented core business invariants in `INVARIANTS.md`.
+- Added unique `(type, doc_number)` safeguard for legal documents (migration 004_document_number_unique.sql).
+- Clarified posted invoice immutability and negative stock guards in backend services.
+- Documented offline posting policy in `SECURITY_GUIDE.md`.
+- Added optimistic concurrency via `row_version` for customers/products with 409 Conflict on mismatched versions.
+- Added shipment dedupe guard and idempotent mark-paid handling to prevent double side effects.
+- Added generic UI handling for HTTP 409 conflicts so users see reload prompts on stale edits.
+- Introduced store modules (customers/products/orders/documents/inventory) with TTL caching and refresh indicators; added tab-sync broadcasts for multi-tab awareness.
+- Debounced App.DB saves via `scheduleSave` and added refresh buttons/last-updated badges on key lists.
+- Added Phase 3 state scenarios doc for manual regression.
+- Added offline helper + global banner/indicator; API mutating calls now block when offline and map network errors consistently.
+- Disabled legacy local-only posting/stock flows by default (behind `App.Config.localOnlyDemoMode`), with offline guards on documents/orders/inventory actions.
+- Added regression checklist for offline/flaky network scenarios (`docs/phase3_offline_scenarios.md`).
 
 ### Planned for Version 0.7.0
 

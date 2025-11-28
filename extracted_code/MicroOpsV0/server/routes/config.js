@@ -162,6 +162,7 @@ router.get('/dashboard/stats', async (req, res) => {
         AND EXTRACT(YEAR FROM document_date) = EXTRACT(YEAR FROM CURRENT_DATE)
     `);
 
+    // Legacy dashboard metric: relies on old current_stock column (not authoritative vs inventory_movements).
     const lowStock = await query(`
       SELECT COUNT(*) FROM products
       WHERE is_active = true AND current_stock <= min_stock

@@ -1,18 +1,28 @@
 const { Pool } = require('pg');
+const { loadConfig } = require('./env');
+const logger = require('../utils/logger');
+
+const config = loadConfig();
+
+const connectionOptions = config.database.connectionString
+  ? { connectionString: config.database.connectionString }
+  : {
+      host: config.database.host,
+      port: config.database.port,
+      database: config.database.name,
+      user: config.database.user,
+      password: config.database.password,
+    };
 
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'microops_erp',
-  user: process.env.DB_USER || 'microops',
-  password: process.env.DB_PASSWORD || 'microops_secure_pwd',
+  ...connectionOptions,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected database error:', err);
+  logger.error('Unexpected database error', { errorStack: err.stack, errorCode: err.code });
   process.exit(-1);
 });
 
@@ -21,7 +31,7 @@ async function query(text, params) {
   const res = await pool.query(text, params);
   const duration = Date.now() - start;
   if (duration > 100) {
-    console.log('Slow query:', { text, duration, rows: res.rowCount });
+    logger.warn('slow-query', { text, duration, rows: res.rowCount });
   }
   return res;
 }

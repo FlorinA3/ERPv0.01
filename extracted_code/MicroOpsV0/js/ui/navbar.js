@@ -7,24 +7,21 @@ App.UI.Navbar = {
     if (!root) return;
     const company = (App.Data.Config && App.Data.Config.companyName) || 'MicroOps';
     const user = App.Services.Auth.currentUser;
-    const languages = [
-      { code: 'en', label: 'English', flag: '🇬🇧' },
-      { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-      // Romanian support as required by specification
-      { code: 'ro', label: 'Română', flag: '🇷🇴' },
-      { code: 'fr', label: 'Français', flag: '🇫🇷' },
-      { code: 'es', label: 'Español', flag: '🇪🇸' },
-      { code: 'pt', label: 'Português', flag: '🇵🇹' },
-      { code: 'zh', label: '中文', flag: '🇨🇳' },
-      { code: 'ja', label: '日本語', flag: '🇯🇵' }
-    ];
+    const rawLanguages = (App.I18n.getLanguages && App.I18n.getLanguages().length
+      ? App.I18n.getLanguages()
+      : [
+          { code: 'en', label: 'English', flag: '🇬🇧' },
+          { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+          { code: 'ro', label: 'Română', flag: '🇷🇴' }
+        ]);
+    const languages = rawLanguages.filter(l => App.I18n?.translations?.[l.code]);
     const themes = [
       { id: 'light', label: 'Corporate', color: '#3b82f6' },
       { id: 'dark', label: 'Dark Mode', color: '#0f172a' },
       { id: 'cyberpunk', label: 'Cyberpunk', color: '#d946ef' },
       { id: 'vaporwave', label: 'Vaporwave', color: '#8b5cf6' },
       { id: 'steampunk', label: 'Steampunk', color: '#b45309' },
-      { id: 'scifi', label: 'Sci‑Fi', color: '#0ea5e9' }
+      { id: 'scifi', label: 'Sci-Fi', color: '#0ea5e9' }
     ];
     const currentLang = (App.Data.Config && App.Data.Config.lang) || 'en';
     const currentTheme = (App.Data.Config && App.Data.Config.theme) || 'dark';
@@ -106,7 +103,7 @@ App.UI.Navbar = {
         App.I18n.currentLang = code;
         langBtnEl.textContent = info.flag;
         langMenu.classList.add('hidden');
-        App.DB.save();
+        App.DB.scheduleSave ? App.DB.scheduleSave() : App.DB.save();
         // Re-render sidebar and current page to reflect new language
         if (App.UI.Sidebar && App.UI.Sidebar.init) App.UI.Sidebar.init();
         App.Core.Router.navigate(App.Core.Router.currentRoute);
@@ -128,7 +125,7 @@ App.UI.Navbar = {
         if (App.Data.Config) App.Data.Config.theme = id;
         themeBtnEl.innerHTML = `<span style="color:${info.color}">●</span>`;
         themeMenu.classList.add('hidden');
-        App.DB.save();
+        App.DB.scheduleSave ? App.DB.scheduleSave() : App.DB.save();
         App.UI.Toast.show('Theme set to ' + info.label);
       };
     });

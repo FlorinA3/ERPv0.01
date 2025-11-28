@@ -1,15 +1,56 @@
 {
   "config": {
+    "companyName": "DF-Pure GmbH",
+    "street": "Industriestrasse 15",
+    "zip": "6020",
+    "city": "Innsbruck",
+    "country": "AT",
+    "vatNumber": "ATU12345678",
+    "commercialRegisterNumber": "FN 123456a",
+    "iban": "AT61 1904 3002 3457 3201",
+    "bic": "BKAUATWW",
+    "bankName": "Bank Austria",
     "currency": "EUR",
-    "companyName": "MicroOps Global",
+    "defaultVatRate": 0.2,
+    "defaultPaymentTerms": "14 Tage netto",
+    "defaultDeliveryTerms": "FCA",
+    "lang": "en",
     "theme": "dark",
-    "lang": "en"
+    "isDemo": true,
+    "autoLockMinutes": 15,
+    "numberSequences": {
+      "lastOrderNumber": 100,
+      "lastDeliveryNumber": 82,
+      "lastInvoiceNumber": 92,
+      "lastProductionOrderNumber": 3,
+      "lastPurchaseOrderNumber": 2
+    }
   },
   "users": [
-    { "id": "u1", "name": "Admin User", "role": "admin", "pin": "0000" },
-    { "id": "u2", "name": "Sales User", "role": "sales", "pin": "1111" },
-    { "id": "u3", "name": "Warehouse Mgr", "role": "warehouse", "pin": "2222" },
-    { "id": "u4", "name": "Production Lead", "role": "production", "pin": "3333" }
+    {
+      "id": "u1",
+      "name": "Admin User",
+      "role": "admin",
+      "pin": "0000"
+    },
+    {
+      "id": "u2",
+      "name": "Sales User",
+      "role": "sales",
+      "pin": "1111"
+    },
+    {
+      "id": "u3",
+      "name": "Warehouse Mgr",
+      "role": "warehouse",
+      "pin": "2222"
+    },
+    {
+      "id": "u4",
+      "name": "Production Lead",
+      "role": "production",
+      "pin": "3333"
+    }
   ],
   "customers": [
     {
@@ -51,7 +92,12 @@
         }
       ],
       "contacts": [
-        { "name": "Max Mustermann", "position": "Einkauf", "phone": "+43 512 123456", "email": "max@bluutec.at" }
+        {
+          "name": "Max Mustermann",
+          "position": "Einkauf",
+          "phone": "+43 512 123456",
+          "email": "max@bluutec.at"
+        }
       ]
     },
     {
@@ -75,14 +121,174 @@
           "isDefaultBilling": true,
           "isDefaultShipping": true,
           "company": "Lepage Medical",
-          "street": "Rue de la Santé 7",
+          "street": "Rue de la SantÃ© 7",
           "zip": "75013",
           "city": "Paris",
           "country": "FR"
         }
       ],
       "contacts": [
-        { "name": "Marie Curie", "position": "Head of Procurement", "phone": "+33 1 2345 6789", "email": "marie@lepage.fr" }
+        {
+          "name": "Marie Curie",
+          "position": "Head of Procurement",
+          "phone": "+33 1 2345 6789",
+          "email": "marie@lepage.fr"
+        }
+      ]
+    },
+    {
+      "id": "c3",
+      "internalId": "230003",
+      "company": "Destech Pharma GmbH",
+      "status": "active",
+      "defaultLang": "de",
+      "accountManager": "Sabine",
+      "vatNumber": "ATU55667788",
+      "paymentTerms": "14 Tage netto",
+      "deliveryTerms": "DAP",
+      "iban": "AT12 1200 0000 5678 9000",
+      "bic": "BKAUATWW",
+      "bankName": "Erste Bank",
+      "priceSegment": "dealer",
+      "addresses": [
+        {
+          "id": "a4",
+          "role": "billing",
+          "isDefaultBilling": true,
+          "isDefaultShipping": false,
+          "company": "Destech Pharma GmbH",
+          "street": "Karl-Waldbrunner-Platz 1",
+          "zip": "1210",
+          "city": "Wien",
+          "country": "AT"
+        },
+        {
+          "id": "a5",
+          "role": "shipping",
+          "isDefaultBilling": false,
+          "isDefaultShipping": true,
+          "company": "Destech Pharma GmbH",
+          "street": "Werkstrasse 12",
+          "zip": "2353",
+          "city": "Guntramsdorf",
+          "country": "AT"
+        }
+      ],
+      "contacts": [
+        {
+          "name": "Thomas Reiter",
+          "position": "Logistik",
+          "phone": "+43 1 8900 112",
+          "email": "thomas.reiter@destech.at"
+        }
+      ]
+    },
+    {
+      "id": "c4",
+      "internalId": "230004",
+      "company": "Aqualis Biocare",
+      "status": "active",
+      "defaultLang": "es",
+      "accountManager": "Lucia",
+      "vatNumber": "ESB12345670",
+      "paymentTerms": "45 días",
+      "deliveryTerms": "DAP",
+      "iban": "ES91 2100 0418 4502 0005 1332",
+      "bic": "CAIXESBBXXX",
+      "bankName": "CaixaBank",
+      "priceSegment": "endcustomer",
+      "addresses": [
+        {
+          "id": "a6",
+          "role": "billing",
+          "isDefaultBilling": true,
+          "isDefaultShipping": true,
+          "company": "Aqualis Biocare",
+          "street": "Calle de la Salud 15",
+          "zip": "28011",
+          "city": "Madrid",
+          "country": "ES"
+        }
+      ],
+      "contacts": [
+        {
+          "name": "Carlos Ortega",
+          "position": "Director de Compras",
+          "phone": "+34 91 123 4567",
+          "email": "c.ortega@aqualis.es"
+        }
+      ]
+    },
+    {
+      "id": "c5",
+      "internalId": "230005",
+      "company": "Osaka Labs KK",
+      "status": "active",
+      "defaultLang": "ja",
+      "accountManager": "Kenji",
+      "vatNumber": "JP123456789",
+      "paymentTerms": "60 days",
+      "deliveryTerms": "FCA",
+      "iban": "JP00 1234 5678 9000",
+      "bic": "OSAKJPJT",
+      "bankName": "Osaka Commercial Bank",
+      "priceSegment": "dealer",
+      "addresses": [
+        {
+          "id": "a7",
+          "role": "billing",
+          "isDefaultBilling": true,
+          "isDefaultShipping": true,
+          "company": "Osaka Labs KK",
+          "street": "1-2-3 Umeda",
+          "zip": "530-0001",
+          "city": "Osaka",
+          "country": "JP"
+        }
+      ],
+      "contacts": [
+        {
+          "name": "Yuki Nakamura",
+          "position": "Procurement",
+          "phone": "+81 6 1234 5678",
+          "email": "yuki.nakamura@osakalabs.jp"
+        }
+      ]
+    },
+    {
+      "id": "c6",
+      "internalId": "230006",
+      "company": "Clinique Lumière",
+      "status": "inactive",
+      "defaultLang": "fr",
+      "accountManager": "Claire",
+      "vatNumber": "FR7488990012",
+      "paymentTerms": "30 jours",
+      "deliveryTerms": "CPT",
+      "iban": "FR14 2004 1010 0505 0001 3M02 606",
+      "bic": "PSSTFRPPMON",
+      "bankName": "La Banque Postale",
+      "priceSegment": "endcustomer",
+      "addresses": [
+        {
+          "id": "a8",
+          "role": "billing",
+          "isDefaultBilling": true,
+          "isDefaultShipping": true,
+          "company": "Clinique Lumière",
+          "street": "12 Rue des Sciences",
+          "zip": "69007",
+          "city": "Lyon",
+          "country": "FR"
+        }
+      ],
+      "contacts": [
+        {
+          "name": "Agnès Martin",
+          "position": "Directrice médicale",
+          "phone": "+33 4 72 00 12 12",
+          "email": "a.martin@lumiere.fr"
+        }
       ]
     }
   ],
@@ -91,7 +297,7 @@
       "id": "p1",
       "internalArticleNumber": "350500",
       "sku": "FL-500ML",
-      "nameDE": "Flächendesinfektion 500 ml",
+      "nameDE": "FlÃ¤chendesinfektion 500 ml",
       "nameEN": "Surface Disinfectant 500 ml",
       "productLine": "Desinfektion",
       "volume": "500 ml",
@@ -147,6 +353,103 @@
       "currency": "EUR",
       "type": "Service",
       "allowDecimalQty": false
+    },
+    {
+      "id": "p4",
+      "internalArticleNumber": "3501000",
+      "sku": "FL-1L",
+      "nameDE": "Flächendesinfektion 1 L",
+      "nameEN": "Surface Disinfectant 1 L",
+      "productLine": "Desinfektion",
+      "volume": "1 L",
+      "dosageForm": "solution",
+      "unit": "Flasche",
+      "vpe": 6,
+      "palletQuantity": 480,
+      "avgPurchasePrice": 4.2,
+      "dealerPrice": 7.5,
+      "endCustomerPrice": 10.9,
+      "currency": "EUR",
+      "customsCode": "38089490",
+      "originCountry": "AT",
+      "stock": 770,
+      "minStock": 80,
+      "type": "Consumable",
+      "allowDecimalQty": false
+    },
+    {
+      "id": "p5",
+      "internalArticleNumber": "800200",
+      "sku": "CVU-02",
+      "nameDE": "Compact Vernebelungs-Einheit",
+      "nameEN": "Compact Fogging Unit",
+      "productLine": "Device",
+      "unit": "Stk",
+      "vpe": 1,
+      "palletQuantity": 15,
+      "avgPurchasePrice": 750,
+      "dealerPrice": 1050,
+      "endCustomerPrice": 1350,
+      "currency": "EUR",
+      "customsCode": "84241900",
+      "originCountry": "DE",
+      "stock": 34,
+      "minStock": 5,
+      "type": "Device",
+      "allowDecimalQty": false
+    },
+    {
+      "id": "p6",
+      "internalArticleNumber": "910050",
+      "sku": "SP-NOZ",
+      "nameDE": "Ersatzdüse Flex",
+      "nameEN": "Flex Replacement Nozzle",
+      "productLine": "SparePart",
+      "unit": "Stk",
+      "avgPurchasePrice": 18,
+      "dealerPrice": 32,
+      "endCustomerPrice": 45,
+      "currency": "EUR",
+      "customsCode": "84249090",
+      "originCountry": "AT",
+      "stock": 220,
+      "minStock": 20,
+      "type": "Consumable",
+      "allowDecimalQty": false
+    },
+    {
+      "id": "p7",
+      "internalArticleNumber": "960010",
+      "sku": "KIT-PM",
+      "nameDE": "Wartungskit Vernebler",
+      "nameEN": "Fogger Preventive Maintenance Kit",
+      "productLine": "Consumable",
+      "unit": "Kit",
+      "avgPurchasePrice": 55,
+      "dealerPrice": 95,
+      "endCustomerPrice": 129,
+      "currency": "EUR",
+      "customsCode": "84249090",
+      "originCountry": "AT",
+      "stock": 145,
+      "minStock": 15,
+      "type": "Consumable",
+      "allowDecimalQty": false
+    },
+    {
+      "id": "p8",
+      "internalArticleNumber": "SVC-TRAIN",
+      "sku": "SV-TRAIN",
+      "nameDE": "Remote-Schulung",
+      "nameEN": "Remote Training Session",
+      "productLine": "Service",
+      "unit": "session",
+      "avgPurchasePrice": 0,
+      "dealerPrice": 180,
+      "endCustomerPrice": 240,
+      "currency": "EUR",
+      "type": "Service",
+      "allowDecimalQty": false
     }
   ],
   "components": [
@@ -160,7 +463,14 @@
       "safetyStock": 500,
       "supplierId": "sup1",
       "leadTimeDays": 14,
-      "prices": [ { "supplierId": "sup1", "price": 0.15, "moq": 1000, "currency": "EUR" } ],
+      "prices": [
+        {
+          "supplierId": "sup1",
+          "price": 0.15,
+          "moq": 1000,
+          "currency": "EUR"
+        }
+      ],
       "status": "active",
       "notes": "Used for 500 ml disinfectant"
     },
@@ -174,31 +484,176 @@
       "safetyStock": 800,
       "supplierId": "sup2",
       "leadTimeDays": 10,
-      "prices": [ { "supplierId": "sup2", "price": 0.05, "moq": 2000, "currency": "EUR" } ],
+      "prices": [
+        {
+          "supplierId": "sup2",
+          "price": 0.05,
+          "moq": 2000,
+          "currency": "EUR"
+        }
+      ],
       "status": "active",
       "notes": "Fits all bottle sizes"
+    },
+    {
+      "id": "cmp3",
+      "componentNumber": "PUMP-FOG",
+      "group": "Pump",
+      "description": "High pressure fogging pump",
+      "unit": "Stk",
+      "stock": 80,
+      "safetyStock": 15,
+      "supplierId": "sup3",
+      "leadTimeDays": 21,
+      "prices": [
+        {
+          "supplierId": "sup3",
+          "price": 120,
+          "moq": 10,
+          "currency": "EUR"
+        }
+      ],
+      "status": "active",
+      "notes": "Used for Flex and Compact units"
+    },
+    {
+      "id": "cmp4",
+      "componentNumber": "LBL-1L",
+      "group": "Label",
+      "description": "Multi-language label 1L",
+      "unit": "Stk",
+      "stock": 5000,
+      "safetyStock": 1000,
+      "supplierId": "sup1",
+      "leadTimeDays": 7,
+      "prices": [
+        {
+          "supplierId": "sup1",
+          "price": 0.03,
+          "moq": 2000,
+          "currency": "EUR"
+        }
+      ],
+      "status": "active",
+      "notes": "For 1L disinfectant"
+    },
+    {
+      "id": "cmp5",
+      "componentNumber": "HEPA-CORE",
+      "group": "Filter",
+      "description": "HEPA core for Compact",
+      "unit": "Stk",
+      "stock": 60,
+      "safetyStock": 10,
+      "supplierId": "sup3",
+      "leadTimeDays": 30,
+      "prices": [
+        {
+          "supplierId": "sup3",
+          "price": 85,
+          "moq": 20,
+          "currency": "EUR"
+        }
+      ],
+      "status": "active",
+      "notes": "Replace every 500 hours"
     }
   ],
   "suppliers": [
-    { "id": "sup1", "name": "BottleCo", "street": "Packagingstrasse 10", "zip": "1100", "city": "Vienna", "country": "AT", "contactPerson": "Lisa Bottler", "phone": "+43 1 2345678", "email": "info@bottleco.at", "notes": "Main supplier for PET bottles" },
-    { "id": "sup2", "name": "CapMaster", "street": "Kappenweg 2", "zip": "4050", "city": "Linz", "country": "AT", "contactPerson": "Thomas Cap", "phone": "+43 732 987654", "email": "sales@capmaster.at", "notes": "Provides screw caps and pumps" }
+    {
+      "id": "sup1",
+      "name": "BottleCo",
+      "street": "Packagingstrasse 10",
+      "zip": "1100",
+      "city": "Vienna",
+      "country": "AT",
+      "contactPerson": "Lisa Bottler",
+      "phone": "+43 1 2345678",
+      "email": "info@bottleco.at",
+      "notes": "Main supplier for PET bottles"
+    },
+    {
+      "id": "sup2",
+      "name": "CapMaster",
+      "street": "Kappenweg 2",
+      "zip": "4050",
+      "city": "Linz",
+      "country": "AT",
+      "contactPerson": "Thomas Cap",
+      "phone": "+43 732 987654",
+      "email": "sales@capmaster.at",
+      "notes": "Provides screw caps and pumps"
+    },
+    {
+      "id": "sup3",
+      "name": "Precision Mechanics AG",
+      "street": "Industriepark 4",
+      "zip": "8200",
+      "city": "Schaffhausen",
+      "country": "CH",
+      "contactPerson": "Markus Graf",
+      "phone": "+41 52 123 45 67",
+      "email": "sales@precision-mech.ch",
+      "notes": "Provides pumps and HEPA cores"
+    }
   ],
   "carriers": [
-    { "id": "car1", "name": "Dachser", "accountNumber": "DAC-001", "contactPerson": "Michaela Fracht", "phone": "+43 5574 12345", "email": "transport@dachser.at", "notes": "Preferred for domestic deliveries" },
-    { "id": "car2", "name": "Lagermax", "accountNumber": "LMX-008", "contactPerson": "Jonas Lager", "phone": "+43 662 765432", "email": "service@lagermax.at", "notes": "Used for international shipments" }
+    {
+      "id": "car1",
+      "name": "Dachser",
+      "accountNumber": "DAC-001",
+      "contactPerson": "Michaela Fracht",
+      "phone": "+43 5574 12345",
+      "email": "transport@dachser.at",
+      "notes": "Preferred for domestic deliveries"
+    },
+    {
+      "id": "car2",
+      "name": "Lagermax",
+      "accountNumber": "LMX-008",
+      "contactPerson": "Jonas Lager",
+      "phone": "+43 662 765432",
+      "email": "service@lagermax.at",
+      "notes": "Used for international shipments"
+    },
+    {
+      "id": "car3",
+      "name": "DB Schenker",
+      "accountNumber": "SCH-445",
+      "contactPerson": "Petra Lang",
+      "phone": "+43 1 234 00 77",
+      "email": "info@schenker.at",
+      "notes": "Used for overseas freight"
+    }
   ],
   "priceLists": [
     {
       "id": "pl1",
-      "name": "Preisliste 2025 (Händler)",
+      "name": "Preisliste 2025 (HÃ¤ndler)",
       "type": "segment",
       "segmentId": "dealer",
       "currency": "EUR",
       "validFrom": "2025-01-01",
       "validTo": "2025-12-31",
       "entries": [
-        { "productId": "p1", "price": 4.5, "uvp": 6.9, "minOrderQty": 12, "tariffCode": "38089490", "originCountry": "AT", "languages": "DE,EN" },
-        { "productId": "p2", "price": 1200, "uvp": 1500, "minOrderQty": 1, "tariffCode": "84241900", "originCountry": "DE", "languages": "DE,EN" }
+        {
+          "productId": "p1",
+          "price": 4.5,
+          "uvp": 6.9,
+          "minOrderQty": 12,
+          "tariffCode": "38089490",
+          "originCountry": "AT",
+          "languages": "DE,EN"
+        },
+        {
+          "productId": "p2",
+          "price": 1200,
+          "uvp": 1500,
+          "minOrderQty": 1,
+          "tariffCode": "84241900",
+          "originCountry": "DE",
+          "languages": "DE,EN"
+        }
       ]
     },
     {
@@ -210,8 +665,24 @@
       "validFrom": "2025-01-01",
       "validTo": "2025-12-31",
       "entries": [
-        { "productId": "p1", "price": 6.9, "uvp": 7.5, "minOrderQty": 1, "tariffCode": "38089490", "originCountry": "AT", "languages": "DE,EN" },
-        { "productId": "p2", "price": 1500, "uvp": 1700, "minOrderQty": 1, "tariffCode": "84241900", "originCountry": "DE", "languages": "DE,EN" }
+        {
+          "productId": "p1",
+          "price": 6.9,
+          "uvp": 7.5,
+          "minOrderQty": 1,
+          "tariffCode": "38089490",
+          "originCountry": "AT",
+          "languages": "DE,EN"
+        },
+        {
+          "productId": "p2",
+          "price": 1500,
+          "uvp": 1700,
+          "minOrderQty": 1,
+          "tariffCode": "84241900",
+          "originCountry": "DE",
+          "languages": "DE,EN"
+        }
       ]
     },
     {
@@ -223,8 +694,111 @@
       "validFrom": "2025-05-01",
       "validTo": "2025-12-31",
       "entries": [
-        { "productId": "p1", "price": 5.5, "uvp": 7.5, "minOrderQty": 12, "tariffCode": "38089490", "originCountry": "AT", "languages": "DE,EN" },
-        { "productId": "p2", "price": 1100, "uvp": 1500, "minOrderQty": 1, "tariffCode": "84241900", "originCountry": "DE", "languages": "DE,EN" }
+        {
+          "productId": "p1",
+          "price": 5.5,
+          "uvp": 7.5,
+          "minOrderQty": 12,
+          "tariffCode": "38089490",
+          "originCountry": "AT",
+          "languages": "DE,EN"
+        },
+        {
+          "productId": "p2",
+          "price": 1100,
+          "uvp": 1500,
+          "minOrderQty": 1,
+          "tariffCode": "84241900",
+          "originCountry": "DE",
+          "languages": "DE,EN"
+        }
+      ]
+    },
+    {
+      "id": "pl4",
+      "name": "Preisliste Ersatzteile 2025",
+      "type": "segment",
+      "segmentId": "spare",
+      "currency": "EUR",
+      "validFrom": "2025-01-01",
+      "validTo": "2025-12-31",
+      "entries": [
+        {
+          "productId": "p6",
+          "price": 32,
+          "uvp": 45,
+          "minOrderQty": 1,
+          "tariffCode": "84249090",
+          "originCountry": "AT",
+          "languages": "DE,EN"
+        },
+        {
+          "productId": "p7",
+          "price": 95,
+          "uvp": 129,
+          "minOrderQty": 1,
+          "tariffCode": "84249090",
+          "originCountry": "AT",
+          "languages": "DE,EN"
+        }
+      ]
+    },
+    {
+      "id": "pl5",
+      "name": "Preisliste Osaka 2025",
+      "type": "customer",
+      "customerId": "c5",
+      "currency": "EUR",
+      "validFrom": "2025-03-01",
+      "validTo": "2025-12-31",
+      "entries": [
+        {
+          "productId": "p2",
+          "price": 1150,
+          "uvp": 1500,
+          "minOrderQty": 1,
+          "tariffCode": "84241900",
+          "originCountry": "DE",
+          "languages": "EN,JA"
+        },
+        {
+          "productId": "p5",
+          "price": 990,
+          "uvp": 1350,
+          "minOrderQty": 1,
+          "tariffCode": "84241900",
+          "originCountry": "DE",
+          "languages": "EN,JA"
+        }
+      ]
+    },
+    {
+      "id": "pl6",
+      "name": "Service & Training 2025",
+      "type": "segment",
+      "segmentId": "service",
+      "currency": "EUR",
+      "validFrom": "2025-01-01",
+      "validTo": "2025-12-31",
+      "entries": [
+        {
+          "productId": "p3",
+          "price": 150,
+          "uvp": 180,
+          "minOrderQty": 1,
+          "tariffCode": "998591",
+          "originCountry": "AT",
+          "languages": "DE,EN"
+        },
+        {
+          "productId": "p8",
+          "price": 200,
+          "uvp": 240,
+          "minOrderQty": 1,
+          "tariffCode": "998591",
+          "originCountry": "AT",
+          "languages": "DE,EN"
+        }
       ]
     }
   ],
@@ -240,15 +814,189 @@
       "status": "confirmed",
       "customerReference": "REF-001",
       "items": [
-        { "id": "oi1", "productId": "p1", "qty": 24, "unitPrice": 4.5, "discount": 0, "lineNet": 108 },
-        { "id": "oi2", "productId": "p2", "qty": 1, "unitPrice": 1200, "discount": 0, "lineNet": 1200 }
+        {
+          "id": "oi1",
+          "productId": "p1",
+          "qty": 24,
+          "unitPrice": 4.5,
+          "discount": 0,
+          "lineNet": 108
+        },
+        {
+          "id": "oi2",
+          "productId": "p2",
+          "qty": 1,
+          "unitPrice": 1200,
+          "discount": 0,
+          "lineNet": 1200
+        }
       ],
       "subtotalNet": 1308,
       "vatAmount": 261.6,
       "totalGross": 1569.6,
       "currency": "EUR",
-      "deliveryNoteIds": ["d1"],
-      "invoiceIds": ["i1"]
+      "deliveryNoteIds": [
+        "d1"
+      ],
+      "invoiceIds": [
+        "i1"
+      ]
+    },
+    {
+      "id": "o2",
+      "orderId": "A2025-0081",
+      "custId": "c2",
+      "carrierId": "car2",
+      "createdBy": "u2",
+      "date": "2025-05-18",
+      "plannedDelivery": "2025-05-25",
+      "status": "draft",
+      "customerReference": "LEP-PO-552",
+      "items": [
+        {
+          "id": "oi3",
+          "productId": "p1",
+          "qty": 48,
+          "unitPrice": 5.5,
+          "discount": 0,
+          "lineNet": 264
+        },
+        {
+          "id": "oi4",
+          "productId": "p8",
+          "qty": 2,
+          "unitPrice": 180,
+          "discount": 0,
+          "lineNet": 360
+        }
+      ],
+      "subtotalNet": 624,
+      "vatAmount": 124.8,
+      "totalGross": 748.8,
+      "currency": "EUR",
+      "deliveryNoteIds": [],
+      "invoiceIds": []
+    },
+    {
+      "id": "o3",
+      "orderId": "A2025-0090",
+      "custId": "c3",
+      "carrierId": "car1",
+      "createdBy": "u2",
+      "date": "2025-04-28",
+      "plannedDelivery": "2025-05-05",
+      "status": "completed",
+      "customerReference": "DES-7788",
+      "items": [
+        {
+          "id": "oi5",
+          "productId": "p4",
+          "qty": 60,
+          "unitPrice": 7.125,
+          "discount": 0,
+          "lineNet": 427.5
+        },
+        {
+          "id": "oi6",
+          "productId": "p6",
+          "qty": 10,
+          "unitPrice": 32,
+          "discount": 0,
+          "lineNet": 320
+        }
+      ],
+      "subtotalNet": 747.5,
+      "vatAmount": 149.5,
+      "totalGross": 897,
+      "currency": "EUR",
+      "deliveryNoteIds": [
+        "d2"
+      ],
+      "invoiceIds": [
+        "i2"
+      ]
+    },
+    {
+      "id": "o4",
+      "orderId": "A2025-0095",
+      "custId": "c5",
+      "carrierId": "car3",
+      "createdBy": "u3",
+      "date": "2025-05-20",
+      "plannedDelivery": "2025-06-02",
+      "status": "confirmed",
+      "customerReference": "OSK-PO-1001",
+      "items": [
+        {
+          "id": "oi7",
+          "productId": "p5",
+          "qty": 3,
+          "unitPrice": 990,
+          "discount": 0,
+          "lineNet": 2970
+        },
+        {
+          "id": "oi8",
+          "productId": "p7",
+          "qty": 3,
+          "unitPrice": 95,
+          "discount": 0,
+          "lineNet": 285
+        }
+      ],
+      "subtotalNet": 3255,
+      "vatAmount": 651,
+      "totalGross": 3906,
+      "currency": "EUR",
+      "deliveryNoteIds": [],
+      "invoiceIds": []
+    },
+    {
+      "id": "o5",
+      "orderId": "A2025-0100",
+      "custId": "c4",
+      "carrierId": "car2",
+      "createdBy": "u2",
+      "date": "2025-05-22",
+      "plannedDelivery": "2025-05-28",
+      "status": "processing",
+      "customerReference": "AQB-EMAIL-2405",
+      "items": [
+        {
+          "id": "oi9",
+          "productId": "p4",
+          "qty": 30,
+          "unitPrice": 7.5,
+          "discount": 0,
+          "lineNet": 225
+        },
+        {
+          "id": "oi10",
+          "productId": "p5",
+          "qty": 1,
+          "unitPrice": 1050,
+          "discount": 0,
+          "lineNet": 1050
+        },
+        {
+          "id": "oi11",
+          "productId": "p8",
+          "qty": 1,
+          "unitPrice": 200,
+          "discount": 0,
+          "lineNet": 200
+        }
+      ],
+      "subtotalNet": 1475,
+      "vatAmount": 295,
+      "totalGross": 1770,
+      "currency": "EUR",
+      "deliveryNoteIds": [
+        "d3"
+      ],
+      "invoiceIds": [
+        "i3"
+      ]
     }
   ],
   "documents": [
@@ -264,11 +1012,39 @@
       "paymentTerms": "10 Tage netto",
       "deliveryTerms": "FCA",
       "items": [
-        { "productId": "p1", "articleNumber": "350500", "description": "Flächendesinfektion 500 ml", "qty": 24, "unit": "Flasche", "unitPrice": 4.5, "vatRate": 0.2, "lineNet": 108, "lineVat": 21.6, "lineTotal": 129.6 },
-        { "productId": "p2", "articleNumber": "800100", "description": "Flex Fogging Unit", "qty": 1, "unit": "Stk", "unitPrice": 1200, "vatRate": 0.2, "lineNet": 1200, "lineVat": 240, "lineTotal": 1440 }
+        {
+          "productId": "p1",
+          "articleNumber": "350500",
+          "description": "FlÃ¤chendesinfektion 500 ml",
+          "qty": 24,
+          "unit": "Flasche",
+          "unitPrice": 4.5,
+          "vatRate": 0.2,
+          "lineNet": 108,
+          "lineVat": 21.6,
+          "lineTotal": 129.6
+        },
+        {
+          "productId": "p2",
+          "articleNumber": "800100",
+          "description": "Flex Fogging Unit",
+          "qty": 1,
+          "unit": "Stk",
+          "unitPrice": 1200,
+          "vatRate": 0.2,
+          "lineNet": 1200,
+          "lineVat": 240,
+          "lineTotal": 1440
+        }
       ],
       "netTotal": 1308,
-      "vatSummary": [ { "rate": 0.2, "base": 1308, "amount": 261.6 } ],
+      "vatSummary": [
+        {
+          "rate": 0.2,
+          "base": 1308,
+          "amount": 261.6
+        }
+      ],
       "grossTotal": 1569.6,
       "status": "Sent"
     },
@@ -285,13 +1061,247 @@
       "paymentTerms": "10 Tage netto",
       "deliveryTerms": "FCA",
       "items": [
-        { "productId": "p1", "articleNumber": "350500", "description": "Flächendesinfektion 500 ml", "qty": 24, "unit": "Flasche", "unitPrice": 4.5, "vatRate": 0.2, "lineNet": 108, "lineVat": 21.6, "lineTotal": 129.6 },
-        { "productId": "p2", "articleNumber": "800100", "description": "Flex Fogging Unit", "qty": 1, "unit": "Stk", "unitPrice": 1200, "vatRate": 0.2, "lineNet": 1200, "lineVat": 240, "lineTotal": 1440 }
+        {
+          "productId": "p1",
+          "articleNumber": "350500",
+          "description": "FlÃ¤chendesinfektion 500 ml",
+          "qty": 24,
+          "unit": "Flasche",
+          "unitPrice": 4.5,
+          "vatRate": 0.2,
+          "lineNet": 108,
+          "lineVat": 21.6,
+          "lineTotal": 129.6
+        },
+        {
+          "productId": "p2",
+          "articleNumber": "800100",
+          "description": "Flex Fogging Unit",
+          "qty": 1,
+          "unit": "Stk",
+          "unitPrice": 1200,
+          "vatRate": 0.2,
+          "lineNet": 1200,
+          "lineVat": 240,
+          "lineTotal": 1440
+        }
       ],
       "netTotal": 1308,
-      "vatSummary": [ { "rate": 0.2, "base": 1308, "amount": 261.6 } ],
+      "vatSummary": [
+        {
+          "rate": 0.2,
+          "base": 1308,
+          "amount": 261.6
+        }
+      ],
       "grossTotal": 1569.6,
       "status": "Paid"
+    },
+    {
+      "id": "d2",
+      "type": "delivery",
+      "docNumber": "L20250076",
+      "date": "2025-04-30",
+      "customerId": "c3",
+      "billingAddressId": "a4",
+      "shippingAddressId": "a5",
+      "orderId": "o3",
+      "paymentTerms": "14 Tage netto",
+      "deliveryTerms": "DAP",
+      "items": [
+        {
+          "productId": "p4",
+          "articleNumber": "3501000",
+          "description": "Flächendesinfektion 1 L",
+          "qty": 60,
+          "unit": "Flasche",
+          "unitPrice": 7.125,
+          "vatRate": 0.2,
+          "lineNet": 427.5,
+          "lineVat": 85.5,
+          "lineTotal": 513
+        },
+        {
+          "productId": "p6",
+          "articleNumber": "910050",
+          "description": "Ersatzdüse Flex",
+          "qty": 10,
+          "unit": "Stk",
+          "unitPrice": 32,
+          "vatRate": 0.2,
+          "lineNet": 320,
+          "lineVat": 64,
+          "lineTotal": 384
+        }
+      ],
+      "netTotal": 747.5,
+      "vatSummary": [
+        {
+          "rate": 0.2,
+          "base": 747.5,
+          "amount": 149.5
+        }
+      ],
+      "grossTotal": 897,
+      "status": "Sent"
+    },
+    {
+      "id": "i2",
+      "type": "invoice",
+      "docNumber": "R20250090",
+      "date": "2025-05-02",
+      "customerId": "c3",
+      "billingAddressId": "a4",
+      "shippingAddressId": "a5",
+      "orderId": "o3",
+      "refDeliveryId": "d2",
+      "paymentTerms": "14 Tage netto",
+      "deliveryTerms": "DAP",
+      "items": [
+        {
+          "productId": "p4",
+          "articleNumber": "3501000",
+          "description": "Flächendesinfektion 1 L",
+          "qty": 60,
+          "unit": "Flasche",
+          "unitPrice": 7.125,
+          "vatRate": 0.2,
+          "lineNet": 427.5,
+          "lineVat": 85.5,
+          "lineTotal": 513
+        },
+        {
+          "productId": "p6",
+          "articleNumber": "910050",
+          "description": "Ersatzdüse Flex",
+          "qty": 10,
+          "unit": "Stk",
+          "unitPrice": 32,
+          "vatRate": 0.2,
+          "lineNet": 320,
+          "lineVat": 64,
+          "lineTotal": 384
+        }
+      ],
+      "netTotal": 747.5,
+      "vatSummary": [
+        {
+          "rate": 0.2,
+          "base": 747.5,
+          "amount": 149.5
+        }
+      ],
+      "grossTotal": 897,
+      "status": "Sent"
+    },
+    {
+      "id": "d3",
+      "type": "delivery",
+      "docNumber": "L20250082",
+      "date": "2025-05-23",
+      "customerId": "c4",
+      "billingAddressId": "a6",
+      "shippingAddressId": "a6",
+      "orderId": "o5",
+      "paymentTerms": "45 Tage",
+      "deliveryTerms": "DAP",
+      "items": [
+        {
+          "productId": "p4",
+          "articleNumber": "3501000",
+          "description": "Flächendesinfektion 1 L",
+          "qty": 30,
+          "unit": "Flasche",
+          "unitPrice": 7.5,
+          "vatRate": 0.2,
+          "lineNet": 225,
+          "lineVat": 45,
+          "lineTotal": 270
+        },
+        {
+          "productId": "p5",
+          "articleNumber": "800200",
+          "description": "Compact Fogging Unit",
+          "qty": 1,
+          "unit": "Stk",
+          "unitPrice": 1050,
+          "vatRate": 0.2,
+          "lineNet": 1050,
+          "lineVat": 210,
+          "lineTotal": 1260
+        }
+      ],
+      "netTotal": 1275,
+      "vatSummary": [
+        {
+          "rate": 0.2,
+          "base": 1275,
+          "amount": 255
+        }
+      ],
+      "grossTotal": 1530,
+      "status": "Sent"
+    },
+    {
+      "id": "i3",
+      "type": "invoice",
+      "docNumber": "R20250092",
+      "date": "2025-05-24",
+      "customerId": "c4",
+      "billingAddressId": "a6",
+      "shippingAddressId": "a6",
+      "orderId": "o5",
+      "refDeliveryId": "d3",
+      "paymentTerms": "45 Tage",
+      "deliveryTerms": "DAP",
+      "items": [
+        {
+          "productId": "p4",
+          "articleNumber": "3501000",
+          "description": "Flächendesinfektion 1 L",
+          "qty": 30,
+          "unit": "Flasche",
+          "unitPrice": 7.5,
+          "vatRate": 0.2,
+          "lineNet": 225,
+          "lineVat": 45,
+          "lineTotal": 270
+        },
+        {
+          "productId": "p5",
+          "articleNumber": "800200",
+          "description": "Compact Fogging Unit",
+          "qty": 1,
+          "unit": "Stk",
+          "unitPrice": 1050,
+          "vatRate": 0.2,
+          "lineNet": 1050,
+          "lineVat": 210,
+          "lineTotal": 1260
+        },
+        {
+          "productId": "p8",
+          "articleNumber": "SVC-TRAIN",
+          "description": "Remote Training Session",
+          "qty": 1,
+          "unit": "session",
+          "unitPrice": 200,
+          "vatRate": 0.2,
+          "lineNet": 200,
+          "lineVat": 40,
+          "lineTotal": 240
+        }
+      ],
+      "netTotal": 1475,
+      "vatSummary": [
+        {
+          "rate": 0.2,
+          "base": 1475,
+          "amount": 295
+        }
+      ],
+      "grossTotal": 1770,
+      "status": "Sent"
     }
   ],
   "productionOrders": [
@@ -306,16 +1316,314 @@
       "plannedEnd": "2025-05-25",
       "status": "open",
       "notes": "Prepare 10 units of Flex Fogging Unit"
+    },
+    {
+      "id": "po2",
+      "orderNumber": "PO20250002",
+      "productId": "p1",
+      "quantity": 800,
+      "createdBy": "u4",
+      "createdAt": "2025-05-05",
+      "plannedStart": "2025-05-22",
+      "plannedEnd": "2025-05-28",
+      "status": "inProgress",
+      "notes": "Replenish disinfectant 500 ml"
+    },
+    {
+      "id": "po3",
+      "orderNumber": "PO20250003",
+      "productId": "p5",
+      "quantity": 8,
+      "createdBy": "u4",
+      "createdAt": "2025-04-15",
+      "plannedStart": "2025-04-20",
+      "plannedEnd": "2025-04-27",
+      "status": "completed",
+      "notes": "Batch for Osaka Labs"
     }
   ],
   "movements": [
-    { "id": "m1", "date": "2025-05-01", "type": "receipt", "direction": "in", "productId": "p1", "quantity": 500, "unitPrice": 2.5, "reference": "Goods receipt", "notes": "Initial stock" },
-    { "id": "m2", "date": "2025-05-02", "type": "receipt", "direction": "in", "productId": "p2", "quantity": 20, "unitPrice": 900, "reference": "Goods receipt", "notes": "Initial stock" },
-    { "id": "m3", "date": "2025-05-11", "type": "consumption", "direction": "out", "productId": "p1", "quantity": 24, "unitPrice": 2.5, "reference": "Order o1", "notes": "Consumed for order" },
-    { "id": "m4", "date": "2025-05-11", "type": "consumption", "direction": "out", "productId": "p2", "quantity": 1, "unitPrice": 900, "reference": "Order o1", "notes": "Consumed for order" }
+    {
+      "id": "m1",
+      "date": "2025-05-01",
+      "type": "receipt",
+      "direction": "in",
+      "productId": "p1",
+      "quantity": 500,
+      "unitPrice": 2.5,
+      "reference": "Goods receipt",
+      "notes": "Initial stock"
+    },
+    {
+      "id": "m2",
+      "date": "2025-05-02",
+      "type": "receipt",
+      "direction": "in",
+      "productId": "p2",
+      "quantity": 20,
+      "unitPrice": 900,
+      "reference": "Goods receipt",
+      "notes": "Initial stock"
+    },
+    {
+      "id": "m3",
+      "date": "2025-05-11",
+      "type": "consumption",
+      "direction": "out",
+      "productId": "p1",
+      "quantity": 24,
+      "unitPrice": 2.5,
+      "reference": "Order o1",
+      "notes": "Consumed for order"
+    },
+    {
+      "id": "m4",
+      "date": "2025-05-11",
+      "type": "consumption",
+      "direction": "out",
+      "productId": "p2",
+      "quantity": 1,
+      "unitPrice": 900,
+      "reference": "Order o1",
+      "notes": "Consumed for order"
+    },
+    {
+      "id": "m5",
+      "date": "2025-04-18",
+      "type": "receipt",
+      "direction": "in",
+      "productId": "p4",
+      "quantity": 600,
+      "unitPrice": 4.2,
+      "reference": "Goods receipt",
+      "notes": "1L batch"
+    },
+    {
+      "id": "m6",
+      "date": "2025-04-19",
+      "type": "receipt",
+      "direction": "in",
+      "productId": "p5",
+      "quantity": 10,
+      "unitPrice": 750,
+      "reference": "Production completion",
+      "notes": "PO20250003"
+    },
+    {
+      "id": "m7",
+      "date": "2025-05-02",
+      "type": "consumption",
+      "direction": "out",
+      "productId": "p4",
+      "quantity": 60,
+      "unitPrice": 4.2,
+      "reference": "Order o3",
+      "notes": "Shipped to Destech"
+    },
+    {
+      "id": "m8",
+      "date": "2025-05-02",
+      "type": "consumption",
+      "direction": "out",
+      "productId": "p6",
+      "quantity": 10,
+      "unitPrice": 18,
+      "reference": "Order o3",
+      "notes": "Spare parts"
+    },
+    {
+      "id": "m9",
+      "date": "2025-05-21",
+      "type": "receipt",
+      "direction": "in",
+      "productId": "p7",
+      "quantity": 50,
+      "unitPrice": 50,
+      "reference": "Assembly",
+      "notes": "Maintenance kits"
+    },
+    {
+      "id": "m10",
+      "date": "2025-05-23",
+      "type": "delivery",
+      "direction": "out",
+      "productId": "p4",
+      "quantity": 30,
+      "unitPrice": 7.5,
+      "reference": "L20250082",
+      "notes": "Shipment to Aqualis"
+    },
+    {
+      "id": "m11",
+      "date": "2025-05-23",
+      "type": "delivery",
+      "direction": "out",
+      "productId": "p5",
+      "quantity": 1,
+      "unitPrice": 1050,
+      "reference": "L20250082",
+      "notes": "Shipment to Aqualis"
+    },
+    {
+      "id": "m12",
+      "date": "2025-05-24",
+      "type": "count",
+      "direction": "in",
+      "productId": "p7",
+      "quantity": 5,
+      "unitPrice": 95,
+      "reference": "Cycle count 05/24",
+      "notes": "Positive adjustment after inventory"
+    }
   ],
   "tasks": [
-    { "id": "t1", "title": "Prepare price list 2025", "category": "Pricing", "status": "open", "priority": "medium", "assignedTo": "u2", "dueDate": "2025-05-20", "notes": "Gather all new product prices" },
-    { "id": "t2", "title": "Schedule production for Flex", "category": "Production", "status": "in progress", "priority": "high", "assignedTo": "u4", "dueDate": "2025-05-15", "notes": "Coordinate with suppliers" }
+    {
+      "id": "t1",
+      "title": "Prepare price list 2025",
+      "category": "Pricing",
+      "status": "open",
+      "priority": "medium",
+      "assignedTo": "u2",
+      "dueDate": "2025-05-20",
+      "notes": "Gather all new product prices"
+    },
+    {
+      "id": "t2",
+      "title": "Schedule production for Flex",
+      "category": "Production",
+      "status": "in progress",
+      "priority": "high",
+      "assignedTo": "u4",
+      "dueDate": "2025-05-15",
+      "notes": "Coordinate with suppliers"
+    },
+    {
+      "id": "t3",
+      "title": "Translate UI strings",
+      "category": "Product",
+      "status": "open",
+      "priority": "high",
+      "assignedTo": "u1",
+      "dueDate": "2025-05-30",
+      "notes": "Add FR/ES/PT/JA/ZH dictionaries"
+    },
+    {
+      "id": "t4",
+      "title": "Validate backup encryption",
+      "category": "Infrastructure",
+      "status": "open",
+      "priority": "medium",
+      "assignedTo": "u3",
+      "dueDate": "2025-05-25",
+      "notes": "Run restore drills"
+    },
+    {
+      "id": "t5",
+      "title": "Process Aqualis email order",
+      "category": "Sales",
+      "status": "in progress",
+      "priority": "high",
+      "assignedTo": "u2",
+      "dueDate": "2025-05-24",
+      "notes": "Create order A2025-0100 from email, ship and invoice"
+    },
+    {
+      "id": "t6",
+      "title": "Book PO receipts and update batches",
+      "category": "Warehouse",
+      "status": "open",
+      "priority": "medium",
+      "assignedTo": "u3",
+      "dueDate": "2025-05-26",
+      "notes": "Receive PO-2025-0102 pumps and update batches"
+    }
+  ],
+  "purchaseOrders": [
+    {
+      "id": "po-r1",
+      "poNumber": "PO-2025-0101",
+      "supplierId": "sup1",
+      "status": "sent",
+      "orderDate": "2025-05-18",
+      "expectedDate": "2025-05-30",
+      "lines": [
+        {
+          "itemType": "component",
+          "itemId": "cmp1",
+          "quantity": 5000,
+          "unitPrice": 0.14,
+          "lineNet": 700
+        },
+        {
+          "itemType": "component",
+          "itemId": "cmp2",
+          "quantity": 5000,
+          "unitPrice": 0.05,
+          "lineNet": 250
+        }
+      ],
+      "totalNet": 950,
+      "notes": "Reorder bottles and caps for FL range",
+      "createdAt": "2025-05-18T08:00:00.000Z",
+      "createdBy": "u3"
+    },
+    {
+      "id": "po-r2",
+      "poNumber": "PO-2025-0102",
+      "supplierId": "sup3",
+      "status": "confirmed",
+      "orderDate": "2025-05-19",
+      "expectedDate": "2025-06-05",
+      "lines": [
+        {
+          "itemType": "component",
+          "itemId": "cmp3",
+          "quantity": 20,
+          "unitPrice": 118,
+          "lineNet": 2360
+        },
+        {
+          "itemType": "component",
+          "itemId": "cmp5",
+          "quantity": 30,
+          "unitPrice": 82,
+          "lineNet": 2460
+        }
+      ],
+      "totalNet": 4820,
+      "notes": "Capacity build for Compact units",
+      "createdAt": "2025-05-19T09:15:00.000Z",
+      "createdBy": "u4"
+    }
+  ],
+  "batches": [
+    {
+      "id": "b1",
+      "lotNumber": "LOT-2405-DF500",
+      "productId": "p1",
+      "quantity": 500,
+      "expiryDate": "2027-05-31",
+      "qcStatus": "released",
+      "createdAt": "2025-05-10T10:00:00.000Z"
+    },
+    {
+      "id": "b2",
+      "lotNumber": "LOT-2404-FFU",
+      "productId": "p2",
+      "quantity": 8,
+      "expiryDate": null,
+      "qcStatus": "quarantine",
+      "createdAt": "2025-04-28T09:00:00.000Z",
+      "notes": "Waiting PAT release"
+    },
+    {
+      "id": "b3",
+      "lotNumber": "LOT-2405-HEPA",
+      "componentId": "cmp5",
+      "quantity": 60,
+      "expiryDate": "2026-05-01",
+      "qcStatus": "released",
+      "createdAt": "2025-05-12T12:00:00.000Z"
+    }
   ]
 }

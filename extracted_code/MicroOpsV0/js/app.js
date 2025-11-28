@@ -132,6 +132,45 @@ window.App = window.App || {
     dismissError() {
       App.lastSaveError = null;
       this.updateErrorBanner();
+    },
+    Validation: {
+      clear(root = document) {
+        (root.querySelectorAll('.field-error') || []).forEach((el) => el.remove());
+        (root.querySelectorAll('.input-error') || []).forEach((el) => {
+          el.classList.remove('input-error');
+          el.style.borderColor = '';
+        });
+      },
+      showErrors(rootOrSelector, errors = {}) {
+        const root =
+          typeof rootOrSelector === 'string'
+            ? document.querySelector(rootOrSelector) || document
+            : rootOrSelector || document;
+        this.clear(root);
+        let summary = [];
+        Object.entries(errors || {}).forEach(([field, messages]) => {
+          const target =
+            root.querySelector(`#${field}`) ||
+            root.querySelector(`[name="${field}"]`) ||
+            root.querySelector(`[data-field="${field}"]`);
+          const msgText = Array.isArray(messages) ? messages.join(', ') : String(messages);
+          summary.push(msgText);
+          if (target) {
+            target.classList.add('input-error');
+            target.style.borderColor = 'var(--color-danger)';
+            const errEl = document.createElement('div');
+            errEl.className = 'field-error';
+            errEl.style.cssText = 'color:var(--color-danger); font-size:12px; margin-top:4px;';
+            errEl.textContent = msgText;
+            target.insertAdjacentElement('afterend', errEl);
+          }
+        });
+        return summary.join(' ');
+      },
+      disableIfInvalid(buttonEl, validationResult) {
+        if (!buttonEl) return;
+        buttonEl.disabled = validationResult && validationResult.isValid === false;
+      },
     }
   },
   Utils: {},
@@ -4809,6 +4848,12 @@ App.Services.Keyboard = {
   }
 };
 
+// Default config flags (GA mode disables local-only demo flows unless explicitly enabled).
+App.Config = App.Config || {};
+if (App.Config.localOnlyDemoMode === undefined) {
+  App.Config.localOnlyDemoMode = false;
+}
+
 // Global error boundary
 window.onerror = function(message, source, lineno, colno, error) {
   console.error('Global error:', { message, source, lineno, colno, error });
@@ -5045,6 +5090,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       App.Services.ActivityLog.autoCleanup();
     }
 
+    // Cross-tab change notifications
+    if (App.Services.TabSync) {
+      App.Services.TabSync.subscribe((payload) => {
+        if (!payload || !payload.entity) return;
+        const map = {
+          customer: App.Store?.Customers,
+          product: App.Store?.Products,
+          order: App.Store?.Orders,
+          document: App.Store?.Documents,
+        };
+        const target = map[payload.entity];
+        if (target?.markStale) target.markStale(payload.id);
+        if (target?.load) {
+          // force refresh in background
+          if (payload.entity === 'product') {
+            target.load({}, { force: true });
+          } else {
+            target.load({ force: true });
+          }
+        }
+        App.UI.Toast?.show(App.I18n.t('common.dataUpdated', 'Data changed in another tab; refreshing'), 'info');
+      });
+    }
+
     App.Services.Auth.initLoginScreen();
 
     // End session and auto-backup when user closes/navigates away from page
@@ -5062,19 +5131,75 @@ document.addEventListener('DOMContentLoaded', async () => {
       App.SessionManager.init();
     }
 
-    // Offline/Online status detection
-    window.addEventListener('offline', () => {
-      App.UI.Toast.show(App.I18n.t('common.offlineMode', 'Offline mode - data is saved locally'), 'warning', 5000);
-      const indicator = document.getElementById('offline-indicator');
-      if (indicator) indicator.style.display = 'flex';
-    });
-    window.addEventListener('online', () => {
-      App.UI.Toast.show(App.I18n.t('common.backOnline', 'Back online'), 'success');
-      const indicator = document.getElementById('offline-indicator');
-      if (indicator) indicator.style.display = 'none';
-    });
+    // Central offline indicator + notifications
+    const offlineService = App.Services?.Offline;
+    if (offlineService?.subscribe) {
+      let lastOnline = offlineService.isOnline();
+
+      // Create a lightweight banner to keep the mode visible.
+      let offlineBanner = document.getElementById('offline-banner');
+      if (!offlineBanner) {
+        offlineBanner = document.createElement('div');
+        offlineBanner.id = 'offline-banner';
+        offlineBanner.style.cssText =
+          'display:none; position:sticky; top:0; z-index:1000; padding:8px 12px; background:rgba(239,68,68,0.12); color:#b91c1c; font-size:12px; text-align:center;';
+        offlineBanner.textContent = 'Offline – read + draft only. Posting is disabled until reconnected.';
+        document.body.insertBefore(offlineBanner, document.body.firstChild);
+      }
+
+      offlineService.subscribe((isOnline) => {
+        const indicator = document.getElementById('offline-indicator');
+        if (indicator) {
+          indicator.style.display = isOnline ? 'none' : 'flex';
+          indicator.innerHTML = '<span>🚫</span> Offline – read + draft only';
+        }
+        if (offlineBanner) {
+          offlineBanner.style.display = isOnline ? 'none' : 'block';
+        }
+
+        if (lastOnline !== isOnline) {
+          if (isOnline) {
+            App.UI.Toast.show(
+              App.I18n.t('common.backOnline', 'Back online – you can post shipments/invoices again'),
+              'success'
+            );
+          } else {
+            App.UI.Toast.show(
+              App.I18n.t('common.offlineMode', 'Offline – read + draft only. Posting is blocked.'),
+              'warning',
+              6000
+            );
+          }
+          lastOnline = isOnline;
+        }
+      });
+    }
   } catch (e) {
     console.error(e);
     alert('Failed to initialize MicroOps. Check console for details.');
   }
 });
+
+//==============================================================================
+// Phase 5.1: Module Compatibility Shims
+// Ensures existing app.js code works with extracted modules (config.js, helpers.js)
+//==============================================================================
+
+// Backward compatibility: Merge Config from core/config.js with any inline definitions
+if (window.App && window.App.Config) {
+  // Config module already loaded from js/core/config.js
+  // Preserve any inline overrides that may have been set earlier
+  App.Config.localOnlyDemoMode = App.Config.localOnlyDemoMode !== undefined
+    ? App.Config.localOnlyDemoMode
+    : false;
+}
+
+// Ensure UI helpers from js/ui/helpers.js are integrated
+// These override any inline definitions in app.js for consistency
+if (window.App && window.App.UI) {
+  // Toast, Loading, Validation, and escapeHtml are now provided by js/ui/helpers.js
+  // Keep existing inline definitions as fallback if helper module failed to load
+  if (!App.UI.Toast || !App.UI.Toast.show) {
+    console.warn('[Phase 5.1] UI helpers module not loaded - using inline fallbacks');
+  }
+}

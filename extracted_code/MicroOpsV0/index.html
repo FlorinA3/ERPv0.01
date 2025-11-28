@@ -50,18 +50,9 @@
             <label class="field-label" for="lock-pin">Enter PIN to unlock</label>
             <input id="lock-pin" class="input" type="password" maxlength="4" placeholder="****" autocomplete="off" />
 
-            <button id="lock-unlock-btn" class="btn btn-primary mt-16" onclick="
-                const pin = document.getElementById('lock-pin').value;
-                if (App.Services.Auth.unlock(pin)) {
-                    App.UI.Toast.show('Session unlocked');
-                } else {
-                    document.getElementById('lock-pin').classList.add('shake');
-                    setTimeout(() => document.getElementById('lock-pin').classList.remove('shake'), 500);
-                    App.UI.Toast.show('Invalid PIN');
-                }
-            ">Unlock</button>
+            <button id="lock-unlock-btn" class="btn btn-primary mt-16">Unlock</button>
 
-            <button class="btn btn-ghost" style="margin-top: 8px;" onclick="App.Services.Auth.logout()">
+            <button id="lock-logout-btn" class="btn btn-ghost" style="margin-top: 8px;">
                 Logout
             </button>
         </div>
@@ -103,14 +94,20 @@
     <!-- TOASTS -->
     <div id="toast-container" class="toast-container"></div>
 
-    <!-- (Optional) Icon library – currently not wired into App.UI.Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- MicroOps core modules (load first) -->
+    <script src="js/core/config.js"></script>
+    <script src="js/ui/helpers.js"></script>
+    <script src="js/ui/icons.js"></script>
+    <script src="js/core/lockScreen.js"></script>
 
-    <!-- MicroOps core + data -->
+    <!-- MicroOps main app + data -->
     <script src="js/app.js"></script>
     <script src="js/db.js"></script>
     <script src="js/audit.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/services/offline.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/store/customersStore.js"></script>
     <script src="js/router.js"></script>
 
     <!-- UI helpers -->

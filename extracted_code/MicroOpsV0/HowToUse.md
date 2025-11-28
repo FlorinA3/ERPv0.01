@@ -55,9 +55,11 @@ MicroOps ERP is a lightweight, offline-first Enterprise Resource Planning system
 
 1. Open `index.html` in your browser
 2. On first run, sample data will be loaded automatically
-3. Log in with the default admin account:
-   - **Name**: Admin
-   - **PIN**: 1234
+3. Log in with a demo account:
+   - **Admin User** (full access): PIN `0000`
+   - **Sales User** (sales/documents): PIN `1111`
+   - **Warehouse Mgr** (inventory/POs): PIN `2222`
+   - **Production Lead** (production/inventory): PIN `3333`
 
 ### Data Storage
 
@@ -109,6 +111,21 @@ When locked:
 | **Sales** | Dashboard, Customers, Products, Pricing, Orders, Documents, Reports, Tasks |
 | **Warehouse** | Dashboard, Inventory, Movements, Components, Suppliers, Carriers, Production, Tasks |
 | **Production** | Dashboard, Production, Components, Inventory, Movements, Tasks |
+
+---
+
+## Guided End-to-End Workflows (Demo Data)
+
+Use the preloaded demo data to validate the full process quickly. Each script lives in `tests/` and references real seeded IDs so you can click through without typing everything.
+
+- **Email → Order → Delivery → Invoice** (`tests/01_email_to_invoice.md`): follow order `A2025-0100` for customer *Aqualis Biocare* with delivery `L20250082` and invoice `R20250092`. Touch modules: Orders → Documents → Movements.
+- **Procurement → Receiving → Production** (`tests/02_procurement_and_production.md`): receive POs `PO-2025-0101/0102`, release batches `LOT-2405-*`, and advance production orders `PO20250001/002/003`. Touch modules: Purchase Orders → Batches → Production.
+- **Inventur / Cycle Count** (`tests/03_inventory_cycle.md`): adjust stock for `KIT-PM` (`p7`) and verify movements (e.g., `m12`). Touch modules: Inventory → Movements → Reports.
+
+Tips while running the scripts:
+- Log in with the role that matches the step (Sales PIN `1111`, Warehouse PIN `2222`, Production PIN `3333`).
+- If you previously saved your own data, clear localStorage/IndexedDB or import the provided seed to see these exact IDs.
+- Keep an eye on status badges: Orders should end at `paid`, POs at `received/closed`, production at `completed`, batches at `released`.
 
 ---
 

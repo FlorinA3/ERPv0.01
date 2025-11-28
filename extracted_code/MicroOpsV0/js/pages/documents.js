@@ -1,6 +1,16 @@
 App.UI.Views.Documents = {
   render(root) {
-    const docs = App.Data.documents || [];
+    const state = App.Store?.Documents?.getState?.() || {};
+    const docs = state.items || App.Data.documents || [];
+    const stale = App.Store?.Documents?.isStale?.();
+    if (stale && App.Store?.Documents?.load) {
+      App.Store.Documents.load({ force: true });
+    }
+    const localDemo = App.Config?.localOnlyDemoMode === true;
+    const offline = App.Services?.Offline?.isOffline?.();
+    const lastUpdated = state.lastLoadedAt
+      ? new Date(state.lastLoadedAt).toLocaleTimeString()
+      : App.I18n.t('common.never', 'Never');
     docs.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
     const getPaymentStatus = (doc) => {
@@ -57,6 +67,9 @@ App.UI.Views.Documents = {
             <button class="btn btn-primary" id="btn-add-invoice">+ ${App.I18n.t('documents.createInvoice','Invoice')}</button>
           </div>
         </div>
+        ${!localDemo ? `<div style="margin:0 0 12px; padding:8px 10px; background:var(--color-bg, #f8fafc); border:1px dashed var(--color-border); border-radius:6px; font-size:12px; color:var(--color-text-muted);">
+          Posting/mark-paid actions are backend-only in GA mode. Local/demo-only posting is disabled (set App.Config.localOnlyDemoMode = true for single-user demos only).
+        </div>` : ''}
         <table class="table">
           <thead>
             <tr>
@@ -77,9 +90,11 @@ App.UI.Views.Documents = {
               const isInv = d.type === 'invoice';
               const icon = isInv ? '🧾' : '📦';
               const esc = App.Utils.escapeHtml;
-              const canFinalize = isInv && !d.isFinalized;
+              const canFinalize = isInv && !d.isFinalized && localDemo;
               const canEdit = !d.isFinalized;
-              const canPay = isInv && (d.paidAmount || 0) < (d.grossTotal || 0);
+              const canPay = isInv && (d.paidAmount || 0) < (d.grossTotal || 0) && localDemo;
+              const finalizeDisabled = canFinalize && offline;
+              const payDisabled = canPay && offline;
 
               return `
                 <tr>
@@ -96,8 +111,8 @@ App.UI.Views.Documents = {
                   <td style="text-align:center; white-space:nowrap;">
                     <button class="btn btn-ghost btn-doc-view" data-id="${d.id}" title="${App.I18n.t('common.viewPrint', 'View/Print')}" aria-label="View document">👁️</button>
                     ${canEdit ? `<button class="btn btn-ghost btn-doc-edit" data-id="${d.id}" title="${App.I18n.t('common.edit', 'Edit')}" aria-label="Edit document">✏️</button>` : ''}
-                    ${canFinalize ? `<button class="btn btn-ghost btn-doc-finalize" data-id="${d.id}" title="${App.I18n.t('documents.finalize', 'Finalize Invoice')}" aria-label="Finalize invoice">✅</button>` : ''}
-                    ${canPay ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="${App.I18n.t('common.recordPayment', 'Record Payment')}" aria-label="Record payment">💰</button>` : ''}
+                    ${canFinalize ? `<button class="btn btn-ghost btn-doc-finalize" data-id="${d.id}" title="${finalizeDisabled ? App.I18n.t('common.offlineMode', 'Offline – posting blocked') : App.I18n.t('documents.finalize', 'Finalize Invoice')}" aria-label="Finalize invoice" ${finalizeDisabled ? 'disabled' : ''}>✅</button>` : ''}
+                    ${canPay ? `<button class="btn btn-ghost btn-doc-pay" data-id="${d.id}" title="${payDisabled ? App.I18n.t('common.offlineMode', 'Offline – posting blocked') : App.I18n.t('common.recordPayment', 'Record Payment')}" aria-label="Record payment" ${payDisabled ? 'disabled' : ''}>💰</button>` : ''}
                     ${isInv ? `<button class="btn btn-ghost btn-doc-history" data-id="${d.id}" title="${App.I18n.t('common.paymentHistory', 'Payment History')}" aria-label="Payment history">📋</button>` : ''}
                     ${isInv ? `<button class="btn btn-ghost btn-doc-email" data-id="${d.id}" title="${App.I18n.t('emailTemplate.generateEmail', 'Email Text (Customer)')}" aria-label="Generate customer email">📧</button>` : ''}
                     <button class="btn btn-ghost btn-doc-delete" data-id="${d.id}" title="${App.I18n.t('common.delete', 'Delete')}" aria-label="Delete document">🗑️</button>
@@ -147,6 +162,9 @@ App.UI.Views.Documents = {
 
     // View trash
     document.getElementById('btn-view-trash')?.addEventListener('click', () => this.openTrashModal());
+    document.getElementById('documents-refresh')?.addEventListener('click', () => {
+      App.Store?.Documents?.load?.({ force: true });
+    });
 
     // Search functionality
     const searchInput = document.getElementById('doc-search');
@@ -500,14 +518,13 @@ App.UI.Views.Documents = {
           doc.notes = document.getElementById('edit-doc-notes').value.trim();
           doc.modifiedDate = new Date().toISOString();
 
-          // Validate document
-          if (App.Validate && App.Validate.document) {
-            try {
-              App.Validate.document(doc);
-            } catch (err) {
-              App.UI.Toast.show(err.message, 'error');
-              return false;
-            }
+          const validation = App.Validate?.document
+            ? App.Validate.document(doc)
+            : { isValid: true, errors: {} };
+          const summary = App.UI.Validation.showErrors(document, validation.errors);
+          if (!validation.isValid) {
+            App.UI.Toast.show(summary || App.I18n.t('common.fixValidation', 'Please fix validation errors'), 'error');
+            return false;
           }
 
           App.DB.save();
@@ -533,11 +550,16 @@ App.UI.Views.Documents = {
   },
 
   /**
-   * Finalize an invoice - makes it immutable (GoBD compliance)
+   * Finalize an invoice - makes it immutable (GoBD compliance).
+   * Legacy local-mode path: mutates local App.Data only; remote/GA posting must use backend APIs.
    */
   finalizeInvoice(docId) {
     const doc = App.Data.documents.find(d => d.id === docId);
     if (!doc || doc.type !== 'invoice') return;
+
+    if (!this._assertPostingAllowed('Posting invoices')) {
+      return;
+    }
 
     if (doc.isFinalized) {
       App.UI.Toast.show(App.I18n.t('documents.alreadyFinalized', 'Invoice is already finalized'), 'warning');
@@ -600,6 +622,10 @@ App.UI.Views.Documents = {
   openPaymentModal(docId) {
     const doc = App.Data.documents.find(d => d.id === docId);
     if (!doc) return;
+
+    if (!this._assertPostingAllowed('Recording payments')) {
+      return;
+    }
 
     const remaining = (doc.grossTotal || 0) - (doc.paidAmount || 0);
     const today = new Date().toISOString().split('T')[0];
@@ -841,6 +867,10 @@ App.UI.Views.Documents = {
   },
 
   generateFromOrder(orderId, type) {
+    if (!this._assertPostingAllowed('Generating documents from orders')) {
+      return;
+    }
+
     const o = App.Data.orders.find(x => x.id === orderId);
     if (!o) {
       App.UI.Toast.show('Order not found');
@@ -1557,5 +1587,21 @@ ${conf.companyName || 'MicroOps Global'}
         };
       }
     }, 100);
+  },
+
+  // Guard for posting/mark-paid actions so GA mode blocks legacy local flows and offline attempts.
+  _assertPostingAllowed(reason = 'This action') {
+    if (!App.Config?.localOnlyDemoMode) {
+      App.UI.Toast.show(
+        `${reason} is disabled in GA mode. Enable App.Config.localOnlyDemoMode only for single-user local/demo use.`,
+        'warning'
+      );
+      return false;
+    }
+    if (App.Services?.Offline?.isOffline?.()) {
+      App.UI.Toast.show('Cannot complete this action while offline. Please reconnect and retry.', 'warning');
+      return false;
+    }
+    return true;
   }
 };

@@ -18,9 +18,17 @@ A production-ready, offline-first ERP system for Austrian SMEs, implemented as a
 
 ## Quick Start
 
+**Frontend (demo / local HTML)**
 1. Open `index.html` in a modern browser (Chrome, Edge, Firefox)
 2. Log in with default admin user (PIN: 1234)
 3. Start using the ERP system
+
+**Backend (Node + PostgreSQL)**
+1. Copy `.env.example` to `.env.development` (or `.env`) and fill DB + JWT values
+2. Install deps: `npm ci`
+3. Run migrations: `npm run migrate:db`
+4. Start: `npm run start:prod` (loads `.env.production` when `NODE_ENV=production`)
+5. Full Windows deployment and service setup: see `docs/DEPLOYMENT_WINDOWS.md`
 
 ## Key Features
 
@@ -71,26 +79,55 @@ A production-ready, offline-first ERP system for Austrian SMEs, implemented as a
 ### Technology Stack
 - **Frontend**: Vanilla JavaScript (ES6+), no frameworks
 - **Storage**: IndexedDB (primary) + localStorage (fallback)
-- **Styling**: CSS variables for theming
+- **Design System**: CSS variables for theming, spacing tokens, 6 theme variants
+- **Icons**: Local SVG library (offline-safe, no CDN dependencies)
 - **Printing**: CSS print media queries for A4 documents
 
 ### Code Organization
+
+**Frontend Structure** (Phase 5.1-5.2 - Modularized with Design System):
 ```
 js/
-├── app.js         # Core services, auth, utilities
-├── db.js          # IndexedDB/localStorage abstraction
-├── audit.js       # Audit trail & validation
-├── api.js         # Data access layer abstraction
-├── router.js      # SPA routing
-└── pages/         # Page-specific modules
-    ├── dashboard.js
-    ├── customers.js
-    ├── orders.js
-    ├── products.js
-    ├── documents.js
-    ├── production.js
-    ├── settings.js
+├── core/                  # Core application modules
+│   ├── config.js         # Configuration, debug flags, constants
+│   └── lockScreen.js     # Session lock/unlock event handlers
+├── ui/                    # UI helper utilities
+│   ├── helpers.js        # Toast, Loading, Validation, escapeHtml
+│   ├── icons.js          # Local SVG icon library (40+ icons, offline-safe)
+│   ├── modal.js          # Modal component
+│   ├── navbar.js         # Navigation bar
+│   └── sidebar.js        # Sidebar navigation
+├── services/              # Business logic services
+│   ├── api.js            # Backend API client
+│   └── offline.js        # Offline mode handling
+├── store/                 # State management
+│   ├── customersStore.js
+│   ├── ordersStore.js
+│   └── ...
+├── pages/                 # Page-specific modules
+│   ├── dashboard.js
+│   ├── customers.js
+│   ├── orders.js
+│   ├── products.js
+│   ├── documents.js
+│   ├── inventory.js
+│   ├── production.js
+│   └── settings.js
+├── app.js                 # Main application bootstrap & legacy code
+├── db.js                  # IndexedDB/localStorage abstraction
+├── audit.js               # Audit trail & validation
+└── router.js              # SPA routing
     └── ...
+
+css/
+├── base.css               # Design tokens, theme system, resets
+│                          # - Spacing scale (--space-xs to --space-2xl)
+│                          # - Color tokens (--color-primary, --color-success, etc.)
+│                          # - Border radius, shadows, transitions
+│                          # - 6 theme variants: Dark, Light, Cyberpunk, Vaporwave, Steampunk, Sci-Fi
+├── layout.css             # Page layout, grid system, responsive
+├── components.css         # Reusable UI components (buttons, badges, cards, tables)
+└── theme.css              # Theme-specific overrides (optional)
 ```
 
 ### Key Services
@@ -121,6 +158,19 @@ js/
 - **Warehouse**: Inventory, stock movements, batches
 - **Production**: Production orders, BOM management
 
+## Environment Files
+- Templates live in the repo: `.env.example`, `.env.development`, `.env.test`, `.env.production`.
+- The backend loads `.env.<NODE_ENV>` first, then `.env` as a fallback; keep `.env.production` beside `package.json` on the server.
+- Do not store `.env*` on network shares or in the frontend ZIP; restrict NTFS permissions to the service account and admins.
+- Logging settings: `LOG_DIR`, `LOG_LEVEL`, `LOG_RETENTION_DAYS` control JSON log files with request IDs/user IDs.
+- Backup settings: `BACKUP_ENABLED`, `BACKUP_DIR`, `BACKUP_RETENTION_DAYS` (see `docs/BACKUP_RESTORE_WINDOWS.md`).
+- For Windows deployment, services, and scheduled backups, follow `docs/DEPLOYMENT_WINDOWS.md`.
+
+## Monitoring & Health
+- Structured JSON-per-line logs written to `LOG_DIR` (daily files, retention via `LOG_RETENTION_DAYS`); request IDs returned in responses for correlation.
+- Health endpoints: `GET /api/health` (fast) and `GET /api/health/deep` (heavier) report DB/connectivity and directory checks; non-OK returns HTTP 503.
+- Windows health probe helper: `scripts/check_health_windows.ps1` for Task Scheduler; see deployment/DR docs for scheduling guidance.
+
 ## Compliance
 
 ### Austrian Tax/Legal
@@ -128,6 +178,13 @@ js/
 - Sequential invoice numbering without gaps
 - Invoice immutability after finalization
 - Mandatory invoice contents (UID, payment terms, etc.)
+- Core invariants documented in `INVARIANTS.md` (no negative stock, immutable posted invoices, unique legal numbers)
+
+### Offline behaviour (GA v1)
+- Backend/remote mode is **read + draft only** while offline: browse cached data and fill forms, but posting shipments, invoices/credits, or marking invoices paid requires an online backend call.
+- Any legacy local-only posting or stock adjustment flows are kept for **single-user demo/local mode only** and are not GA; backend posting must be used in multi-user/remote deployments.
+- A future release will add a proper offline write queue; until then the guards ensure offline use cannot violate core invariants.
+- See `SECURITY_GUIDE.md` and `INVARIANTS.md` for the detailed policy and enforcement notes.
 
 ### GoBD/GDPdU Readiness
 - Complete audit trail with timestamps
@@ -144,6 +201,9 @@ js/
 
 - [CHANGELOG.md](./CHANGELOG.md) - Version history
 - [HowToUse.md](./HowToUse.md) - User manual
+- [BACKUP_RESTORE_WINDOWS.md](./docs/BACKUP_RESTORE_WINDOWS.md) - Server-side backups & restores
+- [DR_RUNBOOK_WINDOWS.md](./docs/DR_RUNBOOK_WINDOWS.md) - Disaster recovery playbooks
+- [DEPLOYMENT_WINDOWS.md](./docs/DEPLOYMENT_WINDOWS.md) - On-prem install, logging, and monitoring notes
 - [MICROOPS_SPEC.md](./MICROOPS_SPEC.md) - Technical specification
 - [BLUEPRINT_COMPLETE.md](./BLUEPRINT_COMPLETE.md) - Implementation blueprint
 - [GA_RULES_FULL.md](./GA_RULES_FULL.md) - GA compliance rules

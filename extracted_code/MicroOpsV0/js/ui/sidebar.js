@@ -123,7 +123,7 @@ App.UI.Sidebar = {
         // persist to config
         if (!App.Data.config) App.Data.config = {};
         App.Data.config.collapsedSections = Array.from(this.collapsedSections);
-        App.DB.save();
+        App.DB.scheduleSave ? App.DB.scheduleSave() : App.DB.save();
 
         // update arrow
         const toggleEl = sectionEl.querySelector('.section-toggle');
